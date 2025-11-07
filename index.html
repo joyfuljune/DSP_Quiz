@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSP 随堂测验</title>
+    <title>DSP 课程资料</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             line-height: 1.6;
             color: #333;
-            background-color: #f4f4f4;
+            background-color: #f4f7f9;
             margin: 0;
             padding: 20px;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start; /* 改为flex-start以适应更长的内容 */
             min-height: 100vh;
         }
         .container {
@@ -22,58 +22,108 @@
             width: 100%;
             background-color: #fff;
             padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
         }
         h1 {
             color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
             text-align: center;
+            font-size: 2em;
         }
         ul {
             list-style: none;
             padding: 0;
         }
-        li {
-            margin-bottom: 15px;
-            background-color: #ecf0f1;
+        /* 主章节样式 */
+        .chapter-list > li {
+            margin-bottom: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
             border-radius: 5px;
             transition: all 0.2s ease-in-out;
         }
-        li:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        .chapter-list > li:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left-color: #e74c3c;
         }
+        
         a {
             display: block;
-            padding: 20px;
+            padding: 18px 25px;
             color: #2980b9;
             text-decoration: none;
             font-size: 1.2em;
             font-weight: bold;
         }
         a:hover {
-            color: #3498db;
+            color: #2c3e50;
+        }
+
+        /* 子项目列表样式 */
+        .sub-list {
+            padding-left: 40px; /* 实现缩进 */
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
+        .sub-list li {
+            background-color: #fff;
+            margin-bottom: 8px;
+            border-left: 3px solid #95a5a6;
+            transition: border-color 0.2s;
+        }
+        .sub-list li:hover {
+             border-left-color: #2ecc71;
+        }
+        .sub-list a {
+            padding: 12px 20px;
+            font-size: 1.1em;
+            font-weight: normal;
+            color: #34495e;
+            position: relative;
+        }
+        .sub-list a::before {
+            /* 使用小图标增加辨识度 */
+            content: '📄';
+            margin-right: 10px;
+            font-size: 0.9em;
+        }
+        .sub-list a.quiz::before {
+            content: '✏️';
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>数字信号处理 (DSP) 学习页面</h1>
-        <ul>
+        <h1>数字信号处理 (DSP) 课程资料</h1>
+        <ul class="chapter-list">
+            <li><a href="#">第一章：绪论 (Chp 1)</a></li>
+            
             <li>
-                <!-- ！！！请修改这里！！！ -->
-                <!-- href="您的第一个HTML文件名.html" -->
-                <!-- 链接文字：您想显示的标题 -->
-                <a href="chp2_quiz.html">chp2-Quiz</a>
+                <a href="#">第二章：离散时间信号与系统 (Chp 2)</a>
+                <ul class="sub-list">
+                    <li><a href="chp2_quiz.html" class="quiz">随堂测验 (Quiz 2)</a></li>
+                </ul>
             </li>
+
             <li>
-                <!-- ！！！请修改这里！！！ -->
-                <!-- href="您的第二个HTML文件名.html" -->
-                <a href="chp3_quiz.html">chp3-Quiz</a>
+                <a href="#">第三章：Z变换 (Chp 3)</a>
+                <ul class="sub-list">
+                    <li><a href="dft循环卷积.html">循环卷积详解</a></li>
+                    <li><a href="chp3_quiz.html" class="quiz">随堂测验 (Quiz 3)</a></li>
+                </ul>
             </li>
-            <!-- 如果您有更多页面，请复制上面的 <li>...</li> 块并继续添加 -->
+            
+            <li><a href="#">第四章：离散时间信号的频域表示 (Chp 4)</a></li>
+            <li><a href="#">第五章：变换域中的LTI系统分析 (Chp 5)</a></li>
+            <li><a href="#">第六章：信号的采样 (Chp 6)</a></li>
+            <li><a href="#">第七章：离散傅里叶变换 (Chp 7)</a></li>
+            <li><a href="#">第八章：快速傅里叶变换 (Chp 8)</a></li>
+            <li><a href="#">第九章：IIR滤波器设计 (Chp 9)</a></li>
+            <li><a href="#">第十章：FIR滤波器设计 (Chp 10)</a></li>
         </ul>
     </div>
 </body>
