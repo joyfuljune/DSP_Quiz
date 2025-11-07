@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFT旋转因子与循环卷积详解 (最终增强版)</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+    <style>
+        body { font-family: 'Lato', 'Noto Sans SC', sans-serif; line-height: 1.8; color: #3a3a3a; background-color: #f9fbfd; margin: 0; padding: 0; }
+        .container { max-width: 960px; margin: 30px auto; padding: 20px 40px; background-color: #fff; box-shadow: 0 6px 20px rgba(0,0,0,0.07); border-radius: 10px; }
+        h1, h2, h3, h4 { font-family: 'Lato', sans-serif; font-weight: 700; color: #2c3e50; margin-top: 40px; }
+        h1 { text-align: center; border-bottom: 3px solid #3498db; padding-bottom: 15px; font-size: 2.2em; }
+        h2 { border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; font-size: 1.8em; }
+        h3 { border-left: 4px solid #3498db; padding-left: 15px; font-size: 1.5em; }
+        h4 { border: none; margin-top: 0; color: #34495e; font-size: 1.2em; }
+        strong { font-weight: 700; }
+        code { background-color: #eef2f7; padding: 3px 7px; border-radius: 5px; font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace; color: #e74c3c; font-size: 0.95em; }
+        .canvas-container { text-align: center; margin: 30px 0; padding: 15px; background: #fdfdfd; border-radius: 8px; border: 1px solid #eee;}
+        canvas { border: 1px solid #ddd; border-radius: 8px; cursor: pointer; }
+        .button-container { text-align: center; margin: 20px 0; }
+        .btn { background-color: #3498db; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: bold; transition: all 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn:hover { background-color: #2980b9; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .comparison-table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 1.1em; }
+        .comparison-table th, .comparison-table td { border: 1px solid #ddd; padding: 14px; text-align: center; }
+        .comparison-table th { background-color: #34495e; color: white; }
+        .comparison-table tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        
+        #explanation, #linear-conv-explanation { text-align: center; font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace; font-size: 1.1em; min-height: 50px; margin-top: 20px; color: #2c3e50; padding: 10px; background: #f1f8ff; border-radius: 5px;}
+        #result-container { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+        .result-box {
+            width: 70px; height: 70px; border: 2px solid #1abc9c; background-color: #e8f8f5;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-weight: bold; border-radius: 8px; color: #16a085; font-size: 1.2em;
+            transition: all 0.3s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .result-box.highlight { transform: scale(1.15); border-color: #f1c40f; box-shadow: 0 0 20px rgba(241, 196, 15, 0.7); }
+        .result-box .label { font-size: 0.8em; color: #555; }
+
+        .conv-steps-list { list-style: none; padding: 0; }
+        .conv-step { margin-bottom: 25px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafcff;}
+        .static-row { display: flex; justify-content: center; align-items: center; margin: 10px 0; font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace; font-size: 1.2em;}
+        .static-row-label { width: 150px; text-align: right; padding-right: 10px; }
+        .static-row-content { display: flex; }
+        .static-box { width: 50px; height: 50px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .x-box { background-color: #eaf2f8; border: 2px solid #3498db; }
+        .h-box { background-color: #f5eef8; border: 2px solid #9b59b6; }
+        .result-text { font-weight: bold; color: #16a085; font-size: 1.2em; }
+        .info-box { background-color: #eef8f2; border-left: 5px solid #27ae60; padding: 15px 20px; margin: 20px 0; border-radius: 5px; }
+        .note-box { background-color: #fff9e6; border-left: 5px solid #f39c12; padding: 15px 20px; margin: 20px 0; border-radius: 5px; }
+        .calculation-block { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 8px; margin-top: 15px; }
+        .calculation-block p { margin: 8px 0; }
+
+        .matrix-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; align-items: start; }
+        .matrix-table { border-collapse: collapse; margin: 10px auto; }
+        .matrix-table td { border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 45px; }
+        .matrix-container { text-align: center; }
+        
+        .linear-conv-table { width: 100%; border-collapse: collapse; font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace; margin: 20px 0;}
+        .linear-conv-table td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        .linear-conv-table .header { background: #f2f2f2; font-weight: bold; }
+        .linear-conv-table .label-col { background: #f2f2f2; font-weight: bold; text-align: right; padding-right: 15px; }
+        .linear-conv-table .result-col { background: #e8f8f5; font-weight: bold; color: #16a085; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>DFT旋转因子与循环卷积详解</h1>
+
+    <h2>1. DFT中的旋转因子 (Twiddle Factor)</h2>
+    <h3>定义与几何意义</h3>
+    <p>旋转因子，记为 $W_N$，是DFT定义中的核心复数。它代表了复平面单位圆上的一个基本旋转角度。</p>
+    $$ W_N = e^{-j\frac{2\pi}{N}} = \cos\left(\frac{2\pi}{N}\right) - j\sin\left(\frac{2\pi}{N}\right) $$
+    <p>在DFT的计算公式 $X[k] = \sum_{n=0}^{N-1} x[n] W_N^{kn}$ 中，它的幂 $W_N^{kn}$ 的意义是：</p>
+    $$ W_N^{kn} = (e^{-j\frac{2\pi}{N}})^{kn} = e^{-j\frac{2\pi kn}{N}} $$
+    <p>这代表从复平面的点 (1, 0) 开始，沿着单位圆<strong>顺时针</strong>旋转 $kn$ 个大小为 $\frac{2\pi}{N}$ 的基本角度。这些旋转因子构成了DFT的<strong>正交基</strong>，用于分析信号在不同频率分量上的投影。</p>
+    
+    <h3>交互式可视化 (N=8)</h3>
+    <p>下图展示了当N=8时，8个基本旋转因子 $W_8^k$ 在复平面单位圆上的位置。将鼠标悬停在点上可以查看其详细信息。</p>
+    <div class="canvas-container">
+        <canvas id="twiddleCanvas" width="450" height="450"></canvas>
+    </div>
+    
+    <h2>2. 循环卷积的直观理解：为何称为“循环”？</h2>
+    <p>线性卷积是在一条无限长的直线上进行的，而<strong>循环卷积是在一个圆周上进行的</strong>。这个几何模型是理解其特性的关键。我们可以通过以下四步来形象地理解这个过程：</p>
+    <ol>
+        <li>将序列 $x[n]$ 的N个点均匀地布置在一个固定的<strong>外圈</strong>上。</li>
+        <li>将序列 $h[n]$ 进行<strong>时间反转</strong>，得到 $h[-m \pmod N]$。</li>
+        <li>将反转后的 $h$ 序列布置在一个可旋转的<strong>内圈</strong>上，并与外圈的起始点对齐。</li>
+        <li>计算 $y[0]$：将内外圈对齐的元素相乘再求和。然后，将<strong>内圈顺时针旋转一格</strong>，计算 $y[1]$，如此循环往复，直到计算出所有N个输出点。</li>
+    </ol>
+    
+    <div style="text-align:center; margin: 30px 0;">
+        <svg width="600" height="300" viewbox="0 0 600 300">
+             <defs>
+                <path id="circle-text-outer" d="M 100,150 A 100,100 0 1,1 300,150 A 100,100 0 1,1 100,150"></path>
+                <path id="circle-text-inner" d="M 125,150 A 75,75 0 1,1 275,150 A 75,75 0 1,1 125,150"></path>
+                <g id="inner-circle-group">
+                    <circle cx="200" cy="150" r="75" stroke="#9b59b6" stroke-width="3" fill="none"></circle>
+                    <text font-family="Courier New, monospace" font-size="24" font-weight="bold" fill="#5e3370" stroke="white" stroke-width="0.8px" paint-order="stroke">
+                        <textPath xlink:href="#circle-text-inner" startOffset="5%">h[0]  h[-1]  h[-2] ...</textPath>
+                    </text>
+                    <animateTransform attributeName="transform" type="rotate" from="0 200 150" to="360 200 150" dur="10s" repeatCount="indefinite"></animateTransform>
+                </g>
+            </defs>
+            <circle cx="200" cy="150" r="100" stroke="#3498db" stroke-width="3" fill="none"></circle>
+            <text font-family="Courier New, monospace" font-size="24" font-weight="bold" fill="#21618c" stroke="white" stroke-width="0.8px" paint-order="stroke">
+                <textPath xlink:href="#circle-text-outer" startOffset="5%">x[0]  x[1]  x[2] ... x[N-1]</textPath>
+            </text>
+            <use xlink:href="#inner-circle-group"></use>
+            <text x="350" y="150" font-family="Noto Sans SC, sans-serif" font-size="20" fill="#444">内圈反转后，不断旋转</text>
+        </svg>
+    </div>
+
+    <h2>3. 循环卷积动画 (N=4)</h2>
+    <p>以下动画直观演示了 $x[n] = \{1, 2, 2, 1\}$ 和 $h[n] = \{1, 0, 1, 0\}$ 的4点循环卷积过程。</p>
+    <div class="button-container">
+        <button class="btn" onclick="runCircularConvolutionAnimation()">播放/重置动画</button>
+    </div>
+    <div class="canvas-container">
+        <canvas id="convolutionCanvas" width="400" height="400"></canvas>
+    </div>
+    <div id="explanation">点击按钮开始动画</div>
+    <div id="result-container"></div>
+
+    <h2>4. 循环卷积计算过程</h2>
+    <p>循环卷积的数学定义为：</p>
+    $$ y[n] = x[n] \circledast_N h[n] = \sum_{m=0}^{N-1} x[m] h[(n-m) \pmod N] $$
+    <div class="note-box">
+        <h4>💡 什么是模运算 (mod N)？</h4>
+        <p>模运算（Modulo Operation）是求余数的过程。在处理序列索引时，它确保索引始终落在 <code>[0, N-1]</code> 的范围内，就像时钟一样。</p>
+        <p>假设我们有一个长度为 N=4 的序列 $h[n] = \{h_0, h_1, h_2, h_3\}$。当我们访问超出范围的索引时：</p>
+        <ul>
+            <li><strong>正向循环</strong>：索引 $h[4]$ 实际上是 $h[4 \pmod 4] = h[0]$。$h[8]$ 实际上是 $h[8 \pmod 4] = h[0]$。</li>
+            <li><strong>反向循环</strong>：索引 $h[-1]$ 实际上是 $h[-1 \pmod 4] = h[3]$。$h[-8]$ 实际上是 $h[-8 \pmod 4] = h[0]$。</li>
+        </ul>
+        <p>这正是“循环”或“周期”特性的数学体现。</p>
+    </div>
+
+    <h3>方法一：时域分步计算图示</h3>
+    <ol class="conv-steps-list">
+        <li class="conv-step">
+            <h4>计算 y[0]: (h序列初始对齐)</h4>
+            <div class="static-row"><div class="static-row-label">$x[m]$:</div><div class="static-row-content"><div class="static-box x-box">1</div><div class="static-box x-box">2</div><div class="static-box x-box">2</div><div class="static-box x-box">1</div></div></div>
+            <div class="static-row"><div class="static-row-label">$h[-m]$:</div><div class="static-row-content"><div class="static-box h-box">1</div><div class="static-box h-box">0</div><div class="static-box h-box">1</div><div class="static-box h-box">0</div></div></div>
+            <div class="static-row" style="border-top: 1px solid #ccc; padding-top: 10px;">(1×1)+(2×0)+(2×1)+(1×0) = <strong class="result-text">3</strong></div>
+        </li>
+        <li class="conv-step">
+            <h4>计算 y[1]: (h序列循环右移一位)</h4>
+            <div class="static-row"><div class="static-row-label">$x[m]$:</div><div class="static-row-content"><div class="static-box x-box">1</div><div class="static-box x-box">2</div><div class="static-box x-box">2</div><div class="static-box x-box">1</div></div></div>
+            <div class="static-row"><div class="static-row-label">$h[1-m]$:</div><div class="static-row-content"><div class="static-box h-box">0</div><div class="static-box h-box">1</div><div class="static-box h-box">0</div><div class="static-box h-box">1</div></div></div>
+            <div class="static-row" style="border-top: 1px solid #ccc; padding-top: 10px;">(1×0)+(2×1)+(2×0)+(1×1) = <strong class="result-text">3</strong></div>
+        </li>
+        <li class="conv-step">
+            <h4>计算 y[2]: (h序列再循环右移一位)</h4>
+            <div class="static-row"><div class="static-row-label">$x[m]$:</div><div class="static-row-content"><div class="static-box x-box">1</div><div class="static-box x-box">2</div><div class="static-box x-box">2</div><div class="static-box x-box">1</div></div></div>
+            <div class="static-row"><div class="static-row-label">$h[2-m]$:</div><div class="static-row-content"><div class="static-box h-box">1</div><div class="static-box h-box">0</div><div class="static-box h-box">1</div><div class="static-box h-box">0</div></div></div>
+            <div class="static-row" style="border-top: 1px solid #ccc; padding-top: 10px;">(1×1)+(2×0)+(2×1)+(1×0) = <strong class="result-text">3</strong></div>
+        </li>
+        <li class="conv-step">
+            <h4>计算 y[3]: (h序列再循环右移一位)</h4>
+            <div class="static-row"><div class="static-row-label">$x[m]$:</div><div class="static-row-content"><div class="static-box x-box">1</div><div class="static-box x-box">2</div><div class="static-box x-box">2</div><div class="static-box x-box">1</div></div></div>
+            <div class="static-row"><div class="static-row-label">$h[3-m]$:</div><div class="static-row-content"><div class="static-box h-box">0</div><div class="static-box h-box">1</div><div class="static-box h-box">0</div><div class="static-box h-box">1</div></div></div>
+            <div class="static-row" style="border-top: 1px solid #ccc; padding-top: 10px;">(1×0)+(2×1)+(2×0)+(1×1) = <strong class="result-text">3</strong></div>
+        </li>
+    </ol>
+    <div class="info-box"><strong>最终结果：$y[n] = \{3, 3, 3, 3\}$</strong></div>
+    
+    <h3>方法二：频域计算 (DFT法)</h3>
+    <p>该方法基于离散卷积定理：<strong>时域的循环卷积等价于频域的乘积</strong>。</p>
+    
+    <div class="calculation-block">
+        <h4>步骤1.1: 计算 $X[k] = \text{DFT}(\{1, 2, 2, 1\})$</h4>
+        <p>$X[k] = \sum_{n=0}^{3} x[n] W_4^{kn}$, 其中 $W_4^0=1, W_4^1=-j, W_4^2=-1, W_4^3=j$</p>
+        <p>$X[0] = 1(1) + 2(1) + 2(1) + 1(1) = 6$</p>
+        <p>$X[1] = 1(W_4^0) + 2(W_4^1) + 2(W_4^2) + 1(W_4^3) = 1(1) + 2(-j) + 2(-1) + 1(j) = -1 - j$</p>
+        <p>$X[2] = 1(W_4^0) + 2(W_4^2) + 2(W_4^4) + 1(W_4^6) = 1(1) + 2(-1) + 2(1) + 1(-1) = 0$</p>
+        <p>$X[3] = 1(W_4^0) + 2(W_4^3) + 2(W_4^6) + 1(W_4^9) = 1(1) + 2(j) + 2(-1) + 1(-j) = -1 + j$</p>
+        <p><strong>结果: $X[k] = \{6, -1-j, 0, -1+j\}$</strong></p>
+    </div>
+    
+    <div class="calculation-block">
+        <h4>步骤1.2: 计算 $H[k] = \text{DFT}(\{1, 0, 1, 0\})$</h4>
+        <p>$H[k] = \sum_{n=0}^{3} h[n] W_4^{kn}$</p>
+        <p>$H[0] = 1(1) + 0(1) + 1(1) + 0(1) = 2$</p>
+        <p>$H[1] = 1(W_4^0) + 0(W_4^1) + 1(W_4^2) + 0(W_4^3) = 1(1) + 1(-1) = 0$</p>
+        <p>$H[2] = 1(W_4^0) + 0(W_4^2) + 1(W_4^4) + 0(W_4^6) = 1(1) + 1(1) = 2$</p>
+        <p>$H[3] = 1(W_4^0) + 0(W_4^3) + 1(W_4^6) + 0(W_4^9) = 1(1) + 1(-1) = 0$</p>
+        <p><strong>结果: $H[k] = \{2, 0, 2, 0\}$</strong></p>
+    </div>
+
+    <div class="calculation-block">
+        <h4>步骤2: 在频域进行元素级乘积 $Y[k] = X[k] \cdot H[k]$</h4>
+        <p>$Y[0] = 6 \times 2 = 12$</p>
+        <p>$Y[1] = (-1-j) \times 0 = 0$</p>
+        <p>$Y[2] = 0 \times 2 = 0$</p>
+        <p>$Y[3] = (-1+j) \times 0 = 0$</p>
+        <p><strong>结果: $Y[k] = \{12, 0, 0, 0\}$</strong></p>
+    </div>
+
+    <div class="calculation-block">
+        <h4>步骤3: 对乘积结果进行逆DFT (IDFT)</h4>
+        <p>计算 $y[n] = \text{IDFT}(Y[k]) = \frac{1}{4}\sum_{k=0}^{3} Y[k] W_4^{-kn}$</p>
+        <p>由于只有$Y[0]$不为零，公式简化为 $y[n] = \frac{1}{4}(Y[0]W_4^{-0n}) = \frac{1}{4}(12 \cdot 1) = 3$</p>
+        <p>这个结果对所有n (0, 1, 2, 3) 都成立，所以最终得到 <strong>$y[n] = \{3, 3, 3, 3\}$</strong>。</p>
+    </div>
+
+    <h3>方法三：矩阵形式的DFT</h3>
+    <p>DFT的求和运算可以等效地写成矩阵与向量的乘法形式，这在理论分析和算法实现（如FFT）中都非常重要。</p>
+    $$ \begin{bmatrix} X[0] \\ X[1] \\ \vdots \\ X[N-1] \end{bmatrix} = \begin{bmatrix} W_N^{0} & W_N^{0} & \cdots & W_N^{0} \\ W_N^{0} & W_N^{1} & \cdots & W_N^{N-1} \\ \vdots & \vdots & \ddots & \vdots \\ W_N^{0} & W_N^{N-1} & \cdots & W_N^{(N-1)^2} \end{bmatrix} \begin{bmatrix} x[0] \\ x[1] \\ \vdots \\ x[N-1] \end{bmatrix} $$
+    <p>这个核心的方阵被称为<strong>DFT矩阵</strong>。下面展示了一些常见N值的DFT矩阵及其具体数值。</p>
+    
+    <div class="matrix-grid">
+        <div class="matrix-container">
+            <h4>N=2</h4>
+            <strong>符号矩阵</strong>
+            <table class="matrix-table">
+                <tr><td>$W_2^0$</td><td>$W_2^0$</td></tr>
+                <tr><td>$W_2^0$</td><td>$W_2^1$</td></tr>
+            </table>
+            <strong>数值矩阵</strong>
+            <table class="matrix-table">
+                <tr><td>$1$</td><td>$1$</td></tr>
+                <tr><td>$1$</td><td>$-1$</td></tr>
+            </table>
+        </div>
+        <div class="matrix-container">
+            <h4>N=3</h4>
+            <strong>符号矩阵</strong>
+            <table class="matrix-table">
+                <tr><td>$W_3^0$</td><td>$W_3^0$</td><td>$W_3^0$</td></tr>
+                <tr><td>$W_3^0$</td><td>$W_3^1$</td><td>$W_3^2$</td></tr>
+                <tr><td>$W_3^0$</td><td>$W_3^2$</td><td>$W_3^4$</td></tr>
+            </table>
+            <strong>数值矩阵</strong>
+            <table class="matrix-table">
+                <tr><td>$1$</td><td>$1$</td><td>$1$</td></tr>
+                <tr><td>$1$</td><td>$e^{-j2\pi/3}$</td><td>$e^{-j4\pi/3}$</td></tr>
+                <tr><td>$1$</td><td>$e^{-j4\pi/3}$</td><td>$e^{-j8\pi/3}$</td></tr>
+            </table>
+        </div>
+        <div class="matrix-container">
+            <h4>N=4</h4>
+            <strong>符号矩阵</strong>
+            <table class="matrix-table">
+                <tr><td>$W_4^0$</td><td>$W_4^0$</td><td>$W_4^0$</td><td>$W_4^0$</td></tr>
+                <tr><td>$W_4^0$</td><td>$W_4^1$</td><td>$W_4^2$</td><td>$W_4^3$</td></tr>
+                <tr><td>$W_4^0$</td><td>$W_4^2$</td><td>$W_4^4$</td><td>$W_4^6$</td></tr>
+                <tr><td>$W_4^0$</td><td>$W_4^3$</td><td>$W_4^6$</td><td>$W_4^9$</td></tr>
+            </table>
+            <strong>数值矩阵</strong>
+            <table class="matrix-table">
+                <tr><td>$1$</td><td>$1$</td><td>$1$</td><td>$1$</td></tr>
+                <tr><td>$1$</td><td>$-j$</td><td>$-1$</td><td>$j$</td></tr>
+                <tr><td>$1$</td><td>$-1$</td><td>$1$</td><td>$-1$</td></tr>
+                <tr><td>$1$</td><td>$j$</td><td>$-1$</td><td>$-j$</td></tr>
+            </table>
+        </div>
+    </div>
+    <div class="matrix-container" style="margin-top: 30px;">
+        <h4>N=8 的DFT矩阵 (符号)</h4>
+        <table class="matrix-table" style="font-size: 0.9em; margin: 10px auto;">
+            <tbody><tr><th>k\n</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th></tr>
+            <tr><th>0</th><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td></tr>
+            <tr><th>1</th><td>$W_8^0$</td><td>$W_8^1$</td><td>$W_8^2$</td><td>$W_8^3$</td><td>$W_8^4$</td><td>$W_8^5$</td><td>$W_8^6$</td><td>$W_8^7$</td></tr>
+            <tr><th>2</th><td>$W_8^0$</td><td>$W_8^2$</td><td>$W_8^4$</td><td>$W_8^6$</td><td>$W_8^8$</td><td>$W_8^{10}$</td><td>$W_8^{12}$</td><td>$W_8^{14}$</td></tr>
+            <tr><th>3</th><td>$W_8^0$</td><td>$W_8^3$</td><td>$W_8^6$</td><td>$W_8^9$</td><td>$W_8^{12}$</td><td>$W_8^{15}$</td><td>$W_8^{18}$</td><td>$W_8^{21}$</td></tr>
+            <tr><th>4</th><td>$W_8^0$</td><td>$W_8^4$</td><td>$W_8^8$</td><td>$W_8^{12}$</td><td>$W_8^{16}$</td><td>$W_8^{20}$</td><td>$W_8^{24}$</td><td>$W_8^{28}$</td></tr>
+            <tr><th>5</th><td>$W_8^0$</td><td>$W_8^5$</td><td>$W_8^{10}$</td><td>$W_8^{15}$</td><td>$W_8^{20}$</td><td>$W_8^{25}$</td><td>$W_8^{30}$</td><td>$W_8^{35}$</td></tr>
+            <tr><th>6</th><td>$W_8^0$</td><td>$W_8^6$</td><td>$W_8^{12}$</td><td>$W_8^{18}$</td><td>$W_8^{24}$</td><td>$W_8^{30}$</td><td>$W_8^{36}$</td><td>$W_8^{42}$</td></tr>
+            <tr><th>7</th><td>$W_8^0$</td><td>$W_8^7$</td><td>$W_8^{14}$</td><td>$W_8^{21}$</td><td>$W_8^{28}$</td><td>$W_8^{35}$</td><td>$W_8^{42}$</td><td>$W_8^{49}$</td></tr>
+        </tbody></table>
+    </div>
+
+    <h2>5. 线性卷积 (Linear Convolution) 回顾</h2>
+    <h3>理论与动画</h3>
+    <p>线性卷积可以想象成一个序列反转后，在另一个序列上“滑窗相乘求和”的过程。其结果的长度为 $L = N_1 + N_2 - 1$。</p>
+    <div class="button-container">
+        <button class="btn" onclick="runLinearConvolutionAnimation()">播放/重置线性卷积动画</button>
+    </div>
+    <div class="canvas-container">
+        <canvas id="linearConvolutionCanvas" width="800" height="300"></canvas>
+    </div>
+    <div id="linear-conv-explanation">点击按钮开始动画</div>
+
+    <h3>表格计算法</h3>
+    <p>对于 $x[n] = \{1, 2, 2, 1\}$ 和 $h[n] = \{1, 0, 1, 0\}$，结果长度为 $L = 4+4-1=7$。表格法可以清晰地展示每一步的计算：</p>
+    <table class="linear-conv-table">
+        <tbody>
+            <tr><td class="label-col">$x[m]$</td><td></td><td>1</td><td>2</td><td>2</td><td>1</td><td></td><td></td><td></td><td></td></tr>
+            <tr><td class="label-col">$h[-m]$ (反转)</td><td>...</td><td>0</td><td>1</td><td>0</td><td>1</td><td>...</td><td></td><td></td><td></td></tr>
+            <tr style="height:20px;"></tr>
+            <tr class="header"><td class="label-col">计算步骤</td><td colspan="8">序列 $h[n-m]$ (滑动)</td><td class="result-col">y[n]</td></tr>
+            <tr><td class="label-col">$y[0]$</td><td>...</td><td style="background:#e8daef">1</td><td style="background:#aed6f1">0</td><td style="background:#aed6f1">1</td><td style="background:#aed6f1">0</td><td>...</td><td></td><td></td><td>$1 \times 1 = 1$</td><td class="result-col">1</td></tr>
+            <tr><td class="label-col">$y[1]$</td><td>...</td><td>1</td><td style="background:#e8daef">0</td><td style="background:#aed6f1">1</td><td style="background:#aed6f1">0</td><td>...</td><td></td><td></td><td>$1 \times 0 + 2 \times 1 = 2$</td><td class="result-col">2</td></tr>
+            <tr><td class="label-col">$y[2]$</td><td>...</td><td></td><td>1</td><td style="background:#e8daef">0</td><td style="background:#aed6f1">1</td><td style="background:#aed6f1">0</td><td>...</td><td></td><td>$1 \times 1 + 2 \times 0 + 2 \times 1 = 3$</td><td class="result-col">3</td></tr>
+            <tr><td class="label-col">$y[3]$</td><td>...</td><td></td><td></td><td>1</td><td style="background:#e8daef">0</td><td style="background:#aed6f1">1</td><td style="background:#aed6f1">0</td><td>...</td><td>$1 \times 0 + 2 \times 1 + 2 \times 0 + 1 \times 1 = 3$</td><td class="result-col">3</td></tr>
+            <tr><td class="label-col">$y[4]$</td><td>...</td><td></td><td></td><td></td><td>1</td><td style="background:#e8daef">0</td><td style="background:#aed6f1">1</td><td>0</td><td>$2 \times 0 + 2 \times 1 + 1 \times 0 = 2$</td><td class="result-col">2</td></tr>
+            <tr><td class="label-col">$y[5]$</td><td>...</td><td></td><td></td><td></td><td></td><td>1</td><td style="background:#e8daef">0</td><td>1</td><td>$2 \times 0 + 1 \times 1 = 1$</td><td class="result-col">1</td></tr>
+            <tr><td class="label-col">$y[6]$</td><td>...</td><td></td><td></td><td></td><td></td><td></td><td>1</td><td>0</td><td>$1 \times 0 = 0$</td><td class="result-col">0</td></tr>
+        </tbody>
+    </table>
+
+    <h2>6. 对比与结论</h2>
+    <table class="comparison-table">
+        <thead><tr><th>卷积类型</th><th>结果序列</th><th>长度</th></tr></thead>
+        <tbody>
+            <tr><td><strong>4点循环卷积</strong></td><td><code>{3, 3, 3, 3}</code></td><td>4</td></tr>
+            <tr><td><strong>线性卷积</strong></td><td><code>{1, 2, 3, 3, 2, 1, 0}</code></td><td>7</td></tr>
+        </tbody>
+    </table>
+    
+    <h3>结果差异的根源：周期延拓混叠</h3>
+    <p>循环卷积的结果与线性卷积不同，是因为DFT隐含地将信号视为无限周期序列。这导致线性卷积结果中超出N个点的部分（“尾部”）会“卷绕”回来，与结果的“头部”相加。这个效应称为<strong>周期延拓混叠 (Periodic Extension Aliasing)</strong>。</p>
+    <p>我们可以通过将线性卷积的结果以周期N=4进行叠加来验证：</p>
+    <div style="font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace; font-size: 1.1em; background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px auto; max-width: 550px;">
+        <div style="display: flex; justify-content: flex-start; margin-bottom: 5px;">
+            <div style="width: 160px; color: #555;">线性结果:</div>
+            <div class="static-box x-box" style="width: 40px; height: 40px;">1</div>
+            <div class="static-box x-box" style="width: 40px; height: 40px;">2</div>
+            <div class="static-box x-box" style="width: 40px; height: 40px;">3</div>
+            <div class="static-box x-box" style="width: 40px; height: 40px;">3</div>
+            <div class="static-box h-box" style="width: 40px; height: 40px; opacity: 0.5;">2</div>
+            <div class="static-box h-box" style="width: 40px; height: 40px; opacity: 0.5;">1</div>
+            <div class="static-box h-box" style="width: 40px; height: 40px; opacity: 0.5;">0</div>
+        </div>
+        <div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">
+            <div style="width: 160px; color: #555;">卷绕部分:</div>
+            <div style="width: 180px; text-align: center; font-size: 1.5em; color: #555;">+</div>
+            <div class="static-box h-box" style="width: 40px; height: 40px;">2</div>
+            <div class="static-box h-box" style="width: 40px; height: 40px;">1</div>
+            <div class="static-box h-box" style="width: 40px; height: 40px;">0</div>
+        </div>
+        <hr style="border: 0; border-top: 2px dashed #ccc; margin: 10px 0;">
+        <div style="display: flex; justify-content: flex-start;">
+            <div style="width: 160px; color: #16a085; font-weight: bold;">循环结果:</div>
+            <div class="static-box" style="width: 40px; height: 40px; background-color:#e8f8f5; border: 2px solid #1abc9c;">3</div>
+            <div class="static-box" style="width: 40px; height: 40px; background-color:#e8f8f5; border: 2px solid #1abc9c;">3</div>
+            <div class="static-box" style="width: 40px; height: 40px; background-color:#e8f8f5; border: 2px solid #1abc9c;">3</div>
+            <div class="static-box" style="width: 40px; height: 40px; background-color:#e8f8f5; border: 2px solid #1abc9c;">3</div>
+        </div>
+    </div>
+    <p>这完美地解释了两个结果之间的关系。为了用循环卷积计算线性卷积，需要对原始信号进行<strong>补零 (Zero Padding)</strong>，使它们的长度至少为 $N_1+N_2-1$。</p>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- 1. Twiddle Factor Canvas Drawing ---
+        function drawTwiddleFactors() {
+            const canvas = document.getElementById('twiddleCanvas');
+            if (!canvas || !canvas.getContext) return;
+            const ctx = canvas.getContext('2d');
+            const N = 8;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2 - 60;
+            let hoveredIndex = -1;
+
+            const points = [];
+            for (let k = 0; k < N; k++) {
+                const angle = -k * 2 * Math.PI / N;
+                points.push({
+                    x: centerX + radius * Math.cos(angle),
+                    y: centerY + radius * Math.sin(angle),
+                    angle_rad: -angle,
+                });
+            }
+            
+            function redraw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.beginPath();
+                ctx.moveTo(0, centerY); ctx.lineTo(canvas.width, centerY);
+                ctx.moveTo(centerX, 0); ctx.lineTo(centerX, canvas.height);
+                ctx.strokeStyle = '#bdc3c7'; ctx.stroke();
+                ctx.fillStyle = '#7f8c8d'; ctx.font = '14px Lato';
+                ctx.fillText('Real', canvas.width - 40, centerY - 10);
+                ctx.fillText('Imaginary', centerX + 10, 20);
+
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.setLineDash([5, 5]); ctx.strokeStyle = '#7f8c8d'; ctx.stroke(); ctx.setLineDash([]);
+
+                points.forEach((p, k) => {
+                    const isHovered = (k === hoveredIndex);
+                    ctx.beginPath(); ctx.moveTo(centerX, centerY); ctx.lineTo(p.x, p.y);
+                    ctx.strokeStyle = isHovered ? '#2980b9' : 'rgba(52, 152, 219, 0.5)';
+                    ctx.lineWidth = isHovered ? 2.5 : 1.5;
+                    ctx.stroke();
+                    ctx.beginPath(); ctx.arc(p.x, p.y, isHovered ? 8 : 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = isHovered ? '#3498db' : '#e74c3c'; ctx.fill();
+                    ctx.fillStyle = isHovered ? '#2c3e50' : '#7f8c8d';
+                    ctx.font = isHovered ? 'bold 16px Lato' : '14px Lato';
+                    const textX = centerX + (radius + 35) * Math.cos(-p.angle_rad);
+                    const textY = centerY - (radius + 35) * Math.sin(-p.angle_rad);
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(`W\u2088^${k}`, textX, textY);
+                });
+                
+                if (hoveredIndex !== -1) {
+                    const p = points[hoveredIndex];
+                    const re = Math.cos(p.angle_rad).toFixed(3);
+                    const im = Math.sin(p.angle_rad).toFixed(3);
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.font = 'bold 14px "Courier New"';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`Value: ${re} + j(${im})`, 20, 30);
+                    ctx.fillText(`Angle: ${(p.angle_rad * 180 / Math.PI).toFixed(1)}°`, 20, 50);
+                }
+            }
+            redraw();
+            
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                let found = false;
+                for (let k = 0; k < points.length; k++) {
+                    const dx = mouseX - points[k].x;
+                    const dy = mouseY - points[k].y;
+                    if (dx * dx + dy * dy < 15 * 15) {
+                        if (hoveredIndex !== k) {
+                            hoveredIndex = k;
+                            redraw();
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && hoveredIndex !== -1) {
+                    hoveredIndex = -1;
+                    redraw();
+                }
+            });
+            canvas.addEventListener('mouseleave', () => {
+                 hoveredIndex = -1;
+                 redraw();
+            });
+        }
+        
+        // --- 2. Circular Convolution Canvas Animation ---
+        const convCanvas = document.getElementById('convolutionCanvas');
+        if (convCanvas) {
+            const convCtx = convCanvas.getContext('2d');
+            const x_seq_circ = [1, 2, 2, 1];
+            const h_seq_circ = [1, 0, 1, 0];
+            const N_conv_circ = 4;
+            const h_flipped_circ = [h_seq_circ[0], h_seq_circ[3], h_seq_circ[2], h_seq_circ[1]];
+            let anim_circ_state = { id: null };
+            
+            const resultContainer = document.getElementById('result-container');
+            resultContainer.innerHTML = '';
+            for(let i=0; i<N_conv_circ; i++) {
+                resultContainer.innerHTML += `<div class="result-box" id="y_res_${i}"><span class="label">y[${i}]</span><span class="value">?</span></div>`;
+            }
+
+            function drawConvolutionState(rotation_n = 0, highlight_m = -1) {
+                const centerX = convCanvas.width / 2;
+                const centerY = convCanvas.height / 2;
+                const R_outer = 160, R_inner = 100, box_size = 50;
+                
+                convCtx.clearRect(0, 0, convCanvas.width, convCanvas.height);
+                
+                for (let m = 0; m < N_conv_circ; m++) {
+                    const angle = (m / N_conv_circ) * 2 * Math.PI - Math.PI / 2;
+                    const x_outer = centerX + R_outer * Math.cos(angle);
+                    const y_outer = centerY + R_outer * Math.sin(angle);
+                    drawCircleBox(convCtx, x_outer, y_outer, box_size, x_seq_circ[m], '#aed6f1', '#3498db', m === highlight_m);
+                }
+
+                convCtx.save();
+                convCtx.translate(centerX, centerY);
+                convCtx.rotate((rotation_n / N_conv_circ) * 2 * Math.PI);
+                convCtx.translate(-centerX, -centerY);
+                
+                for (let m = 0; m < N_conv_circ; m++) {
+                    const angle = (m / N_conv_circ) * 2 * Math.PI - Math.PI / 2;
+                    const x_inner = centerX + R_inner * Math.cos(angle);
+                    const y_inner = centerY + R_inner * Math.sin(angle);
+                    const aligned_m = (m + Math.round(rotation_n)) % N_conv_circ;
+                    drawCircleBox(convCtx, x_inner, y_inner, box_size, h_flipped_circ[m], '#e8daef', '#9b59b6', aligned_m === highlight_m);
+                }
+                convCtx.restore();
+            }
+
+            function drawCircleBox(ctx, x, y, size, text, bgColor, borderColor, isHighlighted) {
+                ctx.beginPath();
+                ctx.arc(x, y, size / 2, 0, 2 * Math.PI);
+                ctx.fillStyle = bgColor;
+                ctx.fill();
+                ctx.strokeStyle = isHighlighted ? '#f1c40f' : borderColor;
+                ctx.lineWidth = isHighlighted ? 4 : 2;
+                ctx.stroke();
+                ctx.fillStyle = '#2c3e50'; ctx.font = 'bold 20px Lato';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(text, x, y);
+            }
+
+            window.runCircularConvolutionAnimation = function() {
+                if (anim_circ_state.id) cancelAnimationFrame(anim_circ_state.id);
+                const explanation_div = document.getElementById('explanation');
+
+                for(let i=0; i<N_conv_circ; i++) {
+                    const resBox = document.getElementById(`y_res_${i}`);
+                    resBox.querySelector('.value').textContent = '?';
+                    resBox.classList.remove('highlight');
+                }
+                drawConvolutionState(0);
+                
+                function animateStep(n) {
+                    if (n >= N_conv_circ) {
+                        explanation_div.innerHTML = `<strong>计算完成! y = {3, 3, 3, 3}</strong>`;
+                        return;
+                    }
+
+                    document.querySelectorAll('.result-box.highlight').forEach(el => el.classList.remove('highlight'));
+                    document.getElementById(`y_res_${n}`).classList.add('highlight');
+                    explanation_div.innerHTML = `计算 <strong>y[${n}]</strong>: 内圈旋转 ${n} 格...`;
+
+                    let startTime = null;
+                    const rotationDuration = 800;
+                    
+                    function animateRotation(timestamp) {
+                        if (!startTime) startTime = timestamp;
+                        const elapsed = timestamp - startTime;
+                        if (elapsed < rotationDuration) {
+                            const progress = elapsed / rotationDuration;
+                            const prev_n = (n > 0) ? n - 1 : n;
+                            drawConvolutionState(prev_n + (n - prev_n) * progress);
+                            anim_circ_state.id = requestAnimationFrame(animateRotation);
+                        } else {
+                            drawConvolutionState(n);
+                            calculateSum(n);
+                        }
+                    }
+                    anim_circ_state.id = requestAnimationFrame(animateRotation);
+                }
+
+                function calculateSum(n) {
+                    let sum = 0;
+                    let current_m = 0;
+                    let explanationText = `y[${n}] = `;
+
+                    function highlightPair() {
+                        if (current_m >= N_conv_circ) {
+                            document.getElementById(`y_res_${n}`).querySelector('.value').textContent = sum;
+                            explanation_div.innerHTML = `${explanationText.slice(0, -3)} = <strong>${sum}</strong>`;
+                            drawConvolutionState(n, -1);
+                            setTimeout(() => animateStep(n + 1), 1000);
+                            return;
+                        }
+                        const h_aligned_val = h_flipped_circ[(current_m - n + N_conv_circ) % N_conv_circ];
+                        sum += x_seq_circ[current_m] * h_aligned_val;
+                        explanationText += `(${x_seq_circ[current_m]}×${h_aligned_val}) + `;
+                        explanation_div.innerHTML = explanationText + "...";
+                        
+                        drawConvolutionState(n, current_m);
+                        current_m++;
+                        setTimeout(highlightPair, 600);
+                    }
+                    highlightPair();
+                }
+                animateStep(0);
+            }
+            drawConvolutionState(0);
+        }
+        
+        // --- 3. Linear Convolution Animation ---
+        const linearCanvas = document.getElementById('linearConvolutionCanvas');
+        if (linearCanvas) {
+            const linearCtx = linearCanvas.getContext('2d');
+            const x_seq_lin = [1, 2, 2, 1];
+            const h_seq_lin = [1, 0, 1, 0];
+            const h_flipped_lin = [...h_seq_lin].reverse();
+            const L = x_seq_lin.length + h_seq_lin.length - 1;
+            let anim_lin_state = { id: null };
+            
+            function drawLinearConvState(n, highlightIndex = -1) {
+                const boxSize = 50;
+                const spacing = 10;
+                const totalWidth = (x_seq_lin.length + h_flipped_lin.length - 1) * (boxSize + spacing);
+                const startX = (linearCanvas.width - totalWidth) / 2;
+                
+                linearCtx.clearRect(0, 0, linearCanvas.width, linearCanvas.height);
+                
+                // Draw static sequence x[n]
+                x_seq_lin.forEach((val, i) => {
+                    const x_pos = startX + (i + h_flipped_lin.length - 1) * (boxSize + spacing);
+                    drawRectBox(linearCtx, x_pos, 80, boxSize, val, '#aed6f1', '#3498db', i === highlightIndex);
+                });
+
+                // Draw sliding sequence h[n-m]
+                const slideOffset = n;
+                h_flipped_lin.forEach((val, i) => {
+                    const x_pos = startX + (slideOffset + i) * (boxSize + spacing);
+                    const static_idx = slideOffset + i - (h_flipped_lin.length - 1);
+                    const isHighlighted = (static_idx >= 0 && static_idx < x_seq_lin.length) && (static_idx === highlightIndex);
+                    drawRectBox(linearCtx, x_pos, 160, boxSize, val, '#e8daef', '#9b59b6', isHighlighted);
+                });
+            }
+
+            function drawRectBox(ctx, x, y, size, text, bgColor, borderColor, isHighlighted) {
+                ctx.fillStyle = bgColor;
+                ctx.strokeStyle = isHighlighted ? '#f1c40f' : borderColor;
+                ctx.lineWidth = isHighlighted ? 4 : 2;
+                ctx.fillRect(x, y, size, size);
+                ctx.strokeRect(x, y, size, size);
+                
+                ctx.fillStyle = '#2c3e50';
+                ctx.font = 'bold 20px Lato';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(text, x + size / 2, y + size / 2);
+            }
+            
+            window.runLinearConvolutionAnimation = function() {
+                if (anim_lin_state.id) cancelAnimationFrame(anim_lin_state.id);
+                const explanationDiv = document.getElementById('linear-conv-explanation');
+
+                function animateStep(n) {
+                    if (n >= L) {
+                        explanationDiv.innerHTML = `<strong>计算完成! y = {1, 2, 3, 3, 2, 1, 0}</strong>`;
+                        return;
+                    }
+                    
+                    explanationDiv.innerHTML = `计算 <strong>y[${n}]</strong>...`;
+                    
+                    let sum = 0;
+                    let current_k = 0;
+                    let explanationText = `y[${n}] = `;
+                    
+                    function highlightPair() {
+                        const h_idx = h_flipped_lin.length - 1 - current_k;
+                        const x_idx = n - h_idx;
+
+                        if (current_k >= h_flipped_lin.length || x_idx >= x_seq_lin.length) {
+                             if(explanationText.endsWith(' + ')) {
+                                 explanationText = explanationText.slice(0, -3);
+                             }
+                             explanationDiv.innerHTML = `${explanationText} = <strong>${sum}</strong>`;
+                             drawLinearConvState(n, -1);
+                             setTimeout(() => animateStep(n + 1), 1000);
+                             return;
+                        }
+
+                        if (x_idx >= 0) {
+                            const val_x = x_seq_lin[x_idx];
+                            const val_h = h_flipped_lin[h_idx];
+                            if(val_x * val_h !== 0 || (val_x === 0 && val_h === 0)){
+                                sum += val_x * val_h;
+                                explanationText += `(${val_x}×${val_h}) + `;
+                            }
+                            explanationDiv.innerHTML = explanationText + "...";
+                            drawLinearConvState(n, x_idx);
+                        }
+                        
+                        current_k++;
+                        setTimeout(highlightPair, 500);
+                    }
+                    
+                    drawLinearConvState(n);
+                    setTimeout(highlightPair, 800);
+                }
+                animateStep(0);
+            }
+            drawLinearConvState(-1); 
+        }
+        
+        drawTwiddleFactors();
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>离散信号变换对比: DTFT, DFT, DFS, ZT (最终增强版)</title>
+    
+    <!-- 1. 引入 MathJax 用于渲染数学公式 -->
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['$$', '$$']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    
+    <!-- 2. 添加基础CSS样式 -->
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+            line-height: 1.8; color: #333; background: #f8f9fa; margin: 0; padding: 20px;
+        }
+        .container {
+            background-color: #ffffff; max-width: 1100px; margin: 0 auto;
+            padding: 20px 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 { color: #2c3e50; margin-top: 40px; }
+        h1 { font-size: 2.4em; text-align: center; border-bottom: 3px solid #007bff; padding-bottom: 15px; }
+        h2 { font-size: 1.8em; border-bottom: 2px solid #6c757d; padding-bottom: 10px; }
+        h3 { font-size: 1.4em; color: #343a40; border-left: 4px solid #007bff; padding-left: 15px; margin-top: 30px;}
+        code { background-color: #e9ecef; padding: 2px 6px; border-radius: 4px; font-family: "Consolas", "Monaco", monospace; color: #dc3545; }
+        .plot-container { width: 100%; margin: 30px 0; padding: 20px; background: #fdfdfd; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); text-align: center; }
+        canvas { border: 1px solid #dee2e6; border-radius: 4px; background: white; max-width: 100%; }
+        .concept-box { background-color: #f0f8ff; border-left: 5px solid #007bff; padding: 15px 25px; margin: 25px 0; border-radius: 8px; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 30px; margin: 30px 0; align-items: center; }
+        .legend { margin-top: 15px; text-align: center; }
+        .legend-item { display: inline-flex; align-items: center; margin: 0 15px; font-size: 0.9em; }
+        .legend-line { width: 30px; height: 3px; margin-right: 8px; display: inline-block; vertical-align: middle; }
+        .text-explanation { text-align: left; padding: 0 20px; font-size: 0.95em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>离散信号变换的统一与对比</h1>
+        <p>本页旨在通过可视化方法，清晰地展示四种核心离散信号变换——DTFT、DFT、DFS以及Z变换——之间的深刻联系。我们将使用一个简单的有限长信号作为贯穿全文的示例，来观察它在不同变换下的时域和频域表现。</p>
+        
+        <h3>示例信号 \(x[n]\)</h3>
+        <p>我们选择一个长度为 L=4 的矩形脉冲信号，并使用 N=8 的变换长度来分析它。</p>
+        $$
+        x[n] = \begin{cases} 1, & 0 \le n \le 3 \\ 0, & \text{其他} \end{cases}
+        $$
+        <p>这是一个<strong>非周期、有限长</strong>的离散时间信号。序列为 <code>{1, 1, 1, 1, 0, 0, 0, 0}</code>。</p>
+        
+        <!-- ==================== DTFT vs DFS ==================== -->
+        <h2>1. DTFT vs. DFS</h2>
+        <div class="concept-box">
+            <p><strong>DTFT (离散时间傅里叶变换)</strong>: 针对<strong>非周期、离散</strong>时间信号 \(x[n]\)。其频谱 \(X(e^{j\omega})\) 是<strong>周期、连续</strong>的。</p>
+            <p><strong>DFS (离散傅里叶级数)</strong>: 针对<strong>周期、离散</strong>时间信号 \(\tilde{x}[n]\)。其频谱 \(\tilde{X}[k]\) 也是<strong>周期、离散</strong>的。</p>
+            <p><strong>核心关系</strong>: 要分析非周期信号 \(x[n]\) 与DFS的关系，我们必须先将其进行<strong>周期延拓</strong>得到 \(\tilde{x}[n]\)。DFS的谱线就是DTFT频谱在一个主周期内的N点等间隔采样。</p>
+        </div>
+        <h3>变换公式</h3>
+        <p>DTFT的频率变量 \(\omega\) 是连续的，取值范围为 \((-\pi, \pi]\)。</p>
+        $$ X(e^{j\omega}) = \sum_{n=-\infty}^{\infty} x[n] e^{-j\omega n} $$
+        <p>DFS的频率变量是离散的，由整数 \(k\) 索引。角频率为 \(\omega_k = \frac{2\pi}{N}k\)。</p>
+        $$ \tilde{X}[k] = \sum_{n=0}^{N-1} \tilde{x}[n] e^{-j\frac{2\pi}{N}kn} \quad \text{或简写为} \quad \tilde{X}[k] = \sum_{n=0}^{N-1} \tilde{x}[n] W_N^{kn} \quad (\text{其中 } W_N = e^{-j\frac{2\pi}{N}}) $$
+
+        <div class="grid-container">
+            <div class="plot-container">
+                <h3>时域信号</h3>
+                <canvas id="time_dtft_dfs" width="450" height="300"></canvas>
+            </div>
+            <div class="plot-container">
+                <h3>频域幅度谱</h3>
+                <canvas id="freq_dtft_dfs" width="450" height="300"></canvas>
+            </div>
+        </div>
+        <p><strong>观察</strong>: 左图展示了原始非周期信号 \(x[n]\) (蓝色粗线) 和它的周期延拓 \(\tilde{x}[n]\) (绿色细线)。右图清晰地显示，DFS的周期性谱线 (绿点) 精确地落在了DTFT的连续谱 (蓝线) 之上。</p>
+
+        <!-- ==================== DFS vs DFT ==================== -->
+        <h2>2. DFS vs. DFT</h2>
+        <div class="concept-box">
+            <p><strong>DFT (离散傅里叶变换)</strong>: 针对<strong>有限长、离散</strong>时间信号 \(x[n]\)。其频谱 \(X[k]\) 也是<strong>有限长、离散</strong>的。</p>
+            <p><strong>核心关系</strong>: DFT可以看作是DFS的一个主周期。它们的<strong>计算公式完全相同</strong>，但概念不同。DFT将时域和频域都视为有限长序列，这使其非常适合计算机处理。</p>
+        </div>
+        <h3>变换公式</h3>
+        <p>DFS作用于周期为N的信号 \(\tilde{x}[n]\)，产生周期为N的频谱 \(\tilde{X}[k]\)。</p>
+        $$ \tilde{X}[k] = \sum_{n=0}^{N-1} \tilde{x}[n] W_N^{kn} $$
+        <p>DFT作用于长度为N的信号 \(x[n]\)，产生长度为N的频谱 \(X[k]\)。</p>
+        $$ X[k] = \sum_{n=0}^{N-1} x[n] e^{-j\frac{2\pi}{N}kn} \quad \text{或简写为} \quad X[k] = \sum_{n=0}^{N-1} x[n] W_N^{kn} $$
+        
+        <div class="grid-container">
+            <div class="plot-container">
+                <h3>时域信号</h3>
+                <canvas id="time_dft_dfs" width="450" height="300"></canvas>
+            </div>
+            <div class="plot-container">
+                <h3>频域幅度谱</h3>
+                <canvas id="freq_dft_dfs" width="450" height="300"></canvas>
+            </div>
+        </div>
+        <p><strong>观察</strong>: 时域中，DFT处理有限信号 (红色)，而DFS处理其周期延拓 (绿色背景)。频域中，DFT谱 (细红点) 完全覆盖了DFS谱 (粗绿点) 的一个主周期 (\(k=0, \dots, N-1\))。在数值上，它们在主周期内是等价的。</p>
+
+        <!-- ==================== DFT vs DTFT ==================== -->
+        <h2>3. DFT vs. DTFT</h2>
+        <div class="concept-box">
+            <p><strong>核心关系</strong>: 这是理论与实践的桥梁。DFT 是对 DTFT 频谱的<strong>采样</strong>。</p>
+            <p>一个非常关键且容易混淆的点：虽然DFT和DTFT都可以从同一个有限长信号 \(x[n]\) 开始，但它们描述的频谱是完全不同的。DTFT给出了信号在所有连续频率上的完整信息，而DFT只给出了N个特定频率点的信息。</p>
+        </div>
+        
+        <div class="grid-container">
+            <div class="plot-container">
+                <h3>时域信号</h3>
+                <canvas id="time_dtft_dft" width="450" height="300"></canvas>
+            </div>
+            <div class="plot-container">
+                <h3>频域幅度谱</h3>
+                <canvas id="freq_dtft_dft" width="450" height="300"></canvas>
+            </div>
+        </div>
+        <p><strong>观察</strong>: 左侧时域图中，两个变换处理的是<strong>完全相同</strong>的有限长序列数据 \(x[n]\)。然而，在右侧频域图中，它们的差异显而易见：DTFT (蓝线) 产生了一个<strong>连续谱</strong>，描述了信号在所有归一化频率上的表现；而DFT (红点) 仅产生了该连续谱上的N个<strong>离散采样点</strong>。这强调了DFT是DTFT的一种有限、可计算的近似。</p>
+
+        <!-- ==================== DTFT vs ZT ==================== -->
+        <h2>4. Z变换与DTFT的关系</h2>
+        <div class="concept-box">
+            <p><strong>Z变换 (ZT)</strong>: 将离散时间信号 \(x[n]\) 变换到一个复变量 \(z\) 构成的复平面上。它适用于更广泛的信号类别，并且是分析LTI系统（如滤波器）的强大工具。</p>
+            <p><strong>核心关系</strong>: DTFT是Z变换在Z平面<strong>单位圆</strong> (\(z=e^{j\omega}\)) 上的一个特例。Z变换将一维的频率分析扩展到了二维的复平面，从而可以分析系统的零极点和稳定性。</p>
+        </div>
+        <h3>变换公式</h3>
+        $$ X(z) = \sum_{n=-\infty}^{\infty} x[n] z^{-n} $$
+        <p>当 \(z = e^{j\omega}\) 时，Z变换就变成了DTFT：</p>
+        $$ X(e^{j\omega}) = X(z) \Big|_{z=e^{j\omega}} = \sum_{n=-\infty}^{\infty} x[n] (e^{j\omega})^{-n} = \sum_{n=-\infty}^{\infty} x[n] e^{-j\omega n} $$
+        
+        <p>对于我们的信号 \(x[n]\)，其Z变换为：
+        $$ X(z) = 1 + z^{-1} + z^{-2} + z^{-3} = \frac{(z+1)(z-j)(z+j)}{z^3} $$
+        <ul>
+            <li><strong>零点</strong>: \(z = -1, j, -j\) (位于单位圆上)</li>
+            <li><strong>极点</strong>: 在 \(z=0\) 处有三个重合的极点。</li>
+        </ul>
+        <div class="grid-container">
+            <div class="plot-container">
+                <h3>时域信号</h3>
+                <canvas id="time_dtft_zt" width="450" height="300"></canvas>
+            </div>
+            <div class="plot-container">
+                <h3>Z变换幅度 |X(z)| 的动态3D视图</h3>
+                <canvas id="z_transform_3d_plot" width="500" height="500"></canvas>
+                <div class="text-explanation">
+                    <h4>图例说明:</h4>
+                    <ul>
+                        <li><b>紫色网格:</b> Z变换幅度 <code>|X(z)|</code> 的曲面。</li>
+                        <li><b>红色叉 (X):</b> 极点位置，曲面在此处趋向无穷。</li>
+                        <li><b>蓝色圈 (O):</b> 零点位置，曲面在此处降为零。</li>
+                        <li><b>虚线圆:</b> Z平面上的单位圆基座。</li>
+                        <li><b>橙色“墙”:</b> DTFT幅度谱，即<code>|X(z)|</code>曲面沿单位圆的“切片”。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <p><strong>观察</strong>: 右图是Z变换幅度 <code>|X(z)|</code> 的3D曲面图。曲面在原点 (\(z=0\)) 的极点处急剧拉升，在单位圆上的三个零点处精确地降为零。DTFT的幅度谱 (亮橙色“墙”) 正是这个3D曲面与单位圆柱面相交的截线，完美地展示了DTFT是Z变换在单位圆上的一个“切片”。</p>
+
+    </div>
+
+    <!-- 绘图的JavaScript代码 -->
+    <script>
+        // ===============================================
+        //               核心计算函数
+        // ===============================================
+        function calculateDTFT(signal, w) {
+            let real = 0, imag = 0;
+            for (let n = 0; n < signal.length; n++) {
+                if(signal[n] === 0) continue;
+                real += signal[n] * Math.cos(-w * n);
+                imag += signal[n] * Math.sin(-w * n);
+            }
+            return { real, imag, mag: Math.sqrt(real * real + imag * imag) };
+        }
+
+        function calculateDFT(signal, N) {
+            const X = [];
+            for (let k = 0; k < N; k++) {
+                let real = 0, imag = 0;
+                for (let n = 0; n < signal.length; n++) { 
+                    if(signal[n] === 0) continue;
+                    const angle = -2 * Math.PI * k * n / N;
+                    real += signal[n] * Math.cos(angle);
+                    imag += signal[n] * Math.sin(angle);
+                }
+                X.push({ k, real, imag, mag: Math.sqrt(real * real + imag * imag) });
+            }
+            return X;
+        }
+
+        function calculateZT(re, im, signal) {
+            let z_re = 0, z_im = 0;
+            for (let n = 0; n < signal.length; n++) {
+                if(signal[n] === 0) continue;
+                const r = Math.sqrt(re*re + im*im);
+                if (r < 1e-6) return Infinity; // At pole
+                const theta = Math.atan2(im, re);
+                const r_inv_n = Math.pow(r, -n);
+                z_re += signal[n] * r_inv_n * Math.cos(-n * theta);
+                z_im += signal[n] * r_inv_n * Math.sin(-n * theta);
+            }
+            return Math.sqrt(z_re*z_re + z_im*z_im);
+        }
+
+        // ===============================================
+        //               通用Canvas绘图函数
+        // ===============================================
+        function drawPlot(canvasId, config) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const { width, height } = canvas;
+            
+            const padding = { top: 40, right: 20, bottom: 50, left: 60 };
+            const plotWidth = width - padding.left - padding.right;
+            const plotHeight = height - padding.top - padding.bottom;
+
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = '#2c3e50'; ctx.font = 'bold 16px Arial'; ctx.textAlign = 'center';
+            ctx.fillText(config.title, width / 2, padding.top / 2 + 5);
+            ctx.font = '14px Arial';
+            ctx.fillText(config.xLabel, padding.left + plotWidth / 2, height - 10);
+            ctx.save(); ctx.translate(20, padding.top + plotHeight / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(config.yLabel, 0, 0); ctx.restore();
+
+            ctx.strokeStyle = '#e9ecef'; ctx.lineWidth = 1; ctx.font = '12px Arial'; ctx.fillStyle = '#6c757d'; ctx.textAlign = 'center';
+            for (const tick of config.xTicks) {
+                const xPixel = padding.left + ((tick.val - config.xRange[0]) / (config.xRange[1] - config.xRange[0])) * plotWidth;
+                ctx.beginPath(); ctx.moveTo(xPixel, padding.top); ctx.lineTo(xPixel, padding.top + plotHeight); ctx.stroke();
+                ctx.fillText(tick.lab, xPixel, padding.top + plotHeight + 20);
+            }
+            ctx.textAlign = 'right';
+            for (const tick of config.yTicks) {
+                const yPixel = padding.top + plotHeight - ((tick.val - config.yRange[0]) / (config.yRange[1] - config.yRange[0])) * plotHeight;
+                ctx.beginPath(); ctx.moveTo(padding.left, yPixel); ctx.lineTo(padding.left + plotWidth, yPixel); ctx.stroke();
+                ctx.fillText(tick.lab, padding.left - 10, yPixel + 4);
+            }
+            ctx.strokeStyle = '#adb5bd';
+            const yZeroPixel = padding.top + plotHeight - ((0 - config.yRange[0]) / (config.yRange[1] - config.yRange[0])) * plotHeight;
+            ctx.beginPath(); ctx.moveTo(padding.left, yZeroPixel); ctx.lineTo(padding.left + plotWidth, yZeroPixel); ctx.stroke();
+
+            config.datasets.sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+
+            config.datasets.forEach(dataset => {
+                ctx.strokeStyle = dataset.color;
+                ctx.fillStyle = dataset.color;
+                
+                if (dataset.type === 'line') {
+                    ctx.lineWidth = dataset.lineWidth || 2;
+                    ctx.beginPath();
+                    dataset.data.forEach((p, i) => {
+                        const x = padding.left + ((p.x - config.xRange[0]) / (config.xRange[1] - config.xRange[0])) * plotWidth;
+                        const y = padding.top + plotHeight - ((p.y - config.yRange[0]) / (config.yRange[1] - config.yRange[0])) * plotHeight;
+                        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    });
+                    ctx.stroke();
+                } else if (dataset.type === 'stem') {
+                    dataset.data.forEach(p => {
+                        ctx.lineWidth = dataset.lineWidth || 2;
+                        const x = padding.left + ((p.x - config.xRange[0]) / (config.xRange[1] - config.xRange[0])) * plotWidth;
+                        const y = padding.top + plotHeight - ((p.y - config.yRange[0]) / (config.yRange[1] - config.yRange[0])) * plotHeight;
+                        ctx.beginPath(); ctx.moveTo(x, yZeroPixel); ctx.lineTo(x, y); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(x, y, dataset.markerSize || 4, 0, 2 * Math.PI); ctx.fill();
+                    });
+                }
+            });
+        }
+        
+        // ===============================================
+        //           Z-Plane 3D Specific Plotting
+        // ===============================================
+        function drawZTransform3DSurface(canvasId, signal, poles, zeros, angleY) { // Added angleY parameter
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const { width, height } = canvas;
+            const centerX = width / 2;
+            const centerY = height * 0.7; // Shift perspective down
+            
+            const range = 2;
+            const scale = width / (range * 2.5);
+            const angleX = 0.5; // Controls rotation around X-axis (tilt)
+
+            function project(x, y, z) {
+                const rotX = y * Math.sin(angleX) + z * Math.cos(angleX);
+                const rotZ = y * Math.cos(angleX) - z * Math.sin(angleX);
+                const screenX = x * Math.cos(angleY) - rotZ * Math.sin(angleY);
+                const screenY = rotX;
+                return {
+                    x: centerX + screenX * scale,
+                    y: centerY - screenY * scale,
+                };
+            }
+
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+
+            // Draw Axes
+            ctx.strokeStyle = '#adb5bd'; ctx.lineWidth = 1;
+            const axisLen = range * 1.2;
+            const origin = project(0,0,0);
+            const xAxis = project(axisLen, 0, 0);
+            const yAxis = project(0, axisLen, 0);
+            ctx.beginPath(); ctx.moveTo(origin.x, origin.y); ctx.lineTo(xAxis.x, xAxis.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(origin.x, origin.y); ctx.lineTo(yAxis.x, yAxis.y); ctx.stroke();
+            ctx.fillStyle = '#212529'; ctx.font = 'italic 14px Arial';
+            ctx.fillText("Re(z)", xAxis.x + 5, xAxis.y);
+            ctx.fillText("Im(z)", yAxis.x, yAxis.y - 10);
+
+            // Draw Unit Circle on base
+            ctx.strokeStyle = '#6c757d'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+            ctx.beginPath();
+            for(let i=0; i<=100; i++) {
+                const a = 2 * Math.PI * i / 100;
+                const p = project(Math.cos(a), Math.sin(a), 0);
+                if(i===0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Generate surface data
+            const grid_size = 50;
+            const z_cap = 10;
+            const surface = [];
+            for (let i = 0; i <= grid_size; i++) {
+                const row = [];
+                for (let j = 0; j <= grid_size; j++) {
+                    const x = -range + (2 * range * i) / grid_size;
+                    const y = -range + (2 * range * j) / grid_size;
+                    let z = calculateZT(x, y, signal);
+                    if (z > z_cap) z = z_cap; // Cap magnitude
+                    row.push({x, y, z});
+                }
+                surface.push(row);
+            }
+            // Draw surface (painter's algorithm - simple back to front)
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < grid_size; i++) {
+                for (let j = grid_size - 1; j >= 0; j--) {
+                    const p1 = project(surface[i][j].x, surface[i][j].y, surface[i][j].z);
+                    const p2 = project(surface[i+1][j].x, surface[i+1][j].y, surface[i+1][j].z);
+                    const p3 = project(surface[i+1][j+1].x, surface[i+1][j+1].y, surface[i+1][j+1].z);
+                    const p4 = project(surface[i][j+1].x, surface[i][j+1].y, surface[i][j+1].z);
+                    
+                    const avgZ = (surface[i][j].z + surface[i+1][j].z + surface[i+1][j+1].z + surface[i][j+1].z) / 4;
+                    const colorVal = Math.floor(150 + (avgZ/z_cap) * 100);
+                    ctx.strokeStyle = `rgb(200, ${colorVal}, 255)`; // Purple-ish gradient
+
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                    ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+            }
+
+            // Draw DTFT slice (the "wall")
+            const dtftWallPoints = [];
+            for(let i=0; i<=100; i++) {
+                const angle = 2*Math.PI * i / 100;
+                const re = Math.cos(angle); const im = Math.sin(angle);
+                let mag = calculateZT(re, im, signal);
+                if (mag > z_cap) mag = z_cap;
+                dtftWallPoints.push({re, im, mag});
+            }
+
+            ctx.fillStyle = 'rgba(253, 126, 20, 0.3)';
+            ctx.strokeStyle = 'rgba(253, 126, 20, 1)';
+            ctx.lineWidth = 3;
+
+            // Simplified drawing for the wall based on angle
+            const startAngleRad = Math.atan2(Math.sin(angleY), -Math.cos(angleY));
+            const startIdx = Math.round((startAngleRad / (2*Math.PI) * 100) + 50) % 100;
+            
+            // Draw "back" half of the wall
+            ctx.beginPath();
+            let p_start_back = project(dtftWallPoints[startIdx].re, dtftWallPoints[startIdx].im, 0);
+            ctx.moveTo(p_start_back.x, p_start_back.y);
+            for(let i=0; i<=50; i++) {
+                const idx = (startIdx + i) % 100;
+                const p = project(dtftWallPoints[idx].re, dtftWallPoints[idx].im, dtftWallPoints[idx].mag);
+                ctx.lineTo(p.x, p.y);
+            }
+            let p_end_back = project(dtftWallPoints[(startIdx+50)%100].re, dtftWallPoints[(startIdx+50)%100].im, 0);
+            ctx.lineTo(p_end_back.x, p_end_back.y);
+            ctx.fill();
+
+            // Draw "front" half of the wall
+            ctx.beginPath();
+            let p_start_front = project(dtftWallPoints[(startIdx+50)%100].re, dtftWallPoints[(startIdx+50)%100].im, 0);
+            ctx.moveTo(p_start_front.x, p_start_front.y);
+            for(let i=50; i<=100; i++) {
+                const idx = (startIdx + i) % 100;
+                const p = project(dtftWallPoints[idx].re, dtftWallPoints[idx].im, dtftWallPoints[idx].mag);
+                ctx.lineTo(p.x, p.y);
+            }
+            let p_end_front = project(dtftWallPoints[startIdx].re, dtftWallPoints[startIdx].im, 0);
+            ctx.lineTo(p_end_front.x, p_end_front.y);
+            ctx.fill();
+
+            // Draw DTFT path on top of wall
+            ctx.beginPath();
+            for(let i=0; i<=100; i++) {
+                const p = project(dtftWallPoints[i].re, dtftWallPoints[i].im, dtftWallPoints[i].mag);
+                if(i===0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+            
+            // Mark Zeros and Poles on base
+            zeros.forEach(z => {
+                const p = project(z.re, z.im, 0);
+                ctx.strokeStyle = '#007bff'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI); ctx.stroke();
+            });
+            poles.forEach(p => {
+                const pos = project(p.re, p.im, 0);
+                ctx.strokeStyle = '#dc3545'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(pos.x - 5, pos.y - 5); ctx.lineTo(pos.x + 5, pos.y + 5); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(pos.x - 5, pos.y + 5); ctx.lineTo(pos.x + 5, pos.y - 5); ctx.stroke();
+            });
+        }
+        
+        // ===============================================
+        //              Page Load Execution
+        // ===============================================
+        window.addEventListener('load', () => {
+            const signal = [1, 1, 1, 1];
+            const N = 8;
+
+            const finiteSignalData = signal.map((y, x) => ({x, y}));
+            const periodicSignalData = [];
+            for (let i = -N; i < 2 * N; i++) {
+                const n_mod_N = ((i % N) + N) % N;
+                if (n_mod_N < signal.length) periodicSignalData.push({ x: i, y: signal[n_mod_N] });
+            }
+
+            const dtftData = Array.from({length: 401}, (_,i) => {
+                const w = -2 * Math.PI + (4 * Math.PI * i) / 400;
+                return { x: w / (2*Math.PI), y: calculateDTFT(signal, w).mag };
+            });
+            const dftResult = calculateDFT(signal, N);
+            const dftData = dftResult.map(val => ({ x: val.k / N, y: val.mag }));
+            const dfsData = [];
+            for(let p = -1; p <= 1; p++) {
+                dftResult.forEach(val => dfsData.push({x: (val.k + p*N)/N, y: val.mag}));
+            }
+            
+            const timeAxisRange = [-N, 2*N-1];
+            const timeTicks = [{val:0, lab:'0'}, {val:N, lab:`N`}, {val:-N, lab:`-N`}, {val:3, lab:`L-1`}];
+            const freqAxisRange = [-1, 1];
+            const freqTicks = [{val:-1, lab:'-1'}, {val:-0.5, lab:'-0.5'}, {val:0, lab:'0'}, {val:0.5, lab:'0.5'}, {val:1, lab:'1'}];
+
+            // 1. DTFT vs DFS
+            drawPlot('time_dtft_dfs', {
+                title: '有限信号 vs. 周期延拓', xLabel: 'n', yLabel: '幅度',
+                xRange: timeAxisRange, yRange: [-0.5, 1.5], xTicks: timeTicks, yTicks: [{val:0, lab:'0'}, {val:1, lab:'1'}],
+                datasets: [
+                    { data: finiteSignalData, color: 'rgba(0, 123, 255, 0.5)', type: 'stem', lineWidth: 6, markerSize: 6, zIndex: 1 },
+                    { data: periodicSignalData, color: '#28a745', type: 'stem', lineWidth: 2, markerSize: 3, zIndex: 2 }
+                ]
+            });
+            drawPlot('freq_dtft_dfs', {
+                title: 'DFS是DTFT的采样', xLabel: '归一化频率 f = ω/2π', yLabel: '幅度',
+                xRange: freqAxisRange, yRange: [-0.5, 4.5], xTicks: freqTicks, yTicks: [{val:0, lab:'0'}, {val:4, lab:'4'}],
+                datasets: [{ data: dtftData, color: '#007bff', type: 'line' }, { data: dfsData, color: '#28a745', type: 'stem' }]
+            });
+
+            // 2. DFS vs DFT
+            drawPlot('time_dft_dfs', {
+                title: '周期信号 vs. 有限信号', xLabel: 'n', yLabel: '幅度',
+                xRange: timeAxisRange, yRange: [-0.5, 1.5], xTicks: timeTicks, yTicks: [{val:0, lab:'0'}, {val:1, lab:'1'}],
+                datasets: [
+                    { data: periodicSignalData, color: 'rgba(40, 167, 69, 0.5)', type: 'stem', lineWidth: 6, markerSize: 6, zIndex: 1 },
+                    { data: finiteSignalData, color: '#dc3545', type: 'stem', lineWidth: 2, markerSize: 3, zIndex: 2 }
+                ]
+            });
+             drawPlot('freq_dft_dfs', {
+                title: 'DFT是DFS的一个主周期', xLabel: '归一化频率 f = k/N', yLabel: '幅度',
+                xRange: freqAxisRange, yRange: [-0.5, 4.5], xTicks: freqTicks, yTicks: [{val:0, lab:'0'}, {val:4, lab:'4'}],
+                datasets: [
+                    { data: dfsData, color: 'rgba(40, 167, 69, 0.5)', type: 'stem', lineWidth: 6, markerSize: 6, zIndex: 1 },
+                    { data: dftData, color: '#dc3545', type: 'stem', lineWidth: 2, markerSize: 4, zIndex: 2 }
+                ]
+            });
+            
+            // 3. DFT vs DTFT
+            drawPlot('time_dtft_dft', {
+                title: '有限长信号 (补零到N)', xLabel: 'n', yLabel: 'x[n]',
+                xRange: timeAxisRange, yRange: [-0.5, 1.5], xTicks: timeTicks, yTicks: [{val:0, lab:'0'}, {val:1, lab:'1'}],
+                datasets: [{ data: finiteSignalData, color: '#dc3545', type: 'stem' }]
+            });
+            drawPlot('freq_dtft_dft', {
+                title: 'DFT是DTFT的采样', xLabel: '归一化频率 f', yLabel: '幅度',
+                xRange: freqAxisRange, yRange: [-0.5, 4.5], xTicks: freqTicks, yTicks: [{val:0, lab:'0'}, {val:4, lab:'4'}],
+                datasets: [{ data: dtftData, color: '#007bff', type: 'line' }, { data: dftData, color: '#dc3545', type: 'stem' }]
+            });
+
+            // 4. DTFT vs ZT
+            drawPlot('time_dtft_zt', {
+                title: '有限长信号', xLabel: 'n', yLabel: 'x[n]',
+                xRange: timeAxisRange, yRange: [-0.5, 1.5], xTicks: timeTicks, yTicks: [{val:0, lab:'0'}, {val:1, lab:'1'}],
+                datasets: [{ data: finiteSignalData, color: '#007bff', type: 'stem'}]
+            });
+            
+            // --- Make the ZT plot dynamic ---
+            let rotationY = -0.5;
+            const ztCanvas = document.getElementById('z_transform_3d_plot');
+            const poles = [{re:0, im:0}];
+            const zeros = [{re:-1, im:0}, {re:0, im:1}, {re:0, im:-1}];
+            let animationFrameId = null;
+
+            function animateZT() {
+                rotationY += 0.005;
+                drawZTransform3DSurface(ztCanvas.id, signal, poles, zeros, rotationY);
+                animationFrameId = requestAnimationFrame(animateZT);
+            }
+            
+            // Ensure animation restarts if page is revisited (e.g., back button)
+            if (document.visibilityState === 'visible') {
+                animateZT();
+            }
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    cancelAnimationFrame(animationFrameId);
+                } else {
+                    animateZT();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
