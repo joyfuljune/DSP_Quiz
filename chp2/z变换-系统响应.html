@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Z变换综合应用：利用Z变换解差分方程</title>
+    
+    <!-- 1. 引入 MathJax 用于渲染数学公式 -->
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['$$', '$$']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+    
+    <!-- 2. 添加优化的CSS样式 -->
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #0dcaf0;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --border-color: #dee2e6;
+            --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: var(--font-family-sans-serif);
+            font-size: 16px;
+            line-height: 1.7; 
+            color: var(--dark-color); 
+            background-color: var(--light-color); 
+            margin: 0; 
+            padding: 24px;
+        }
+
+        .container {
+            background-color: #ffffff; 
+            max-width: 1100px; 
+            margin: 0 auto;
+            padding: 24px 48px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        h1, h2, h3, h4 { color: var(--dark-color); margin-top: 2.5rem; margin-bottom: 1rem; font-weight: 600; }
+        h1 { font-size: 2.25rem; text-align: center; border-bottom: 2px solid var(--primary-color); padding-bottom: 1rem; }
+        h2 { font-size: 1.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; }
+        h3 { font-size: 1.4rem; color: #343a40; }
+        h4 { font-size: 1.1rem; color: #495057; margin-top: 1.5rem;}
+        
+        code { 
+            background-color: #e9ecef; 
+            padding: 0.2em 0.4em; 
+            margin: 0;
+            font-size: 90%;
+            border-radius: 3px; 
+            font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            color: var(--danger-color); 
+        }
+
+        .plot-container { 
+            width: 100%; 
+            margin: 24px 0; 
+            padding: 16px; 
+            background: #ffffff; 
+            border-radius: 6px; 
+            border: 1px solid var(--border-color);
+            text-align: center; 
+        }
+        
+        canvas { 
+            border: 1px solid #ced4da; 
+            border-radius: 4px; 
+            background: #ffffff; 
+            max-width: 100%; 
+        }
+
+        .info, .conclusion, .calculation-steps {
+            padding: 1rem 1.5rem;
+            margin: 24px 0;
+            border-left-width: 5px;
+            border-left-style: solid;
+            border-radius: 6px;
+        }
+        .info { background-color: #e7f5ff; border-color: #0d6efd; }
+        .conclusion { background-color: #eef8f2; border-color: #198754; }
+        .calculation-steps { background-color: #f8f9fa; border: 1px solid #dee2e6; }
+        .calculation-steps > p { margin-top: 0; }
+        
+        .grid-container { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 24px; 
+            margin: 30px 0; 
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 24px 0; 
+            font-size: 0.95em;
+        }
+        th, td { 
+            border: 1px solid var(--border-color); 
+            padding: 12px 15px; 
+            text-align: center; 
+        }
+        th { 
+            background-color: var(--light-color); 
+            color: var(--dark-color); 
+            font-weight: 600;
+        }
+        tbody tr:nth-child(even) { background-color: #fdfdff; }
+        
+        ul, ol { padding-left: 30px; }
+        li { margin-bottom: 0.75rem; }
+        strong, b { color: #000; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Z变换综合应用：利用Z变换解差分方程</h1>
+        <p style="text-align: center; color: var(--secondary-color); font-size: 1.1em; margin-top: -1rem; margin-bottom: 2rem;">本案例旨在通过一个具体的差分方程，全面展示使用Z变换分析离散时间系统的完整流程。我们将重点关注因果性、稳定性判断、时域响应求解以及频率响应的分析。</p>
+        
+        <h2>1. 理论基础</h2>
+        <ul>
+            <li><strong>Z变换</strong>: 将离散时间序列 \(x[n]\) 变换为复频域函数 \(X(z)\) 的数学工具。$$ X(z) = \sum_{n=-\infty}^{\infty} x[n]z^{-n} $$ 这里，\(z\) 是一个复变量，通常用极坐标表示为 \(z = re^{j\omega}\)，其中 \(r\) 是幅值，\(\omega\) 是归一化角频率。Z平面就是这个复变量 \(z\) 所在的复平面。</li>
+            <li><strong>时移性质 (Time-Shift Property)</strong>: 这是Z变换最核心的性质之一。它指出，时域序列的延迟 \(x[n-k]\) 对应于其Z变换乘以 \(z^{-k}\)，即 \(\mathcal{Z}\{x[n-k]\} = z^{-k}X(z)\)。正是这个性质使得差分方程中的延迟项能够被轻松地转换为Z域中的代数项，从而简化求解过程。</li>
+            <li><strong>差分方程</strong>: 描述离散时间系统输入 \(x[n]\) 与输出 \(y[n]\) 之间关系的代数方程。对于一个<strong>线性时不变(LTI)</strong>系统，其通用形式为：$$ \sum_{k=0}^{N} a_k y[n-k] = \sum_{m=0}^{M} b_m x[n-m] $$ LTI系统指其输出对输入的响应与时间无关（时不变性），且满足叠加原理（线性）。<strong>因为系统是LTI的</strong>，所以时域上的卷积运算可以转换成Z域上的乘法运算，这极大地简化了系统分析。</li>
+            <li><strong>系统函数 H(z)</strong>: LTI系统冲激响应 \(h[n]\) 的Z变换。它完全描述了系统的特性。对于LTI系统，输出的Z变换 \(Y(z)\) 是输入 \(X(z)\) 与系统函数 \(H(z)\) 的乘积：\(Y(z) = H(z)X(z)\)。这个关系源于卷积定理，即时域中的卷积（\(y[n] = x[n] * h[n]\)）对应Z域中的乘法。因此，我们可以通过代数运算得到 \(H(z) = \frac{Y(z)}{X(z)}\)。</li>
+        </ul>
+
+        <h2>2. 综合案例分析</h2>
+        <p>考虑一个由以下二阶差分方程描述的离散时间LTI系统：</p>
+        $$ y[n] + y[n-1] - 6y[n-2] = 5x[n-1] $$
+
+        <h2>3. 求解系统函数 H(z)</h2>
+        <p>我们假设系统初始条件为零（即系统是松弛的），对差分方程两边取Z变换，将其从时域转换到Z域。</p>
+        <div class="calculation-steps">
+        <h4>详细计算步骤：</h4>
+        <ol>
+            <li><strong>对差分方程两边取Z变换</strong>: 利用Z变换的线性性质。$$ \mathcal{Z}\{y[n]\} + \mathcal{Z}\{y[n-1]\} - 6\mathcal{Z}\{y[n-2]\} = 5\mathcal{Z}\{x[n-1]\} $$</li>
+            <li><strong>应用时移性质</strong> \(\mathcal{Z}\{f[n-k]\} = z^{-k}F(z)\): $$ Y(z) + z^{-1}Y(z) - 6z^{-2}Y(z) = 5z^{-1}X(z) $$</li>
+            <li><strong>提取公因式</strong>: $$ Y(z)(1 + z^{-1} - 6z^{-2}) = X(z)(5z^{-1}) $$</li>
+            <li><strong>求解 \(H(z) = Y(z)/X(z)\)</strong>: $$ H(z) = \frac{Y(z)}{X(z)} = \frac{5z^{-1}}{1 + z^{-1} - 6z^{-2}} $$</li>
+            <li><strong>化为z的正幂形式（便于分析零极点）</strong>: 分子分母同乘以 \(z^2\)。$$ H(z) = \frac{5z^{-1}}{1 + z^{-1} - 6z^{-2}} \times \frac{z^2}{z^2} = \frac{5z}{z^2 + z - 6} $$</li>
+        </ol>
+        </div>
+
+        <h2>4. 系统特性深度分析</h2>
+        
+        <h3>4.1 计算零极点</h3>
+        <p>系统函数 \(H(z)\) 的零点和极点决定了系统的核心特性。它们分别是 \(H(z)\) 分子和分母多项式的根。</p>
+        <div class="calculation-steps">
+            <h4>详细计算步骤：</h4>
+            <ol>
+                <li><strong>求解零点 (Zeros)</strong>: 令分子多项式为零。
+                $$ 5z = 0 \implies z_1 = 0 $$
+                因此，系统有一个零点在Z平面的原点。
+                </li>
+                <li><strong>求解极点 (Poles)</strong>: 令分母多项式为零。
+                $$ z^2 + z - 6 = 0 $$
+                通过因式分解法：
+                $$ (z+3)(z-2) = 0 $$
+                解得两个极点：
+                $$ p_1 = 2, \quad p_2 = -3 $$
+                </li>
+            </ol>
+        </div>
+
+        <h3>4.2 收敛域(ROC)与系统特性</h3>
+        <p>系统函数 \(H(z)\) 本身不足以唯一确定一个系统，还必须指定其收敛域(ROC)。ROC决定了系统的时域特性，特别是因果性和稳定性。它们之间的关系如下：</p>
+        <ul>
+            <li><b>因果系统</b>：其冲激响应 \(h[n]\) 为右边序列（即当 \(n<0\) 时 \(h[n]=0\)）。其Z变换的ROC在最外层极点的外部，即 \(|z| > |p_{max}|\)。</li>
+            <li><b>稳定系统</b>：其冲激响应 \(h[n]\) 绝对可和（\(\sum |h[n]| < \infty\)）。其Z变换的ROC必须包含单位圆 \(|z|=1\)。</li>
+            <li><b>因果且稳定的系统</b>：必须同时满足以上两个条件，这意味着系统的所有极点都必须位于单位圆内部，且ROC为最外层极点到无穷远的区域。</li>
+        </ul>
+        <p>对于我们计算出的系统，极点在 \(p_1=2, p_2=-3\)，这两个极点将Z平面分成了三个区域，从而对应三种可能的ROC和三种不同的系统。</p>
+        
+        <div class="grid-container">
+            <div class="plot-container">
+                <h4 style="margin-top: 0;">可能性 1: ROC为 \(|z| > 3\)</h4>
+                <canvas id="roc1Canvas" width="300" height="300"></canvas>
+                <p><strong>因果性</strong>: ROC是最外层极点之外的区域，系统为<strong>因果系统</strong>。</p>
+                <p><strong>稳定性</strong>: ROC不包含单位圆 \(|z|=1\)，系统为<strong>不稳定</strong>。</p>
+            </div>
+            <div class="plot-container">
+                <h4 style="margin-top: 0;">可能性 2: ROC为 \(2 < |z| < 3\)</h4>
+                <canvas id="roc2Canvas" width="300" height="300"></canvas>
+                <p><strong>因果性</strong>: ROC是两个极点之间的环状区域，系统为<strong>双边（非因果）系统</strong>。</p>
+                <p><strong>稳定性</strong>: ROC不包含单位圆，系统为<strong>不稳定</strong>。</p>
+            </div>
+            <div class="plot-container">
+                <h4 style="margin-top: 0;">可能性 3: ROC为 \(|z| < 2\)</h4>
+                <canvas id="roc3Canvas" width="300" height="300"></canvas>
+                <p><strong>因果性</strong>: ROC是最内层极点之内的区域，系统为<strong>反因果系统</strong>。</p>
+                <p><strong>稳定性</strong>: ROC<strong>包含</strong>单位圆，系统为<strong>稳定</strong>。</p>
+            </div>
+        </div>
+        
+        <h3>4.3 求解不同ROC下的冲激响应 h[n]</h3>
+        
+        <h4>常见Z变换对</h4>
+        <p>在进行逆变换之前，我们先回顾一下最常用的Z变换对。注意它们有两种常见形式：</p>
+        <div class="info">
+            <p>以\(z^{-1}\)表示的形式（负幂次）通常直接由差分方程得到，便于硬件实现。以\(z\)表示的形式（正幂次）则更适用于通过部分分式法分析零极点。</p>
+        </div>
+        <table>
+            <thead>
+                <tr><th>时域序列 \(x[n]\)</th><th>Z变换 \(X(z)\) (z<sup>-1</sup>形式)</th><th>Z变换 \(X(z)\) (z形式)</th><th>收敛域 (ROC)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>\(\delta[n]\)</td><td>1</td><td>1</td><td>整个Z平面</td></tr>
+                <tr><td>\(a^n u[n]\)</td><td>\(\frac{1}{1-az^{-1}}\)</td><td>\(\frac{z}{z-a}\)</td><td>\(|z| > |a|\)</td></tr>
+                <tr><td>\(-a^n u[-n-1]\)</td><td>\(\frac{1}{1-az^{-1}}\)</td><td>\(\frac{z}{z-a}\)</td><td>\(|z| < |a|\)</td></tr>
+            </tbody>
+        </table>
+        <p>为了求逆Z变换，我们使用部分分式展开法。这里介绍两种常用的计算方法。</p>
+
+        <h4>方法一：对 H(z)/z 进行部分分式展开 (最常用)</h4>
+        <div class="calculation-steps">
+            <p><strong>思路</strong>: 这种方法之所以常用，是因为对 \(H(z)/z\) 展开后再乘回 \(z\)，能直接得到形如 \(\frac{z}{z-a}\) 的标准项，这与我们表格中的变换对完美匹配，避免了后续的代数变形。</p>
+            <ol>
+                <li><strong>构造 \(H(z)/z\)</strong>: 
+                    $$ \frac{H(z)}{z} = \frac{1}{z} \left( \frac{5z}{(z-2)(z+3)} \right) = \frac{5}{(z-2)(z+3)} $$
+                </li>
+                <li><strong>部分分式展开</strong>: 
+                    $$ \frac{5}{(z-2)(z+3)} = \frac{A}{z-2} + \frac{B}{z+3} $$
+                </li>
+                <li><strong>求解系数 A, B</strong> (使用留数法):
+                    $$ A = \left. (z-2) \frac{5}{(z-2)(z+3)} \right|_{z=2} = \frac{5}{5} = 1 $$
+                    $$ B = \left. (z+3) \frac{5}{(z-2)(z+3)} \right|_{z=-3} = \frac{5}{-5} = -1 $$
+                </li>
+                <li><strong>重构 \(H(z)\)</strong>:
+                    $$ \frac{H(z)}{z} = \frac{1}{z-2} - \frac{1}{z+3} \implies H(z) = \frac{z}{z-2} - \frac{z}{z-(-3)} $$
+                </li>
+            </ol>
+        </div>
+
+        <h4>方法二：直接对 H(z) 进行部分分式展开</h4>
+        <div class="calculation-steps">
+             <p><strong>思路</strong>: 直接对 \(H(z)\) 进行展开，得到的结果不是标准形式，需要利用时移性质 \( \mathcal{Z}\{x[n-k]\} = z^{-k}X(z) \) 进行凑形。</p>
+            <ol>
+                <li><strong>对 \(H(z)\) 进行展开</strong>:
+                    $$ H(z) = \frac{5z}{(z-2)(z+3)} = \frac{A}{z-2} + \frac{B}{z+3} $$
+                </li>
+                 <li><strong>求解系数 A, B</strong>:
+                    $$ A = \left. (z-2) \frac{5z}{(z-2)(z+3)} \right|_{z=2} = \frac{5(2)}{2+3} = 2 $$
+                    $$ B = \left. (z+3) \frac{5z}{(z-2)(z+3)} \right|_{z=-3} = \frac{5(-3)}{-3-2} = 3 $$
+                </li>
+                 <li><strong>得到展开式</strong>:
+                    $$ H(z) = \frac{2}{z-2} + \frac{3}{z+3} $$
+                </li>
+                <li><strong>凑成标准形式</strong>:
+                    $$ H(z) = 2 \cdot z^{-1} \left( \frac{z}{z-2} \right) + 3 \cdot z^{-1} \left( \frac{z}{z-(-3)} \right) $$
+                </li>
+                 <li><strong>求逆变换 (以因果系统为例)</strong>: \(\mathcal{Z}^{-1}\{\frac{z}{z-a}\} = a^n u[n]\), 结合时移性质，\(\mathcal{Z}^{-1}\{z^{-1} \frac{z}{z-a}\} = a^{n-1} u[n-1]\)。
+                    $$ h[n] = 2 \cdot (2)^{n-1} u[n-1] + 3 \cdot (-3)^{n-1} u[n-1] $$
+                    <p>(此结果与方法一的 \(h[n] = [2^n - (-3)^n]u[n]\) 在 \(n \geq 1\) 时是等价的，且在 \(n=0\) 时两者都为0)。</p>
+                </li>
+            </ol>
+        </div>
+
+        <p>接下来，我们使用最直观的方法一的结果 \(H(z) = \frac{z}{z-2} - \frac{z}{z-(-3)}\)，根据不同的ROC进行逆变换。</p>
+        
+        <h4>情况一: 因果系统 (ROC: \(|z| > 3\))</h4>
+        <p>ROC在最外层极点之外，\(h[n]\) 是右边序列。两个分项都对应因果序列。</p>
+        $$ h[n] = (2)^n u[n] - (-3)^n u[n] = \left[ (2)^n - (-3)^n \right] u[n] $$
+
+        <h4>情况二: 双边系统 (ROC: \(2 < |z| < 3\))</h4>
+        <p>ROC位于两个极点之间。</p>
+        <ul>
+            <li>对于第一项 \(\frac{z}{z-2}\)，其极点为 \(p_1=2\)。由于ROC是 \(|z|>2\)，这一项对应一个<strong>右边序列</strong> (即 h[n] 仅在 n ≥ N₀ 时非零)。</li>
+            <li>对于第二项 \(\frac{z}{z-(-3)}\)，其极点为 \(p_2=-3\)。由于ROC是 \(|z|<3\)，这一项对应一个<strong>左边序列</strong> (即 h[n] 仅在 n ≤ N₁ 时非零)。</li>
+        </ul>
+        <p>逆变换为：</p>
+        $$ h[n] = (2)^n u[n] + (-3)^n u[-n-1] $$
+
+        <h4>情况三: 反因果系统 (ROC: \(|z| < 2\))</h4>
+        <p>ROC在最内层极点之内，\(h[n]\) 是左边序列。两个分项都对应反因果序列。</p>
+        $$ h[n] = \left[ (-3)^n - (2)^n \right] u[-n-1] $$
+
+        <h3>4.4 时域响应对比</h3>
+        <p>我们将三种不同情况下的冲激响应 \(h[n]\) 绘制出来，以直观地对比它们的时域行为，清晰地展示了ROC如何决定系统的因果性和稳定性。</p>
+        
+        <div class="grid-container">
+            <div class="plot-container">
+                <h4 style="margin-top: 0;">h[n] for ROC: \(|z| > 3\) (因果, 不稳定)</h4>
+                <canvas id="h1_canvas" width="400" height="300"></canvas>
+                <p><b>观察:</b> 序列从 n=0 开始，幅值随 n 增大而指数级发散。</p>
+            </div>
+            <div class="plot-container">
+                <h4 style="margin-top: 0;">h[n] for ROC: \(2 < |z| < 3\) (双边, 不稳定)</h4>
+                <canvas id="h2_canvas" width="400" height="300"></canvas>
+                <p><b>观察:</b> 序列在正负半轴都存在且都发散，系统不稳定。</p>
+            </div>
+            <div class="plot-container">
+                <h4 style="margin-top: 0;">h[n] for ROC: \(|z| < 2\) (反因果, 稳定)</h4>
+                <canvas id="h3_canvas" width="400" height="300"></canvas>
+                <p><b>观察:</b> 序列仅在 n<0 时存在，并向负无穷衰减至零，是稳定的。</p>
+            </div>
+        </div>
+
+        <div class="conclusion">
+            <h4>✓ 核心结论</h4>
+            <ul>
+                <li><strong>因果性由ROC的边界决定</strong>：ROC向外延伸至无穷，系统是因果的。ROC向内收缩至原点，系统是反因果的。ROC是环状，系统是双边的。</li>
+                <li><strong>稳定性由ROC是否包含单位圆决定</strong>：只有当ROC包含单位圆 \(|z|=1\) 时，系统才是BIBO稳定的。</li>
+                <li>对于本例的 \(H(z)\)，我们不可能同时实现<strong>因果</strong>和<strong>稳定</strong>，因为所有极点都在单位圆外。要使系统因果，ROC必须是 \(|z|>3\)，这不包含单位圆；要使系统稳定，ROC必须是 \(|z|<2\)，但这又导致系统是反因果的。</li>
+            </ul>
+        </div>
+
+        <h2>5. 频率响应分析</h2>
+        <div class="info">
+            <h4>频率响应的获取</h4>
+            <p>系统的频率响应是通过在Z变换的收敛域(ROC)中，沿着单位圆 \(|z|=1\) (即令 \(z=e^{j\omega}\)) 对系统函数 \(H(z)\)求值得到的。因此，只有当ROC包含单位圆时，系统才具有明确定义的稳态频率响应。在本案例中，这对应于ROC为 \(|z|<2\) 的那个<strong>稳定但反因果</strong>的系统。下面的动态分析将展示，如何通过\(H(z)\)在单位圆上的几何关系来理解其频率特性。</p>
+        </div>
+        
+        <div class="grid-container" id="freq-animation-container">
+            <div class="plot-container">
+                <h4 style="margin-top: 0;">Z平面 (动态)</h4>
+                <canvas id="zplaneAnimCanvas" width="350" height="350"></canvas>
+            </div>
+            <div class="plot-container">
+                <h4 style="margin-top: 0;">幅度谱 |H(e<sup>jω</sup>)|</h4>
+                <canvas id="ampAnimCanvas" width="350" height="350"></canvas>
+            </div>
+            <div class="plot-container">
+                <h4 style="margin-top: 0;">相位谱 ∠H(e<sup>jω</sup>)</h4>
+                <canvas id="phaseAnimCanvas" width="350" height="350"></canvas>
+            </div>
+        </div>
+        
+        <div class="conclusion">
+            <h4>✓ 动态图观察与滤波器类型分析</h4>
+            <p>观察Z平面动画，系统函数 \(H(z) = \frac{5z}{(z-2)(z+3)}\) 的幅度 \(|H(z)|\) 是由 "5 * (到零点的距离) / ((到极点p1的距离) * (到极点p2的距离))" 决定的。当单位圆上的点 \(z=e^{j\omega}\) 移动时：</p>
+            <ul>
+              <li>到原点零点的距离始终为1。</li>
+              <li>当 \(\omega=0, 2\pi, 4\pi...\) (点在(1,0))时，离极点2的距离最近，所以分母较小，幅度有局部峰值。</li>
+              <li>当 \(\omega=\pi, 3\pi, 5\pi...\) (点在(-1,0))时，离极点-3的距离最近，分母也较小，幅度也有局部峰值。</li>
+              <li><b>关于相位谱</b>：总相位是零点向量角减去两个极点向量角。由于极点向量角随 \(\omega\) 的变化是非线性的（尤其是在靠近极点时），因此总的相位谱呈现出曲线形状是完全正常的，而非一条直线。</li>
+            </ul>
+             <p>因此，幅度谱在低频(\(\omega \approx 0\))和高频(\(\omega \approx \pi\))区域的增益较高，而在中频区域增益相对较低。这种特性属于<strong>带阻滤波器（Band-stop Filter）</strong>。</p>
+        </div>
+
+        <h2>6. 总结</h2>
+        <ol>
+            <li>我们从差分方程出发，通过Z变换推导出了系统函数 \(H(z) = \frac{5z}{z^2+z-6}\)，并确定了其零点为0，极点为2和-3。</li>
+            <li>基于极点，我们分析了三种可能的ROC，并指出了每种ROC对应的系统类型（因果/反因果/双边）及其稳定性。</li>
+            <li>我们展示了两种逆Z变换求解方法（H(z)/z法、直接法），并详细计算了三种ROC下的冲激响应 \(h[n]\)。</li>
+            <li>通过时域图像和ROC分析，我们直观地揭示了ROC、因果性和稳定性之间的内在联系，并得出此系统无法同时满足因果和稳定的结论。</li>
+            <li>通过在单位圆上对系统函数进行动态分析，我们可视化了其频率响应的形成过程，并判断出其具有<strong>带阻滤波器</strong>的特性。</li>
+        </ol>
+    </div>
+
+    <!-- 绘图的JavaScript代码 -->
+    <script>
+        const THEME = {
+            primary: '#0d6efd',
+            danger: '#dc3545',
+            success: '#198754',
+            warning: '#ffc107',
+            dark: '#212529',
+            grey: '#6c757d',
+            lightGrey: '#ced4da',
+            grid: '#e9ecef'
+        };
+
+        function setupCanvas(canvasId, plotConfig) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return null;
+            const ctx = canvas.getContext('2d');
+            const { width, height } = canvas;
+            const padding = { top: 30, right: 20, bottom: 40, left: 50 };
+            const plotWidth = width - padding.left - padding.right;
+            const plotHeight = height - padding.top - padding.bottom;
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = THEME.dark; 
+            ctx.font = '14px ' + getComputedStyle(document.body).fontFamily;
+            ctx.textAlign = 'center';
+            ctx.fillText(plotConfig.xLabel, padding.left + plotWidth / 2, height - 10);
+            ctx.save();
+            ctx.translate(15, padding.top + plotHeight / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText(plotConfig.yLabel, 0, 0);
+            ctx.restore();
+            return { ctx, padding, plotWidth, plotHeight, width, height };
+        }
+
+        function drawGridAndAxes(ctx, config) {
+            const { padding, plotWidth, plotHeight, xRange, yRange, xTicks, yTicks } = config;
+            ctx.strokeStyle = THEME.grid; ctx.lineWidth = 1; ctx.font = '12px ' + getComputedStyle(document.body).fontFamily; ctx.fillStyle = THEME.grey; ctx.textAlign = 'center';
+            for (const tick of xTicks) {
+                const xPixel = padding.left + ((tick.val - xRange[0]) / (xRange[1] - xRange[0])) * plotWidth;
+                ctx.beginPath(); ctx.moveTo(xPixel, padding.top); ctx.lineTo(xPixel, padding.top + plotHeight); ctx.stroke();
+                ctx.fillText(tick.lab, xPixel, padding.top + plotHeight + 15);
+            }
+            ctx.textAlign = 'right';
+            for (const tick of yTicks) {
+                const yPixel = padding.top + plotHeight - ((tick.val - yRange[0]) / (yRange[1] - yRange[0])) * plotHeight;
+                ctx.beginPath(); ctx.moveTo(padding.left, yPixel); ctx.lineTo(padding.left + plotWidth, yPixel); ctx.stroke();
+                ctx.fillText(tick.lab, padding.left - 8, yPixel + 4);
+            }
+            ctx.strokeStyle = THEME.lightGrey;
+            ctx.beginPath(); ctx.moveTo(padding.left, padding.top); ctx.lineTo(padding.left, padding.top + plotHeight); ctx.lineTo(padding.left + plotWidth, padding.top + plotHeight); ctx.stroke();
+        }
+        
+        function drawROCPlot(canvasId, poles, roc) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const { width, height } = canvas;
+            const centerX = width / 2; const centerY = height / 2;
+            const maxR = 3.5; const scale = width / (2 * maxR);
+
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = 'rgba(25, 135, 84, 0.1)';
+            ctx.beginPath();
+            if (roc.type === 'outer') { ctx.rect(0,0,width,height); ctx.arc(centerX, centerY, roc.r1 * scale, 0, 2 * Math.PI, true); } 
+            else if (roc.type === 'inner') { ctx.arc(centerX, centerY, roc.r1 * scale, 0, 2 * Math.PI); } 
+            else if (roc.type === 'annulus') { ctx.arc(centerX, centerY, roc.r2 * scale, 0, 2 * Math.PI); ctx.arc(centerX, centerY, roc.r1 * scale, 0, 2 * Math.PI, true); }
+            ctx.fill();
+
+            ctx.strokeStyle = THEME.grid; ctx.lineWidth = 1; ctx.setLineDash([2, 4]);
+            for (let i = -3; i <= 3; i++) { if(i===0) continue; ctx.beginPath(); ctx.moveTo(centerX + i * scale, 0); ctx.lineTo(centerX + i * scale, height); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0, centerY + i * scale); ctx.lineTo(width, centerY + i * scale); ctx.stroke(); }
+            ctx.setLineDash([]);
+            
+            ctx.strokeStyle = THEME.dark; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(0, centerY); ctx.lineTo(width, centerY); ctx.stroke(); ctx.beginPath(); ctx.moveTo(centerX, 0); ctx.lineTo(centerX, height); ctx.stroke();
+            ctx.font = '14px ' + getComputedStyle(document.body).fontFamily; ctx.fillStyle = THEME.dark;
+            ctx.fillText('Re(z)', width - 25, centerY - 10);
+            ctx.fillText('Im(z)', centerX + 25, 15);
+            
+            ctx.strokeStyle = THEME.primary; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(centerX, centerY, 1 * scale, 0, 2 * Math.PI); ctx.stroke();
+            
+            ctx.strokeStyle = THEME.grey; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+            poles.forEach(p => { ctx.beginPath(); ctx.arc(centerX, centerY, Math.abs(p.x) * scale, 0, 2 * Math.PI); ctx.stroke(); });
+            ctx.setLineDash([]);
+            
+            ctx.strokeStyle = THEME.danger; ctx.lineWidth = 2.5;
+            poles.forEach(p => { const x = centerX + p.x * scale, y = centerY - p.y * scale; ctx.beginPath(); ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 6, y + 6); ctx.stroke(); ctx.beginPath(); ctx.moveTo(x - 6, y + 6); ctx.lineTo(x + 6, y - 6); ctx.stroke(); });
+            
+            const zero = {x: 0, y: 0}; ctx.strokeStyle = THEME.primary; ctx.lineWidth = 2.5;
+            const zx = centerX + zero.x * scale, zy = centerY - zero.y * scale; ctx.beginPath(); ctx.arc(zx, zy, 6, 0, 2 * Math.PI); ctx.stroke();
+        }
+
+        function drawBilateralTimeDomainPlot(canvasId, yLabel, dataFunc) {
+            const setup = setupCanvas(canvasId, { xLabel: '时间索引 n', yLabel });
+            if (!setup) return;
+            const { ctx, padding, plotWidth, plotHeight } = setup;
+            const nMin = -10, nMax = 10;
+            const data = []; let yMin = 0, yMax = 0;
+            for (let n = nMin; n <= nMax; n++) { const val = dataFunc(n); if (isFinite(val)) { data.push({ x: n, y: val }); if (val < yMin) yMin = val; if (val > yMax) yMax = val; }}
+            const yMargin = Math.max((yMax - yMin) * 0.1, 1); const yRange = [Math.floor(yMin - yMargin), Math.ceil(yMax + yMargin)]; if (yRange[0] === yRange[1]) { yRange[0] -= 1; yRange[1] += 1; };
+            drawGridAndAxes(ctx, { padding, plotWidth, plotHeight, xRange: [nMin, nMax], yRange, xTicks: Array.from({length: 5}, (_, i) => ({val: nMin + i*5, lab: (nMin + i*5).toString()})), yTicks: [{val: yRange[0], lab: yRange[0].toPrecision(2)}, {val: 0, lab: '0'}, {val: yRange[1], lab: yRange[1].toPrecision(2)}] });
+            
+            let color;
+            if (canvasId.includes('h1')) color = THEME.danger;
+            else if (canvasId.includes('h2')) color = THEME.warning;
+            else color = THEME.success;
+
+            ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
+            const yZeroPixel = padding.top + plotHeight - ((0 - yRange[0]) / (yRange[1] - yRange[0])) * plotHeight;
+            data.forEach(p => { const x = padding.left + ((p.x - nMin) / (nMax - nMin)) * plotWidth; const y = padding.top + plotHeight - ((p.y - yRange[0]) / (yRange[1] - yRange[0])) * plotHeight; ctx.beginPath(); ctx.moveTo(x, yZeroPixel); ctx.lineTo(x, y); ctx.stroke(); ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 2 * Math.PI); ctx.fill(); });
+        }
+        
+        function initFrequencyAnimation() {
+            const zplaneCanvas = document.getElementById('zplaneAnimCanvas');
+            const ampCanvas = document.getElementById('ampAnimCanvas');
+            const phaseCanvas = document.getElementById('phaseAnimCanvas');
+            if (!zplaneCanvas || !ampCanvas || !phaseCanvas) return;
+
+            const zplaneCtx = zplaneCanvas.getContext('2d');
+            const { width, height } = zplaneCanvas;
+            const centerX = width / 2, centerY = height / 2;
+            const maxR = 3.5, scale = width / (2 * maxR);
+            const poles = [{x: 2, y: 0}, {x: -3, y: 0}];
+            const zero = {x: 0, y: 0};
+            
+            const ampSetup = setupCanvas('ampAnimCanvas', { xLabel: 'ω / π', yLabel: '幅度' });
+            const phaseSetup = setupCanvas('phaseAnimCanvas', { xLabel: 'ω / π', yLabel: '相位(°)' });
+            
+            const numPeriods = 3;
+            const numPointsPerPeriod = 200;
+            const totalNumPoints = numPointsPerPeriod * numPeriods;
+            const magData = [], phaseData = [];
+
+            for (let i = 0; i < totalNumPoints; i++) {
+                const w = (i / (numPointsPerPeriod - 1)) * 2 * Math.PI;
+                const z_re = Math.cos(w), z_im = Math.sin(w);
+                
+                const v0_re = z_re - zero.x, v0_im = z_im - zero.y;
+                const v1_re = z_re - poles[0].x, v1_im = z_im - poles[0].y;
+                const v2_re = z_re - poles[1].x, v2_im = z_im - poles[1].y;
+
+                const mag_v0 = Math.sqrt(v0_re*v0_re + v0_im*v0_im);
+                const mag_v1 = Math.sqrt(v1_re*v1_re + v1_im*v1_im);
+                const mag_v2 = Math.sqrt(v2_re*v2_re + v2_im*v2_im);
+
+                const phase_v0 = Math.atan2(v0_im, v0_re);
+                const phase_v1 = Math.atan2(v1_im, v1_re);
+                const phase_v2 = Math.atan2(v2_im, v2_re);
+                
+                magData.push(5 * mag_v0 / (mag_v1 * mag_v2));
+                phaseData.push((phase_v0 - phase_v1 - phase_v2) * 180 / Math.PI);
+            }
+            
+            const magMax = Math.max(...magData); const magMin = Math.min(...magData);
+            const phaseMax = Math.max(...phaseData); const phaseMin = Math.min(...phaseData);
+
+            let frame = 0;
+            let animationId;
+
+            function animate() {
+                const w_zplane = (frame / (numPointsPerPeriod - 1)) * 2 * Math.PI % (2 * Math.PI);
+                drawROCPlot('zplaneAnimCanvas', poles, {type: 'none'}); // Use the styled function
+                const current_z_x_px = centerX + Math.cos(w_zplane) * scale;
+                const current_z_y_px = centerY - Math.sin(w_zplane) * scale;
+                
+                const p1_px = { x: centerX + poles[0].x * scale, y: centerY - poles[0].y * scale };
+                const p2_px = { x: centerX + poles[1].x * scale, y: centerY - poles[1].y * scale };
+                const z0_px = { x: centerX + zero.x * scale, y: centerY - zero.y * scale };
+                
+                zplaneCtx.setLineDash([2, 2]);
+                zplaneCtx.lineWidth = 1.5;
+                zplaneCtx.strokeStyle = THEME.success; zplaneCtx.beginPath(); zplaneCtx.moveTo(z0_px.x, z0_px.y); zplaneCtx.lineTo(current_z_x_px, current_z_y_px); zplaneCtx.stroke();
+                zplaneCtx.strokeStyle = THEME.warning; zplaneCtx.beginPath(); zplaneCtx.moveTo(p1_px.x, p1_px.y); zplaneCtx.lineTo(current_z_x_px, current_z_y_px); zplaneCtx.stroke();
+                zplaneCtx.strokeStyle = THEME.warning; zplaneCtx.beginPath(); zplaneCtx.moveTo(p2_px.x, p2_px.y); zplaneCtx.lineTo(current_z_x_px, current_z_y_px); zplaneCtx.stroke();
+                zplaneCtx.setLineDash([]);
+                
+                zplaneCtx.fillStyle = THEME.primary; zplaneCtx.beginPath(); zplaneCtx.arc(current_z_x_px, current_z_y_px, 6, 0, 2 * Math.PI); zplaneCtx.fill();
+
+                // Draw Amp/Phase plots
+                [ampSetup, phaseSetup].forEach((setup, idx) => {
+                    if (!setup) return;
+                    const data = idx === 0 ? magData : phaseData;
+                    const yMin = idx === 0 ? magMin : phaseMin;
+                    const yMax = idx === 0 ? magMax : phaseMax;
+                    const yRange = [yMin - (yMax-yMin)*0.1, yMax + (yMax-yMin)*0.1];
+                    
+                    setup.ctx.clearRect(0, 0, setup.width, setup.height);
+                    setup.ctx.fillStyle = '#ffffff'; setup.ctx.fillRect(0,0, setup.width, setup.height);
+
+                    drawGridAndAxes(setup.ctx, { padding: setup.padding, plotWidth: setup.plotWidth, plotHeight: setup.plotHeight, xRange: [0, 2*numPeriods], yRange, xTicks: [{val:0, lab:'0'}, {val:2, lab:'2π'}, {val:4, lab:'4π'}, {val:6, lab:'6π'}], yTicks: [{val:yRange[0], lab:yRange[0].toFixed(1)}, {val:yRange[1], lab:yRange[1].toFixed(1)}] });
+                    
+                    setup.ctx.strokeStyle = THEME.primary; setup.ctx.lineWidth = 2;
+                    setup.ctx.beginPath();
+                    for(let i=0; i <= frame; i++) {
+                        const x = setup.padding.left + (i/(totalNumPoints-1)) * setup.plotWidth;
+                        const y = setup.padding.top + setup.plotHeight - ((data[i] - yRange[0]) / (yRange[1] - yRange[0])) * setup.plotHeight;
+                        if(i === 0) setup.ctx.moveTo(x, y); else setup.ctx.lineTo(x,y);
+                    }
+                    setup.ctx.stroke();
+                    
+                    const currentX = setup.padding.left + (frame / (totalNumPoints -1)) * setup.plotWidth;
+                    setup.ctx.strokeStyle = `rgba(13, 110, 253, 0.5)`; setup.ctx.setLineDash([4,4]);
+                    setup.ctx.beginPath(); setup.ctx.moveTo(currentX, setup.padding.top); setup.ctx.lineTo(currentX, setup.padding.top + setup.plotHeight); setup.ctx.stroke();
+                    setup.ctx.setLineDash([]);
+                });
+
+                frame = (frame + 1) % totalNumPoints;
+                animationId = requestAnimationFrame(animate);
+            }
+            
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) { if (!animationId) { animate(); } } 
+                else { if (animationId) { cancelAnimationFrame(animationId); animationId = null; frame=0; } }
+            }, { threshold: 0.1 });
+            
+            const container = document.getElementById('freq-animation-container');
+            if (container) { observer.observe(container); }
+        }
+
+        window.addEventListener('load', () => {
+            const poles = [{x: 2, y: 0}, {x: -3, y: 0}];
+            drawROCPlot('roc1Canvas', poles, {type: 'outer', r1: 3});
+            drawROCPlot('roc2Canvas', poles, {type: 'annulus', r1: 2, r2: 3});
+            drawROCPlot('roc3Canvas', poles, {type: 'inner', r1: 2});
+
+            drawBilateralTimeDomainPlot('h1_canvas', '幅度', n => (n >= 0) ? (Math.pow(2, n) - Math.pow(-3, n)) : 0);
+            drawBilateralTimeDomainPlot('h2_canvas', '幅度', n => (n >= 0) ? Math.pow(2, n) : -Math.pow(-3, n));
+            drawBilateralTimeDomainPlot('h3_canvas', '幅度', n => (n < 0) ? (Math.pow(-3, n) - Math.pow(2, n)) : 0);
+            
+            initFrequencyAnimation();
+        });
+    </script>
+</body>
+</html>

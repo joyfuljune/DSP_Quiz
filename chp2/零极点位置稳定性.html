@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>极点位置、h[n] 与系统稳定性 交互式深度解析</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" id="MathJax-script" async></script>
+    <style>
+        :root {
+            --stable-color: #28a745;
+            --marginal-color: #fd7e14;
+            --unstable-color: #dc3545;
+            --primary-text: #2c3e50;
+            --secondary-text: #566573;
+            --bg-light: #f8f9fa;
+            --bg-white: #ffffff;
+            --border-color: #dee2e6;
+            --accent-color: #667eea;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #e9ecef;
+            padding: 25px;
+            min-height: 100vh;
+            color: var(--primary-text);
+        }
+        .container { max-width: 1600px; margin: 0 auto; background: var(--bg-white); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); padding: 30px; overflow: hidden; }
+        .header { text-align: center; margin-bottom: 25px; }
+        .title { font-size: 32px; font-weight: 700; margin-bottom: 8px; transition: color 0.3s ease; }
+        .subtitle { font-size: 18px; color: var(--secondary-text); height: 30px; }
+
+        .slider-container { margin: 20px auto; max-width: 800px; padding: 20px; background: var(--bg-light); border-radius: 12px; border: 1px solid var(--border-color); }
+        .slider-label { font-size: 18px; font-weight: 600; margin-bottom: 15px; text-align: center; }
+        .slider-wrapper { display: flex; align-items: center; gap: 15px; }
+        .slider { flex: 1; height: 10px; border-radius: 5px; outline: none; -webkit-appearance: none; appearance: none; background: linear-gradient(to right, var(--stable-color) 0%, var(--marginal-color) 66.67%, var(--unstable-color) 100%); transition: box-shadow 0.2s; }
+        .slider:hover { box-shadow: 0 0 0 8px rgba(102,126,234,0.1); }
+        .slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 26px; height: 26px; border-radius: 50%; background: white; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,0.2); border: 4px solid var(--accent-color); transition: transform 0.2s; }
+        .slider::-webkit-slider-thumb:active { transform: scale(1.2); }
+        .value-input { font-size: 18px; font-weight: 700; width: 100px; text-align: center; padding: 8px 12px; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); border: 1px solid var(--border-color); -moz-appearance: textfield; }
+        .value-input::-webkit-outer-spin-button, .value-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* --- 布局修改的关键 --- */
+        .top-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 450px; 
+            gap: 25px; 
+            /* 移除 align-items: start，让项目默认拉伸 */
+        }
+        .plot3d-container { 
+            background: var(--bg-light); 
+            border-radius: 12px; 
+            padding: 15px; 
+            border: 1px solid var(--border-color); 
+            box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+            display: flex; /* 使用flex布局让内部元素也拉伸 */
+        }
+        .plot3d { 
+            width: 100%; 
+            height: 100%; /* 高度设置为100%以填充父容器 */
+        }
+        
+        .cards-column { display: flex; flex-direction: column; justify-content: space-between; gap: 20px; }
+        .card { background: var(--bg-white); border-radius: 12px; padding: 20px; border-top: 5px solid; transition: border-color 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.05); flex: 1; display: flex; flex-direction: column;}
+        .card h3 { font-size: 20px; margin-bottom: 15px; }
+        .card-content { flex-grow: 1; }
+
+        .bottom-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-top: 25px; }
+        .plot-container { background: var(--bg-light); border-radius: 12px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border-color); transition: border-color 0.3s ease; min-height: 320px; }
+        .plot { width: 100%; height: 350px; }
+        
+        @media (max-width: 1200px) {
+            .top-grid { grid-template-columns: 1fr; }
+            .cards-column { order: 2; }
+            .plot3d-container { height: 450px; } /* 在窄屏时给一个固定高度 */
+            .bottom-row { grid-template-columns: 1fr; }
+            .plot { height: 320px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title" id="mainTitle"></div>
+            <div class="subtitle" id="subtitleEq"></div>
+        </div>
+
+        <div class="slider-container">
+            <div class="slider-label">拖动滑块或编辑数值以调整极点位置 (p)</div>
+            <div class="slider-wrapper">
+                <span style="font-weight: bold;">0</span>
+                <input type="range" class="slider" id="poleSlider" min="0" max="1.5" step="0.01" value="0.8">
+                <span style="font-weight: bold;">1.5</span>
+                <input id="valueInput" class="value-input" type="number" step="0.01" min="0" max="1.5" value="0.80" />
+            </div>
+        </div>
+
+        <div class="top-grid">
+            <div class="plot3d-container">
+                <div id="plot3D" class="plot3d"></div>
+            </div>
+            <div class="cards-column">
+                <div class="card" id="step1Card">
+                    <h3 id="step1Title"></h3>
+                    <div id="step1Content" class="card-content"></div>
+                </div>
+                <div class="card" id="step2Card">
+                    <h3>2. 脉冲响应 h[n]</h3>
+                    <div id="step2Content" class="card-content"></div>
+                </div>
+                <div class="card" id="step3Card">
+                    <h3>3. 稳定性判据</h3>
+                    <div id="step3Content" class="card-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-row">
+            <div class="plot-container" id="plotPoleZeroContainer"><div id="plotPoleZero" class="plot"></div></div>
+            <div class="plot-container" id="plotDTFTContainer"><div id="plotDTFT" class="plot"></div></div>
+            <div class="plot-container" id="plotImpulseResponseContainer"><div id="plotImpulseResponse" class="plot"></div></div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const slider = document.getElementById('poleSlider');
+        const valueInput = document.getElementById('valueInput');
+        const mainTitle = document.getElementById('mainTitle');
+        const step1Title = document.getElementById('step1Title');
+        const subtitleEq = document.getElementById('subtitleEq');
+
+        const cards = {
+            step1: { card: document.getElementById('step1Card'), content: document.getElementById('step1Content') },
+            step2: { card: document.getElementById('step2Card'), content: document.getElementById('step2Content') },
+            step3: { card: document.getElementById('step3Card'), content: document.getElementById('step3Content') }
+        };
+        const plotContainers = {
+            poleZero: document.getElementById('plotPoleZeroContainer'),
+            dtft: document.getElementById('plotDTFTContainer'),
+            impulse: document.getElementById('plotImpulseResponseContainer')
+        };
+        
+        slider.addEventListener('input', () => {
+            const p = parseFloat(slider.value);
+            valueInput.value = p.toFixed(2);
+            updateAll(p);
+        });
+
+        valueInput.addEventListener('change', () => {
+            let p = parseFloat(valueInput.value);
+            if (isNaN(p)) p = 0;
+            p = Math.max(0, Math.min(1.5, p));
+            valueInput.value = p.toFixed(2);
+            slider.value = p;
+            updateAll(p);
+        });
+
+        function updateAll(p) {
+            let stabilityStatus, statusColor;
+            const pAbs = Math.abs(p);
+            if (pAbs < 0.995) {
+                stabilityStatus = '稳定 (STABLE)'; statusColor = 'var(--stable-color)';
+            } else if (Math.abs(pAbs - 1) < 0.005) {
+                stabilityStatus = '临界稳定 (MARGINALLY STABLE)'; statusColor = 'var(--marginal-color)'; p = 1.0;
+            } else {
+                stabilityStatus = '不稳定 (UNSTABLE)'; statusColor = 'var(--unstable-color)';
+            }
+
+            mainTitle.textContent = `状态: ${stabilityStatus}`;
+            mainTitle.style.color = statusColor;
+            Object.values(cards).forEach(c => c.card.style.borderColor = statusColor);
+            Object.values(plotContainers).forEach(pc => pc.style.borderColor = statusColor);
+
+            plotPoleZeroMap(p, statusColor);
+            plotDTFTSpectrum(p, statusColor);
+            plotImpulseResponse(p, statusColor);
+            plot3DSurface(p, statusColor);
+            renderMathExplanations(p, statusColor);
+        }
+
+        function renderMathExplanations(p, statusColor) {
+            const pStr = p.toFixed(2);
+            
+            step1Title.innerHTML = `1. 系统函数 H(z):`;
+            subtitleEq.innerHTML = `$$ H(z) = \\frac{z}{z - p} = \\frac{z}{z - ${pStr}} $$`;
+
+            const rocCheckFormula = Math.abs(p) < 1 
+                ? `1 > ${pStr} \\implies \\text{单位圆在ROC内 } (\\color{${statusColor}}\\checkmark)` 
+                : `1 \\ngtr ${pStr} \\implies \\text{单位圆不在ROC内 } (\\color{${statusColor}}\\times)`;
+            cards.step1.content.innerHTML = `<p>对于因果系统, ROC是极点以外的区域:</p> $$ \\text{ROC}:\\;|z| > |${pStr}| $$ <p>单位圆 |z|=1 上的点是否在ROC内?</p> $$ ${rocCheckFormula} $$`;
+
+            let limitText;
+            if (Math.abs(p) < 1) limitText = `\\lim_{n\\to\\infty} h[n] = 0 \\quad (\\color{${statusColor}}\\text{衰减})`;
+            else if (Math.abs(p) === 1) limitText = `|h[n]| = 1 \\quad (\\color{${statusColor}}\\text{保持不变})`;
+            else limitText = `\\lim_{n\\to\\infty} |h[n]| = \\infty \\quad (\\color{${statusColor}}\\text{增长})`;
+            cards.step2.content.innerHTML = `<p>脉冲响应 h[n] 及其行为:</p> $$ h[n] = (${pStr})^n u[n] $$ $$ ${limitText} $$`;
+
+            let sumResult;
+            if (Math.abs(p) < 1) sumResult = `= \\frac{1}{1 - |${pStr}|} < \\infty \\quad (\\color{${statusColor}}\\text{收敛})`;
+            else sumResult = `= \\infty \\quad (\\color{${statusColor}}\\text{发散})`;
+            cards.step3.content.innerHTML = `<p>BIBO稳定的充要条件是 h[n] 绝对可和:</p> $$ \\sum_{n=0}^{\\infty}|h[n]| = \\sum_{n=0}^{\\infty}|${pStr}|^n $$ $$ ${sumResult} $$`;
+            
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise();
+            }
+        }
+
+        function plotPoleZeroMap(p, statusColor) {
+            const theta = linspace(0, 2*Math.PI, 100);
+            const data = [
+                { type: 'scatter', mode: 'lines', x: [...linspace(0, 2*Math.PI, 100).map(t => 2.2 * Math.cos(t)), ...theta.map(t => Math.abs(p) * Math.cos(t)).reverse()], y: [...linspace(0, 2*Math.PI, 100).map(t => 2.2 * Math.sin(t)), ...theta.map(t => Math.abs(p) * Math.sin(t)).reverse()], fill: 'toself', fillcolor: statusColor, opacity: 0.12, line: {width: 0}, name: 'ROC' },
+                { type: 'scatter', mode: 'lines', x: theta.map(t => Math.cos(t)), y: theta.map(t => Math.sin(t)), line: {color: '#3498db', width: 2.5}, name: '单位圆' },
+                { type: 'scatter', mode: 'lines', x: theta.map(t => Math.abs(p) * Math.cos(t)), y: theta.map(t => Math.abs(p) * Math.sin(t)), line: {color: statusColor, width: 2.5, dash: 'dash'}, name: 'ROC 边界' },
+                { type: 'scatter', mode: 'markers', x: [0], y: [0], marker: {size: 12, color: 'var(--stable-color)', symbol: 'circle'}, name: '零点' },
+                { type: 'scatter', mode: 'markers', x: [p], y: [0], marker: {size: 15, color: 'var(--unstable-color)', symbol: 'x-thin', line: {width: 3}}, name: '极点' }
+            ];
+            const layout = { title: '零极点图与收敛域(ROC)', xaxis: {title: 'Re(z)', range: [-2.2, 2.2]}, yaxis: {title: 'Im(z)', range: [-2.2, 2.2], scaleanchor: 'x'}, showlegend: false, margin: {l: 50, r: 20, b: 50, t: 60} };
+            Plotly.newPlot('plotPoleZero', data, layout, {responsive: true, displayModeBar: false});
+        }
+
+        function plotDTFTSpectrum(p, statusColor) {
+            const omega = linspace(-Math.PI, Math.PI, 500);
+            const HMag = omega.map(w => complexMagnitude(complexDivide({re: Math.cos(w), im: Math.sin(w)}, {re: Math.cos(w) - p, im: Math.sin(w)})));
+            const maxY = Math.abs(p) < 1 ? Math.min(Math.max(...HMag) * 1.1, 20) : 20;
+            const layout = { title: '频率响应 |H(e<sup>jω</sup>)|', xaxis: { title: 'ω (rad)', tickvals: [-Math.PI, -Math.PI/2, 0, Math.PI/2, Math.PI], ticktext: ['-π', '-π/2', '0', 'π/2', 'π']}, yaxis: {title: '幅度', range: [0, maxY]}, margin: {l: 50, r: 20, b: 50, t: 60} };
+            Plotly.newPlot('plotDTFT', [{ type: 'scatter', mode: 'lines', x: omega, y: HMag, line: {color: statusColor, width: 3} }], layout, {responsive: true, displayModeBar: false});
+        }
+
+        function plotImpulseResponse(p, statusColor) {
+            const n = Array.from({length: 20}, (_, i) => i);
+            const hn = n.map(val => Math.pow(p, val));
+            const layout = { title: '脉冲响应 h[n]', xaxis: {title: 'n (样本点)'}, yaxis: {title: '幅度'}, margin: {l: 50, r: 20, b: 50, t: 60} };
+            Plotly.newPlot('plotImpulseResponse', [{ type: 'bar', x: n, y: hn, marker: {color: statusColor} }], layout, {responsive: true, displayModeBar: false});
+        }
+        
+        function plot3DSurface(p, statusColor) {
+            const resolution = 60;
+            const re = linspace(-2, 2, resolution), im = linspace(-2, 2, resolution);
+            let zData = [];
+            for (let i = 0; i < im.length; i++) {
+                let row = [];
+                for (let j = 0; j < re.length; j++) {
+                    const Hz = complexDivide({re: re[j], im: im[i]}, {re: re[j] - p, im: im[i]});
+                    row.push(Math.min(complexMagnitude(Hz), 10));
+                }
+                zData.push(row);
+            }
+            const theta = linspace(0, 2*Math.PI, 100);
+            const unitCircleRe = theta.map(t => Math.cos(t)), unitCircleIm = theta.map(t => Math.sin(t));
+            const dtftMag = theta.map(t => Math.min(complexMagnitude(complexDivide({re: Math.cos(t), im: Math.sin(t)}, {re: Math.cos(t) - p, im: Math.sin(t)})), 10));
+
+            const data = [
+                { type: 'surface', x: re, y: im, z: zData, colorscale: 'Viridis', showscale: false, opacity: 0.9, lighting: {ambient: 0.8, diffuse: 0.8, specular: 0.1} },
+                { type: 'scatter3d', mode: 'lines', x: unitCircleRe, y: unitCircleIm, z: dtftMag, line: {color: statusColor, width: 8} },
+                { type: 'scatter3d', mode: 'lines', x: unitCircleRe, y: unitCircleIm, z: Array(unitCircleRe.length).fill(0.01), line: {color: '#3498db', width: 3, dash: 'dash'} },
+                { type: 'scatter3d', mode: 'markers', x: [0], y: [0], z: [0], marker: {size: 6, color: 'var(--stable-color)'} },
+                { type: 'scatter3d', mode: 'markers', x: [p], y: [0], z: [10], marker: {size: 8, color: 'var(--unstable-color)', symbol: 'x'} },
+                { type: 'scatter3d', mode: 'lines', x: [p, p], y: [0, 0], z: [0, 10], line: {color: 'var(--unstable-color)', width: 4}, showlegend: false }
+            ];
+            const layout = { title: 'Z域幅度曲面 |H(z)|', scene: { xaxis: {title: 'Re(z)'}, yaxis: {title: 'Im(z)'}, zaxis: {title: '|H(z)|', range: [0, 10]}, camera: { eye: {x: 1.6, y: -1.6, z: 1.2} }, aspectmode: 'cube' }, showlegend: false, margin: {l: 0, r: 0, b: 0, t: 40} };
+            Plotly.newPlot('plot3D', data, layout, {responsive: true, displayModeBar: false});
+        }
+        
+        function linspace(start, end, num) { const arr = []; const step = (end - start) / (num - 1); for (let i = 0; i < num; i++) arr.push(start + step * i); return arr; }
+        function complexDivide(z1, z2) { const denom = z2.re ** 2 + z2.im ** 2; return { re: (z1.re * z2.re + z1.im * z2.im) / denom, im: (z1.im * z2.re - z1.re * z2.im) / denom }; }
+        function complexMagnitude(z) { return Math.sqrt(z.re ** 2 + z.im ** 2); }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAll(parseFloat(slider.value));
+        });
+    </script>
+</body>
+</html>
