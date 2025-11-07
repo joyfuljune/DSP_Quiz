@@ -14,7 +14,7 @@
             padding: 20px;
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* 改为flex-start以适应更长的内容 */
+            align-items: flex-start;
             min-height: 100vh;
         }
         .container {
@@ -65,7 +65,7 @@
 
         /* 子项目列表样式 */
         .sub-list {
-            padding-left: 40px; /* 实现缩进 */
+            padding-left: 40px;
             margin-top: 5px;
             margin-bottom: 15px;
         }
@@ -86,13 +86,15 @@
             position: relative;
         }
         .sub-list a::before {
-            /* 使用小图标增加辨识度 */
             content: '📄';
             margin-right: 10px;
             font-size: 0.9em;
         }
         .sub-list a.quiz::before {
             content: '✏️';
+        }
+        .sub-list a.pdf::before {
+            content: '📚';
         }
     </style>
 </head>
@@ -105,15 +107,20 @@
             <li>
                 <a href="#">第二章：DTFT/DFS/ZT (Chp 2)</a>
                 <ul class="sub-list">
-                    <li><a href="chp2_quiz.html" class="quiz">随堂测验 (Quiz 2)</a></li>
+                    <!-- 假设您的对比页面文件名为 transforms_comparison.html 并放在 chp2 文件夹下 -->
+                    <li><a href="chp2/transforms_comparison.html">变换对比 (DTFT, DFT, DFS, ZT)</a></li>
+                    <!-- 假设您的测验文件名为 quiz.html 并放在 chp2 文件夹下 -->
+                    <li><a href="chp2/quiz.html" class="quiz">随堂测验 (Quiz 2)</a></li>
                 </ul>
             </li>
 
             <li>
                 <a href="#">第三章：DFT (Chp 3)</a>
                 <ul class="sub-list">
-                    <li><a href="dft循环卷积.html">循环卷积详解</a></li>
-                    <li><a href="chp3_quiz.html" class="quiz">随堂测验 (Quiz 3)</a></li>
+                    <!-- 假设您的循环卷积文件名为 circular_convolution.html 并放在 chp3 文件夹下 -->
+                    <li><a href="chp3/circular_convolution.html">循环卷积详解</a></li>
+                    <!-- 假设您的测验文件名为 quiz.html 并放在 chp3 文件夹下 -->
+                    <li><a href="chp3/quiz.html" class="quiz">随堂测验 (Quiz 3)</a></li>
                 </ul>
             </li>
             
@@ -121,11 +128,10 @@
             <li><a href="#">第五章：网络结构 (Chp 5)</a></li>
             <li><a href="#">第六章：IIR (Chp 6)</a></li>
             <li><a href="#">第七章：FIR (Chp 7)</a></li>
-            <li><a href="#">第八章：xx (Chp 8)</a></li>
-            <li><a href="#">第九章：xx (Chp 9)</a></li>
-            <li><a href="#">第十章：xx (Chp 10)</a></li>
+            <li><a href="#">第八章：采样与重建 (Chp 8)</a></li>
+            <li><a href="#">第九章：多速率信号处理 (Chp 9)</a></li>
+            <li><a href="#">第十章：DSP应用 (Chp 10)</a></li>
         </ul>
     </div>
 </body>
 </html>
-
