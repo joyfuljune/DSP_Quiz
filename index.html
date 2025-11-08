@@ -85,13 +85,23 @@
             color: #34495e;
             position: relative;
         }
-        .sub-list a::before {
-            content: '📄';
-            margin-right: 10px;
-            font-size: 0.9em;
+        /* 为不同类型的文件添加图标 */
+        .sub-list a.html::before { content: '📄'; margin-right: 10px; font-size: 0.9em; }
+        .sub-list a.quiz::before { content: '✏️'; margin-right: 10px; font-size: 0.9em; }
+        .sub-list a.pdf::before { content: '📜'; margin-right: 10px; font-size: 0.9em; }
+        .sub-list a.img::before { content: '🖼️'; margin-right: 10px; font-size: 0.9em; }
+        
+        /* 知识点分组标题 */
+        .group-title {
+            font-weight: bold;
+            color: #7f8c8d;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding-left: 20px;
+            font-size: 1.1em;
         }
-        .sub-list a.quiz::before {
-            content: '✏️';
+        .group-title:first-child {
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -104,17 +114,24 @@
             <li>
                 <a href="#">第二章：DTFT/DFS/ZT (Chp 2)</a>
                 <ul class="sub-list">
-                    <li><a href="chp2/z变换-系统响应.html">Z变换-系统响应</a></li>
-                    <li><a href="chp2/零极点-频率响应.html">零极点-频率响应</a></li>
-                    <li><a href="chp2/零极点位置稳定性.html">零极点位置与稳定性</a></li>
-                    <li><a href="chp2/dfs-ppt.pdf">DFS PPT</a></li>
-                    <li><a href="chp2/dtft-theory.pdf">DTFT 理论</a></li>
-                    <li><a href="chp2/z变换求系统响应习题.pdf">Z变换求系统响应习题</a></li>
-                    <li><a href="chp2/z域解差分方程-全响应.pdf">Z域解差分方程-全响应</a></li>
-                    <li><a href="chp2/x[n]卷积delta[n].pdf">x[n]卷积delta[n]</a></li>
-                    <li><a href="chp2/dtft-dfs-aliasing-sampling.png">DTFT/DFS 混叠与采样 (图)</a></li>
-                    <li><a href="chp2/dtft-dfs-zt.png">DTFT/DFS/ZT 对比 (图)</a></li>
-                    <li><a href="chp2/z_transform_examples.png">Z变换示例 (图)</a></li>
+                    <li class="group-title">理论基础：DTFT 与 DFS</li>
+                    <li><a href="chp2/dtft-theory.pdf" class="pdf">DTFT 核心理论 (PDF)</a></li>
+                    <li><a href="chp2/dfs-ppt.pdf" class="pdf">DFS 核心理论 (PDF)</a></li>
+                    <li><a href="chp2/dtft-dfs-aliasing-sampling.png" class="img">DTFT/DFS 的采样与混叠 (图)</a></li>
+
+                    <li class="group-title">核心工具：Z变换</li>
+                    <li><a href="chp2/z_transform_examples.png" class="img">Z变换常见序列示例 (图)</a></li>
+                    <li><a href="chp2/零极点位置稳定性.html" class="html">零极点位置与系统稳定性 (交互)</a></li>
+                    <li><a href="chp2/零极点-频率响应.html" class="html">从零极点看频率响应 (交互)</a></li>
+
+                    <li class="group-title">应用：系统响应与方程求解</li>
+                    <li><a href="chp2/x[n]卷积delta[n].pdf" class="pdf">卷积基本性质 (PDF)</a></li>
+                    <li><a href="chp2/z变换-系统响应.html" class="html">Z变换求系统响应 (交互)</a></li>
+                    <li><a href="chp2/z域解差分方程-全响应.pdf" class="pdf">Z变换解差分方程 (讲义)</a></li>
+                    <li><a href="chp2/z变换求系统响应习题.pdf" class="pdf">Z变换求系统响应 (习题)</a></li>
+
+                    <li class="group-title">总结与测验</li>
+                    <li><a href="chp2/dtft-dfs-zt.png" class="img">DTFT/DFS/ZT 关系总结 (图)</a></li>
                     <li><a href="chp2/chp2_quiz.html" class="quiz">随堂测验 (Quiz 2)</a></li>
                 </ul>
             </li>
@@ -122,8 +139,10 @@
             <li>
                 <a href="#">第三章：DFT (Chp 3)</a>
                 <ul class="sub-list">
-                    <li><a href="chp3/dft循环卷积.html">DFT循环卷积</a></li>
-                    <li><a href="chp3/四大变换对比.html">四大变换对比</a></li>
+                     <li class="group-title">核心理论</li>
+                    <li><a href="chp3/四大变换对比.html" class="html">四大变换关系对比 (交互)</a></li>
+                    <li><a href="chp3/dft循环卷积.html" class="html">DFT旋转因子与循环卷积 (交互)</a></li>
+                     <li class="group-title">测验</li>
                     <li><a href="chp3/chp3_quiz.html" class="quiz">随堂测验 (Quiz 3)</a></li>
                 </ul>
             </li>
