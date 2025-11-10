@@ -65,6 +65,7 @@
 
         /* 子项目列表样式 */
         .sub-list {
+            display: none; /* Hide sub-lists by default */
             padding-left: 40px;
             margin-top: 5px;
             margin-bottom: 15px;
@@ -102,6 +103,22 @@
         }
         .group-title:first-child {
             margin-top: 5px;
+        }
+
+        /* Styles for collapsible chapters */
+        .chapter-list > li.collapsible > a {
+            position: relative;
+            cursor: pointer;
+        }
+        .chapter-list > li.collapsible > a::after {
+            content: '▶'; /* Collapsed state arrow */
+            position: absolute;
+            right: 25px;
+            font-size: 0.8em;
+            transition: transform 0.2s ease-in-out;
+        }
+        .chapter-list > li.collapsible.active > a::after {
+            transform: rotate(90deg); /* Expanded state arrow */
         }
     </style>
 </head>
@@ -167,5 +184,32 @@
             <li><a href="#">第十章：DSP应用 (Chp 10)</a></li>
         </ul>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chapterLinks = document.querySelectorAll('.chapter-list > li > a');
+
+            chapterLinks.forEach(link => {
+                const subList = link.nextElementSibling;
+                // Check if a sub-list actually exists for this chapter
+                if (subList && subList.classList.contains('sub-list')) {
+                    const parentLi = link.parentElement;
+                    parentLi.classList.add('collapsible'); // Add a class for styling the arrow
+
+                    link.addEventListener('click', function(event) {
+                        event.preventDefault(); // Prevent default link behavior
+                        parentLi.classList.toggle('active');
+                        
+                        // Toggle the display of the sub-list
+                        if (parentLi.classList.contains('active')) {
+                            subList.style.display = 'block';
+                        } else {
+                            subList.style.display = 'none';
+                        }
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>
