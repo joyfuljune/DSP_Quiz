@@ -2,122 +2,16 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>手写笔记转录与3D可视化 (MathJax v3)</title>
+    <title>从dft到fft</title>
     
-    <script>
-      MathJax = {
-        tex: {
-          inlineMath: [['$', '$'], ['\\(', '\\)']],
-          displayMath: [['$$', '$$'], ['\\[', '\\]']]
-        },
-        svg: {
-          fontCache: 'global'
-        }
-      };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    
+    <!-- Plotly.js for 3D plotting -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-            line-height: 2.2; padding: 20px; max-width: 900px; margin: auto;
-        }
-        h2 { margin-top: 40px; }
-        h3 { border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 30px; }
-        h4 { margin-left: 20px; margin-bottom: 10px; }
-        p { margin-left: 20px; text-align: justify; }
-        code {
-            font-family: "Courier New", monospace; background-color: #f4f4f4;
-            padding: 3px 6px; border-radius: 4px; font-size: 0.95em;
-        }
-        #plotContainer, #plotContainer2 {
-            margin-top: 40px; border: 1px solid #ddd; border-radius: 8px; padding: 10px;
-        }
-        hr { margin: 60px 0; border: 1px solid #eee; }
-    </style>
-</head>
-<body>
 
-    <h2>信号: <code>x[n] = {1, 1}</code> (N=2)</h2>
-
-    <h3>1. DTFT</h3>
-    <p>
-        $$
-        X(e^{j\omega}) = \sum_{n=0}^{1} x[n]e^{-j\omega n} = x[0]e^{-j\omega(0)} + x[1]e^{-j\omega(1)} = (1)(1) + (1)e^{-j\omega} = 1 + e^{-j\omega}
-        $$
-    </p>
-
-    <h3>2. ZT</h3>
-    <p>
-        $$
-        X(z) = \sum_{n=0}^{1} x[n]z^{-n} = x[0]z^{-0} + x[1]z^{-1} = (1)(1) + (1)z^{-1} = 1 + z^{-1}, \quad (\text{ROC: } |z| > 0)
-        $$
-    </p>
-
-    <h3>3. DFT</h3>
-    <h4>步骤 1: 构建变换矩阵 W 并进行计算</h4>
-    <p>
-        $$
-        \begin{bmatrix} X(0) \\ X(1) \end{bmatrix} = 
-        \begin{bmatrix} W_2^{0} & W_2^{0} \\ W_2^{0} & W_2^{1} \end{bmatrix}
-        \begin{bmatrix} 1 \\ 1 \end{bmatrix} =
-        \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} 
-        \begin{bmatrix} 1 \\ 1 \end{bmatrix} = 
-        \begin{bmatrix} (1)(1) + (1)(1) \\ (1)(1) + (-1)(1) \end{bmatrix} =
-        \begin{bmatrix} 1 + 1 \\ 1 - 1 \end{bmatrix} =
-        \begin{bmatrix} 2 \\ 0 \end{bmatrix}
-        $$
-    </p>
-    <p>最终结果: <code>X(k) = {2, 0}</code></p>
-    
-    <h3>4. 3D 可视化</h3>
-    <div id="plotContainer">
-        <div id="plotDiv" style="width:100%; height:600px;"></div>
-    </div>
-
-    <hr>
-
-    <h2>信号: <code>x[n] = {1, 1, 1, 1}</code> (N=4)</h2>
-    
-    <h3>1. DTFT</h3>
-    <p>
-        $$
-        X(e^{j\omega}) = \sum_{n=0}^{3} e^{-j\omega n} = e^{-j\omega(0)} + e^{-j\omega(1)} + e^{-j\omega(2)} + e^{-j\omega(3)} = \frac{1 - (e^{-j\omega})^4}{1 - e^{-j\omega}} = \frac{1 - e^{-j4\omega}}{1 - e^{-j\omega}}
-        $$
-    </p>
-
-    <h3>2. ZT</h3>
-    <p>
-        $$
-        X(z) = \sum_{n=0}^{3} z^{-n} = z^{-0} + z^{-1} + z^{-2} + z^{-3} = \frac{1 - (z^{-1})^4}{1 - z^{-1}} = \frac{1 - z^{-4}}{1 - z^{-1}}, \quad (\text{ROC: } z \neq 0)
-        $$
-    </p>
-
-    <h3>3. DFT</h3>
-    <h4>步骤 1: 构建变换矩阵 W 并进行计算</h4>
-    <p>
-        $$
-        \begin{bmatrix} X(0) \\ X(1) \\ X(2) \\ X(3) \end{bmatrix} = 
-        \begin{bmatrix} W_4^{0} & W_4^{0} & W_4^{0} & W_4^{0} \\ W_4^{0} & W_4^{1} & W_4^{2} & W_4^{3} \\ W_4^{0} & W_4^{2} & W_4^{4} & W_4^{6} \\ W_4^{0} & W_4^{3} & W_4^{6} & W_4^{9} \end{bmatrix}
-        \begin{bmatrix} 1 \\ 1 \\ 1 \\ 1 \end{bmatrix} = 
-        \begin{bmatrix} 1 & 1 & 1 & 1 \\ 1 & -j & -1 & j \\ 1 & -1 & 1 & -1 \\ 1 & j & -1 & -j \end{bmatrix} 
-        \begin{bmatrix} 1 \\ 1 \\ 1 \\ 1 \end{bmatrix} =
-        \begin{bmatrix} (1)(1)+(1)(1)+(1)(1)+(1)(1) \\ (1)(1)+(-j)(1)+(-1)(1)+(j)(1) \\ (1)(1)+(-1)(1)+(1)(1)+(-1)(1) \\ (1)(1)+(j)(1)+(-1)(1)+(-j)(1) \end{bmatrix} =
-        \begin{bmatrix} 4 \\ 0 \\ 0 \\ 0 \end{bmatrix}
-        $$
-    </p>
-    <p>最终结果: <code>X(k) = {4, 0, 0, 0}</code></p>
-    
-    <h3>4. 3D 可视化</h3>
-    <div id="plotContainer2">
-        <div id="plotDiv2" style="width:100%; height:600px;"></div>
-    </div>
-
-<script>
-    // 【解决方案】将所有绘图代码包裹在 DOMContentLoaded 事件监听器中
-    document.addEventListener('DOMContentLoaded', function() {
+    <!-- 【解决方案】第1步: 将 MathJax v2 的配置脚本放在主脚本之前 -->
+    <script type="text/x-mathjax-config">
+      // 定义一个函数来执行绘图，我们稍后会把它放入 MathJax 队列
+      function renderPlots() {
+        console.log("MathJax has finished rendering. Now executing Plotly code.");
 
         // --- PLOT 1: x[n] = {1, 1} ---
         (function() {
@@ -221,9 +115,110 @@
             };
             Plotly.newPlot('plotDiv2', [surfaceTrace2, dtftTrace2, dftTrace2], layout2);
         })();
+      }
 
-    }); // 结束 DOMContentLoaded 事件监听器
-</script>
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [['$','$'], ['\\(','\\)']], // 添加常用的 $..$
+          displayMath: [['$$','$$'], ['\\[','\\]']],
+          processEscapes: true
+        }
+      });
+      
+      // 【解决方案】第2步: 将我们的绘图函数放入 MathJax 的任务队列中
+      // 这会确保 renderPlots() 函数在所有公式都渲染完毕后才被调用
+      MathJax.Hub.Queue(["Typeset", MathJax.Hub], renderPlots);
+
+    </script>
+    
+    <!-- 【解决方案】第3步: 最后加载 MathJax 主脚本 -->
+    <script type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+    </script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            line-height: 2.2; padding: 20px; max-width: 900px; margin: auto;
+        }
+        h2 { margin-top: 40px; }
+        h3 { border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 30px; }
+        h4 { margin-left: 20px; margin-bottom: 10px; }
+        p { margin-left: 20px; text-align: justify; }
+        code {
+            font-family: "Courier New", monospace; background-color: #f4f4f4;
+            padding: 3px 6px; border-radius: 4px; font-size: 0.95em;
+        }
+        #plotContainer, #plotContainer2 {
+            margin-top: 40px; border: 1px solid #ddd; border-radius: 8px; padding: 10px;
+        }
+        hr { margin: 60px 0; border: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <!-- 你的 HTML 内容保持不变 -->
+    <h2>信号: <code>x[n] = {1, 1}</code> (N=2)</h2>
+    <h3>1. DTFT</h3>
+    <p>
+        $$
+        X(e^{j\omega}) = \sum_{n=0}^{1} x[n]e^{-j\omega n} = x[0]e^{-j\omega(0)} + x[1]e^{-j\omega(1)} = (1)(1) + (1)e^{-j\omega} = 1 + e^{-j\omega}
+        $$
+    </p>
+    <h3>2. ZT</h3>
+    <p>
+        $$
+        X(z) = \sum_{n=0}^{1} x[n]z^{-n} = x[0]z^{-0} + x[1]z^{-1} = (1)(1) + (1)z^{-1} = 1 + z^{-1}, \quad (\text{ROC: } |z| > 0)
+        $$
+    </p>
+    <h3>3. DFT</h3>
+    <h4>步骤 1: 构建变换矩阵 W 并进行计算</h4>
+    <p>
+        $$
+        \begin{bmatrix} X(0) \\ X(1) \end{bmatrix} = 
+        \begin{bmatrix} W_2^{0} & W_2^{0} \\ W_2^{0} & W_2^{1} \end{bmatrix}
+        \begin{bmatrix} 1 \\ 1 \end{bmatrix} =
+        \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} 
+        \begin{bmatrix} 1 \\ 1 \end{bmatrix} = 
+        \begin{bmatrix} (1)(1) + (1)(1) \\ (1)(1) + (-1)(1) \end{bmatrix} =
+        \begin{bmatrix} 1 + 1 \\ 1 - 1 \end{bmatrix} =
+        \begin{bmatrix} 2 \\ 0 \end{bmatrix}
+        $$
+    </p>
+    <p>最终结果: <code>X(k) = {2, 0}</code></p>
+    <h3>4. 3D 可视化</h3>
+    <div id="plotContainer"><div id="plotDiv" style="width:100%; height:600px;"></div></div>
+    <hr>
+    <h2>信号: <code>x[n] = {1, 1, 1, 1}</code> (N=4)</h2>
+    <h3>1. DTFT</h3>
+    <p>
+        $$
+        X(e^{j\omega}) = \sum_{n=0}^{3} e^{-j\omega n} = e^{-j\omega(0)} + e^{-j\omega(1)} + e^{-j\omega(2)} + e^{-j\omega(3)} = \frac{1 - (e^{-j\omega})^4}{1 - e^{-j\omega}} = \frac{1 - e^{-j4\omega}}{1 - e^{-j\omega}}
+        $$
+    </p>
+    <h3>2. ZT</h3>
+    <p>
+        $$
+        X(z) = \sum_{n=0}^{3} z^{-n} = z^{-0} + z^{-1} + z^{-2} + z^{-3} = \frac{1 - (z^{-1})^4}{1 - z^{-1}} = \frac{1 - z^{-4}}{1 - z^{-1}}, \quad (\text{ROC: } z \neq 0)
+        $$
+    </p>
+    <h3>3. DFT</h3>
+    <h4>步骤 1: 构建变换矩阵 W 并进行计算</h4>
+    <p>
+        $$
+        \begin{bmatrix} X(0) \\ X(1) \\ X(2) \\ X(3) \end{bmatrix} = 
+        \begin{bmatrix} W_4^{0} & W_4^{0} & W_4^{0} & W_4^{0} \\ W_4^{0} & W_4^{1} & W_4^{2} & W_4^{3} \\ W_4^{0} & W_4^{2} & W_4^{4} & W_4^{6} \\ W_4^{0} & W_4^{3} & W_4^{6} & W_4^{9} \end{bmatrix}
+        \begin{bmatrix} 1 \\ 1 \\ 1 \\ 1 \end{bmatrix} = 
+        \begin{bmatrix} 1 & 1 & 1 & 1 \\ 1 & -j & -1 & j \\ 1 & -1 & 1 & -1 \\ 1 & j & -1 & -j \end{bmatrix} 
+        \begin{bmatrix} 1 \\ 1 \\ 1 \\ 1 \end{bmatrix} =
+        \begin{bmatrix} (1)(1)+(1)(1)+(1)(1)+(1)(1) \\ (1)(1)+(-j)(1)+(-1)(1)+(j)(1) \\ (1)(1)+(-1)(1)+(1)(1)+(-1)(1) \\ (1)(1)+(j)(1)+(-1)(1)+(-j)(1) \end{bmatrix} =
+        \begin{bmatrix} 4 \\ 0 \\ 0 \\ 0 \end{bmatrix}
+        $$
+    </p>
+    <p>最终结果: <code>X(k) = {4, 0, 0, 0}</code></p>
+    <h3>4. 3D 可视化</h3>
+    <div id="plotContainer2"><div id="plotDiv2" style="width:100%; height:600px;"></div></div>
+
+<!-- 原本位于这里的 <script> 块已被移动到 <head> 中的配置脚本里 -->
 
 </body>
 </html>
