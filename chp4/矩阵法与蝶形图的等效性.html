@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFT 与 FFT 的计算：矩阵法与蝶形图的等效性</title>
+
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        svg: {
+          fontCache: 'global'
+        }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        /* 使用最基础的HTML和CSS，确保兼容性 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            line-height: 1.8;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* 【新】背景范围已扩大 */
+        .container {
+            max-width: 1400px; /* 已从 1200px 扩大到 1400px */
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2a2a2a;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #0056b3;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        
+        h3 {
+            color: #333;
+            margin-top: 25px;
+        }
+
+        p, li {
+            font-size: 17px;
+        }
+
+        /* 使用基础的 table 布局实现并排对比 */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .comparison-table th {
+            width: 50%;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            background-color: #f0f8ff;
+            font-size: 1.2em;
+        }
+        
+        .comparison-table td {
+            width: 50%;
+            padding: 15px;
+            vertical-align: top; /* 确保方框从顶部开始对齐 */
+            border: 1px solid #e0e0e0;
+        }
+        
+        /* 用于方法一和方法二的方框 */
+        .method-box {
+            border: 2px solid #0056b3;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #fdfdfd;
+            height: 100%; 
+            box-sizing: border-box; 
+        }
+
+        /* 用于 SVG 图表的样式 */
+        .fft-diagram {
+            width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+        
+        /* 专门为N=4的图表设置最大宽度 */
+        .fft-diagram-n4 {
+            width: 100%;
+            max-width: 500px; 
+            height: auto;
+            margin: 10px auto; /* 居中显示 */
+            display: block;
+        }
+        
+        .conclusion {
+            background-color: #fffbe6;
+            border: 1px solid #ffe58f;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        /* N=8 图的容器 */
+        .diagram-container {
+            width: 100%;
+            overflow-x: auto; /* 如果屏幕太窄，允许水平滚动 */
+            padding: 10px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>DFT 与 FFT 的计算：矩阵法与蝶形图的等效性</h1>
+        <p>
+            这份课程资料清晰地展示了离散傅里叶变换 (DFT) 的两种计算方法。无论是通过 DFT 定义的矩阵乘法，还是通过快速傅里叶变换 (FFT) 的蝶形图，其本质都是对输入序列 $x[n]$ 进行线性组合（即涉及 $\pm 1, \pm j$ 等系数的变形计算），两者在数学上是完全等价的。
+        </p>
+        <p>
+            FFT 是一种高效的算法实现，它通过巧妙地分解计算来降低复杂度。
+        </p>
+
+        <h2>N = 2 的情况 (基础构建)</h2>
+        <p>我们首先分析最基础的 N=2 的情况。</p>
+
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>方法一：DFT 矩阵 (直接定义)</th>
+                    <th>方法二：FFT 蝶形图 (算法实现)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="method-box">
+                            <p>根据 DFT 定义 $W_N = e^{-j\frac{2\pi}{N}}$，当 $N=2$ 时，旋转因子 $W_2^0 = 1$，$W_2^1 = -1$。</p>
+                            <p>DFT 矩阵 $W_2$ 定义为：</p>
+                            $$
+                            W_2 = \begin{bmatrix} W_2^0 & W_2^0 \\ W_2^0 & W_2^1 \end{bmatrix} = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}
+                            $$
+                            <p>计算 $X(k) = W_2 \cdot x(n)$ 并展开：</p>
+                            $$
+                            \begin{bmatrix} X(0) \\ X(1) \end{bmatrix} = 
+                            \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} 
+                            \begin{bmatrix} x(0) \\ x(1) \end{bmatrix}
+                            =
+                            \begin{bmatrix}
+                                 x(0) + x(1) \\
+                                 x(0) - x(1)
+                            \end{bmatrix}
+                            $$
+                        </div>
+                    </td>
+                    <td>
+                        <div class="method-box">
+                            <p>基-2 FFT 的蝶形图是该算法的核心单元。它以图形方式表示了 N=2 DFT 的计算。</p>
+                            
+                            <svg viewBox="0 0 370 200" class="fft-diagram" aria-label="N=2 FFT 蝶形图">
+                                <style>
+                                    .n2-line { stroke: #333; stroke-width: 2; }
+                                    .n2-arrow { fill: #333; }
+                                    .n2-node { fill: #0056b3; }
+                                    .n2-label { font-family: sans-serif; font-size: 24px; dominant-baseline: middle; }
+                                    .n2-coeff { font-family: sans-serif; font-size: 22px; fill: #d9534f; dominant-baseline: middle; }
+                                </style>
+                                
+                                <text x="15" y="50" class="n2-label">x(0)</text>
+                                <circle cx="65" cy="50" r="4" class="n2-node" />
+                                <text x="15" y="150" class="n2-label">x(1)</text>
+                                <circle cx="65" cy="150" r="4" class="n2-node" />
+                                <circle cx="265" cy="50" r="12" stroke="#0056b3" stroke-width="2" fill="#fff" />
+                                <text x="265" y="50" class="n2-label" text-anchor="middle" dominant-baseline="central">+</text>
+                                <circle cx="265" cy="150" r="12" stroke="#0056b3" stroke-width="2" fill="#fff" />
+                                <text x="265" y="150" class="n2-label" text-anchor="middle" dominant-baseline="central">+</text>
+                                <line x1="277" y1="50" x2="325" y2="50" class="n2-line" />
+                                <path d="M 325 50 L 315 44 L 315 56 z" class="n2-arrow" />
+                                <text x="330" y="50" class="n2-label">X(0)</text>
+                                <line x1="277" y1="150" x2="325" y2="150" class="n2-line" />
+                                <path d="M 325 150 L 315 144 L 315 156 z" class="n2-arrow" />
+                                <text x="330" y="150" class="n2-label">X(1)</text>
+                                <line x1="65" y1="50" x2="253" y2="50" class="n2-line" />
+                                <line x1="65" y1="50" x2="253" y2="150" class="n2-line" />
+                                <line x1="65" y1="150" x2="253" y2="50" class="n2-line" />
+                                <line x1="65" y1="150" x2="253" y2="150" class="n2-line" />
+                                <text x="150" y="170" class="n2-coeff">-1</text>
+                            </svg>
+                            
+                            <p>根据信号流图，我们可以直接写出：</p>
+                            <ul>
+                                <li>$X(0) = x(0) + x(1)$</li>
+                                <li>$X(1) = x(0) + (-1) \cdot x(1) = x(0) - x(1)$</li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>N = 4 的情况 (组合)</h2>
+        <p>基于 N=2 的情况，我们可以构建 N=4 的计算。旋转因子为 $W_4^0 = 1$, $W_4^1 = -j$, $W_4^2 = -1$, $W_4^3 = j$。</p>
+        <p>此处的 FFT 采用**按时间抽取 (DIT)** 算法，因此输入序列需要按**比特反序**排列，即 $x(0), x(2), x(1), x(3)$。</p>
+
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>方法一：DFT 矩阵 (直接定义)</th>
+                    <th>方法二：FFT 蝶形图 (算法实现)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="method-box">
+                            <p>N=4 的 DFT 矩阵 $W_4$ 定义为：</p>
+                            $$
+                            W_4 = \begin{bmatrix}
+                                W_4^0 & W_4^0 & W_4^0 & W_4^0 \\
+                                W_4^0 & W_4^1 & W_4^2 & W_4^3 \\
+                                W_4^0 & W_4^2 & W_4^4 & W_4^6 \\
+                                W_4^0 & W_4^3 & W_4^6 & W_4^9
+                            \end{bmatrix}
+                            $$
+                            <p>代入旋转因子的值，计算 $X(k) = W_4 \cdot x(n)$：</p>
+                            $$
+                            \begin{bmatrix} X(0) \\ X(1) \\ X(2) \\ X(3) \end{bmatrix} =
+                            \begin{bmatrix}
+                                1 & 1 & 1 & 1 \\
+                                1 & -j & -1 & j \\
+                                1 & -1 & 1 & -1 \\
+                                1 & j & -1 & -j
+                            \end{bmatrix}
+                            \begin{bmatrix} x(0) \\ x(1) \\ x(2) \\ x(3) \end{bmatrix}
+                            =
+                            \begin{bmatrix}
+                                x(0) + x(1) + x(2) + x(3) \\
+                                x(0) - jx(1) - x(2) + jx(3) \\
+                                x(0) - x(1) + x(2) - x(3) \\
+                                x(0) + jx(1) - x(2) - jx(3)
+                            \end{bmatrix}
+                            $$
+                        </div>
+                    </td>
+                    <td>
+                        <div class="method-box">
+                            <p>N=4 的 DIT-FFT 蝶形图将计算分解为两级。</p>
+                            
+                            <svg viewBox="0 0 500 320" class="fft-diagram-n4" aria-label="N=4 DIT-FFT 蝶形图">
+                                <style>
+                                    .n4-line { stroke: #333; stroke-width: 1.5; }
+                                    .n4-arrow { fill: #333; }
+                                    .n4-node { fill: #0056b3; }
+                                    .n4-label { font-family: sans-serif; font-size: 16px; dominant-baseline: middle; }
+                                    .n4-coeff { font-family: sans-serif; font-size: 14px; fill: #d9534f; dominant-baseline: middle; text-anchor: middle; }
+                                    .n4-stage { font-family: sans-serif; font-size: 14px; fill: #555; text-anchor: middle; }
+                                </style>
+                                <text x="10" y="40" class="n4-label">x(0)</text> <circle cx="50" cy="40" r="3" class="n4-node" />
+                                <text x="10" y="120" class="n4-label">x(2)</text> <circle cx="50" cy="120" r="3" class="n4-node" />
+                                <text x="10" y="200" class="n4-label">x(1)</text> <circle cx="50" cy="200" r="3" class="n4-node" />
+                                <text x="10" y="280" class="n4-label">x(3)</text> <circle cx="50" cy="280" r="3" class="n4-node" />
+                                <text x="460" y="40" class="n4-label">X(0)</text>
+                                <text x="460" y="120" class="n4-label">X(1)</text>
+                                <text x="460" y="200" class="n4-label">X(2)</text>
+                                <text x="460" y="280" class="n4-label">X(3)</text>
+                                <text x="180" y="10" class="n4-stage">第一级</text>
+                                <line x1="50" y1="40" x2="180" y2="40" class="n4-line" /><line x1="50" y1="120" x2="180" y2="40" class="n4-line" />
+                                <line x1="50" y1="40" x2="180" y2="120" class="n4-line" /><line x1="50" y1="120" x2="180" y2="120" class="n4-line" />
+                                <text x="115" y="135" class="n4-coeff">-1</text>
+                                <line x1="50" y1="200" x2="180" y2="200" class="n4-line" /><line x1="50" y1="280" x2="180" y2="200" class="n4-line" />
+                                <line x1="50" y1="200" x2="180" y2="280" class="n4-line" /><line x1="50" y1="280" x2="180" y2="280" class="n4-line" />
+                                <text x="115" y="295" class="n4-coeff">-1</text>
+                                <line x1="180" y1="40" x2="320" y2="40" class="n4-line" /><line x1="180" y1="120" x2="320" y2="120" class="n4-line" />
+                                <line x1="180" y1="200" x2="320" y2="200" class="n4-line" /><line x1="180" y1="280" x2="320" y2="280" class="n4-line" />
+                                <text x="250" y="190" class="n4-coeff">W₄⁰=1</text><text x="250" y="270" class="n4-coeff">W₄¹=-j</text>
+                                <text x="320" y="10" class="n4-stage">第二级</text>
+                                <line x1="320" y1="40" x2="440" y2="40" class="n4-line" /><line x1="320" y1="200" x2="440" y2="40" class="n4-line" />
+                                <line x1="320" y1="120" x2="440" y2="120" class="n4-line" /><line x1="320" y1="280" x2="440" y2="120" class="n4-line" />
+                                <line x1="320" y1="40" x2="440" y2="200" class="n4-line" /><line x1="320" y1="200" x2="440" y2="200" class="n4-line" />
+                                <text x="380" y="215" class="n4-coeff">-1</text>
+                                <line x1="320" y1="120" x2="440" y2="280" class="n4-line" /><line x1="320" y1="280" x2="440" y2="280" class="n4-line" />
+                                <text x="380" y="295" class="n4-coeff">-1</text>
+                                <line x1="440" y1="40" x2="450" y2="40" class="n4-line" /><path d="M 450 40 L 442 36 L 442 44 z" class="n4-arrow" />
+                                <line x1="440" y1="120" x2="450" y2="120" class="n4-line" /><path d="M 450 120 L 442 116 L 442 124 z" class="n4-arrow" />
+                                <line x1="440" y1="200" x2="450" y2="200" class="n4-line" /><path d="M 450 200 L 442 196 L 442 204 z" class="n4-arrow" />
+                                <line x1="440" y1="280" x2="450" y2="280" class="n4-line" /><path d="M 450 280 L 442 276 L 442 284 z" class="n4-arrow" />
+                            </svg>
+
+                            
+                            <p><b>展开结果 (跟踪信号流图)：</b></p>
+                            <ul>
+                                <li>$X(0) = [x(0)+x(2)] + W_4^0[x(1)+x(3)] = x(0)+x(2) + 1(x(1)+x(3))$ <br>
+                                    $= \mathbf{x(0) + x(1) + x(2) + x(3)}$</li>
+                                <li>$X(1) = [x(0)-x(2)] + W_4^1[x(1)-x(3)] = x(0)-x(2) + (-j)(x(1)-x(3))$ <br>
+                                    $= \mathbf{x(0) - jx(1) - x(2) + jx(3)}$</li>
+                                <li>$X(2) = [x(0)+x(2)] - W_4^0[x(1)+x(3)] = x(0)+x(2) - 1(x(1)+x(3))$ <br>
+                                    $= \mathbf{x(0) - x(1) + x(2) - x(3)}$</li>
+                                <li>$X(3) = [x(0)-x(2)] - W_4^1[x(1)-x(3)] = x(0)-x(2) - (-j)(x(1)-x(3))$ <br>
+                                    $= \mathbf{x(0) + jx(1) - x(2) - jx(3)}$</li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="conclusion">
+            <h3>N=4 对比结论</h3>
+            <p>
+                通过对比两侧的展开结果（矩阵展开式与蝶形图展开式），可以清晰地看到：<b>尽管计算路径不同（矩阵法一次完成，FFT 分两级），但两种方法得到的 $X(k)$ 最终表达式完全相同。</b>
+            </p>
+        </div>
+
+        <h2>N = 8 DIT-FFT 蝶形图</h2>
+        <p>
+            当 N=8 时，DIT-FFT 算法将计算分解为 3 级（$\log_2 8 = 3$）。输入序列按比特反序 $x(0), x(4), x(2), x(6), x(1), x(5), x(3), x(7)$ 排列。
+        </p>
+        <p>
+            旋转因子 $W_8^k = e^{-j\frac{2\pi k}{8}}$，主要值为：<br>
+            $W_8^0 = 1$, $W_8^1 = \frac{1}{\sqrt{2}}(1-j)$, $W_8^2 = -j$, $W_8^3 = \frac{1}{\sqrt{2}}(-1-j)$
+        </p>
+        
+        <div class="diagram-container">
+            <svg viewBox="0 0 1040 600" class="fft-diagram" aria-label="N=8 DIT-FFT 蝶形图">
+                <style>
+                    .n8-line { stroke: #333; stroke-width: 2; }
+                    .n8-arrow { fill: #333; }
+                    .n8-node { fill: #0056b3; }
+                    .n8-label { font-family: sans-serif; font-size: 22px; dominant-baseline: middle; }
+                    .n8-coeff { font-family: sans-serif; font-size: 20px; fill: #d9534f; dominant-baseline: middle; text-anchor: middle; }
+                    .n8-stage { font-family: sans-serif; font-size: 20px; fill: #555; text-anchor: middle; }
+                </style>
+                
+                <defs>
+                    <g id="inputs">
+                        <text x="15" y="50" class="n8-label">x(0)</text> <circle cx="75" cy="50" r="4" class="n8-node" />
+                        <text x="15" y="120" class="n8-label">x(4)</text> <circle cx="75" cy="120" r="4" class="n8-node" />
+                        <text x="15" y="190" class="n8-label">x(2)</text> <circle cx="75" cy="190" r="4" class="n8-node" />
+                        <text x="15" y="260" class="n8-label">x(6)</text> <circle cx="75" cy="260" r="4" class="n8-node" />
+                        <text x="15" y="330" class="n8-label">x(1)</text> <circle cx="75" cy="330" r="4" class="n8-node" />
+                        <text x="15" y="400" class="n8-label">x(5)</text> <circle cx="75" cy="400" r="4" class="n8-node" />
+                        <text x="15" y="470" class="n8-label">x(3)</text> <circle cx="75" cy="470" r="4" class="n8-node" />
+                        <text x="15" y="540" class="n8-label">x(7)</text> <circle cx="75" cy="540" r="4" class="n8-node" />
+                    </g>
+                    <g id="outputs">
+                        <text x="960" y="50" class="n8-label">X(0)</text> <line x1="915" y1="50" x2="945" y2="50" class="n8-line" /><path d="M 945 50 L 935 44 L 935 56 z" class="n8-arrow" />
+                        <text x="960" y="120" class="n8-label">X(1)</text> <line x1="915" y1="120" x2="945" y2="120" class="n8-line" /><path d="M 945 120 L 935 114 L 935 126 z" class="n8-arrow" />
+                        <text x="960" y="190" class="n8-label">X(2)</text> <line x1="915" y1="190" x2="945" y2="190" class="n8-line" /><path d="M 945 190 L 935 184 L 935 196 z" class="n8-arrow" />
+                        <text x="960" y="260" class="n8-label">X(3)</text> <line x1="915" y1="260" x2="945" y2="260" class="n8-line" /><path d="M 945 260 L 935 254 L 935 266 z" class="n8-arrow" />
+                        <text x="960" y="330" class="n8-label">X(4)</text> <line x1="915" y1="330" x2="945" y2="330" class="n8-line" /><path d="M 945 330 L 935 324 L 935 336 z" class="n8-arrow" />
+                        <text x="960" y="400" class="n8-label">X(5)</text> <line x1="915" y1="400" x2="945" y2="400" class="n8-line" /><path d="M 945 400 L 935 394 L 935 406 z" class="n8-arrow" />
+                        <text x="960" y="470" class="n8-label">X(6)</text> <line x1="915" y1="470" x2="945" y2="470" class="n8-line" /><path d="M 945 470 L 935 464 L 935 476 z" class="n8-arrow" />
+                        <text x="960" y="540" class="n8-label">X(7)</text> <line x1="915" y1="540" x2="945" y2="540" class="n8-line" /><path d="M 945 540 L 935 534 L 935 546 z" class="n8-arrow" />
+                    </g>
+                    <g id="bf2">
+                        <line x1="0" y1="0" x2="100" y2="0" class="n8-line" />
+                        <line x1="0" y1="70" x2="100" y2="0" class="n8-line" />
+                        <line x1="0" y1="0" x2="100" y2="70" class="n8-line" />
+                        <line x1="0" y1="70" x2="100" y2="70" class="n8-line" />
+                        <text x="50" y="90" class="n8-coeff">-1</text>
+                    </g>
+                </defs>
+
+                <use href="#inputs" />
+                <use href="#outputs" />
+
+                <text x="125" y="15" class="n8-stage">第一级</text>
+                <use href="#bf2" x="75" y="50" />
+                <use href="#bf2" x="75" y="190" />
+                <use href="#bf2" x="75" y="330" />
+                <use href="#bf2" x="75" y="470" />
+
+                <text x="395" y="15" class="n8-stage">第二级</text>
+                <line x1="175" y1="50" x2="345" y2="50" class="n8-line" /><line x1="175" y1="120" x2="345" y2="120" class="n8-line" />
+                <line x1="175" y1="190" x2="345" y2="190" class="n8-line" /><line x1="175" y1="260" x2="345" y2="260" class="n8-line" />
+                <line x1="175" y1="330" x2="345" y2="330" class="n8-line" /><line x1="175" y1="400" x2="345" y2="400" class="n8-line" />
+                <line x1="175" y1="470" x2="345" y2="470" class="n8-line" /><line x1="175" y1="540" x2="345" y2="540" class="n8-line" />
+                
+                <line x1="345" y1="50" x2="445" y2="50" class="n8-line" /><line x1="345" y1="190" x2="445" y2="50" class="n8-line" />
+                <line x1="345" y1="50" x2="445" y2="190" class="n8-line" /><line x1="345" y1="190" x2="445" y2="190" class="n8-line" />
+                <text x="395" y="210" class="n8-coeff">-1</text><text x="260" y="180" class="n8-coeff">W₈⁰=1</text>
+                
+                <line x1="345" y1="120" x2="445" y2="120" class="n8-line" /><line x1="345" y1="260" x2="445" y2="120" class="n8-line" />
+                <line x1="345" y1="120" x2="445" y2="260" class="n8-line" /><line x1="345" y1="260" x2="445" y2="260" class="n8-line" />
+                <text x="395" y="280" class="n8-coeff">-1</text><text x="260" y="250" class="n8-coeff">W₈²=-j</text>
+
+                <line x1="345" y1="330" x2="445" y2="330" class="n8-line" /><line x1="345" y1="470" x2="445" y2="330" class="n8-line" />
+                <line x1="345" y1="330" x2="445" y2="470" class="n8-line" /><line x1="345" y1="470" x2="445" y2="470" class="n8-line" />
+                <text x="395" y="490" class="n8-coeff">-1</text><text x="260" y="460" class="n8-coeff">W₈⁰=1</text>
+                
+                <line x1="345" y1="400" x2="445" y2="400" class="n8-line" /><line x1="345" y1="540" x2="445" y2="400" class="n8-line" />
+                <line x1="345" y1="400" x2="445" y2="540" class="n8-line" /><line x1="345" y1="540" x2="445" y2="540" class="n8-line" />
+                <text x="395" y="560" class="n8-coeff">-1</text><text x="260" y="530" class="n8-coeff">W₈²=-j</text>
+                
+                <text x="665" y="15" class="n8-stage">第三级</text>
+                <line x1="445" y1="50" x2="615" y2="50" class="n8-line" /><line x1="445" y1="120" x2="615" y2="120" class="n8-line" />
+                <line x1="445" y1="190" x2="615" y2="190" class="n8-line" /><line x1="445" y1="260" x2="615" y2="260" class="n8-line" />
+                <line x1="445" y1="330" x2="615" y2="330" class="n8-line" /><line x1="445" y1="400" x2="615" y2="400" class="n8-line" />
+                <line x1="445" y1="470" x2="615" y2="470" class="n8-line" /><line x1="445" y1="540" x2="615" y2="540" class="n8-line" />
+                
+                <line x1="615" y1="50" x2="915" y2="50" class="n8-line" /><line x1="615" y1="330" x2="915" y2="50" class="n8-line" />
+                <line x1="615" y1="50" x2="915" y2="330" class="n8-line" /><line x1="615" y1="330" x2="915" y2="330" class="n8-line" />
+                <text x="765" y="350" class="n8-coeff">-1</text><text x="530" y="320" class="n8-coeff">W₈⁰=1</text>
+
+                <line x1="615" y1="120" x2="915" y2="120" class="n8-line" /><line x1="615" y1="400" x2="915" y2="120" class="n8-line" />
+                <line x1="615" y1="120" x2="915" y2="400" class="n8-line" /><line x1="615" y1="400" x2="915" y2="400" class="n8-line" />
+                <text x="765" y="420" class="n8-coeff">-1</text><text x="530" y="390" class="n8-coeff">W₈¹</text>
+                
+                <line x1="615" y1="190" x2="915" y2="190" class="n8-line" /><line x1="615" y1="470" x2="915" y2="190" class="n8-line" />
+                <line x1="615" y1="190" x2="915" y2="470" class="n8-line" /><line x1="615" y1="470" x2="915" y2="470" class="n8-line" />
+                <text x="765" y="490" class="n8-coeff">-1</text><text x="530" y="460" class="n8-coeff">W₈²=-j</text>
+                
+                <line x1="615" y1="260" x2="915" y2="260" class="n8-line" /><line x1="615" y1="540" x2="915" y2="260" class="n8-line" />
+                <line x1="615" y1="260" x2="915" y2="540" class="n8-line" /><line x1="615" y1="540" x2="915" y2="540" class="n8-line" />
+                <text x="765" y="560" class="n8-coeff">-1</text><text x="530" y="530" class="n8-coeff">W₈³</text>
+            </svg>
+        </div>
+        
+    </div>
+
+</body>
+</html>

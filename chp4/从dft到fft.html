@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>手写笔记转录与3D可视化 (MathJax v3)</title>
+    
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        svg: {
+          fontCache: 'global'
+        }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            line-height: 2.2; padding: 20px; max-width: 900px; margin: auto;
+        }
+        h2 { margin-top: 40px; }
+        h3 { border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 30px; }
+        h4 { margin-left: 20px; margin-bottom: 10px; }
+        p { margin-left: 20px; text-align: justify; }
+        code {
+            font-family: "Courier New", monospace; background-color: #f4f4f4;
+            padding: 3px 6px; border-radius: 4px; font-size: 0.95em;
+        }
+        #plotContainer, #plotContainer2 {
+            margin-top: 40px; border: 1px solid #ddd; border-radius: 8px; padding: 10px;
+        }
+        hr { margin: 60px 0; border: 1px solid #eee; }
+    </style>
+</head>
+<body>
+
+    <h2>信号: <code>x[n] = {1, 1}</code> (N=2)</h2>
+
+    <h3>1. DTFT</h3>
+    <p>
+        $$
+        X(e^{j\omega}) = \sum_{n=0}^{1} x[n]e^{-j\omega n} = x[0]e^{-j\omega(0)} + x[1]e^{-j\omega(1)} = (1)(1) + (1)e^{-j\omega} = 1 + e^{-j\omega}
+        $$
+    </p>
+
+    <h3>2. ZT</h3>
+    <p>
+        $$
+        X(z) = \sum_{n=0}^{1} x[n]z^{-n} = x[0]z^{-0} + x[1]z^{-1} = (1)(1) + (1)z^{-1} = 1 + z^{-1}, \quad (\text{ROC: } |z| > 0)
+        $$
+    </p>
+
+    <h3>3. DFT</h3>
+    <h4>步骤 1: 构建变换矩阵 W 并进行计算</h4>
+    <p>
+        $$
+        \begin{bmatrix} X(0) \\ X(1) \end{bmatrix} = 
+        \begin{bmatrix} W_2^{0} & W_2^{0} \\ W_2^{0} & W_2^{1} \end{bmatrix}
+        \begin{bmatrix} 1 \\ 1 \end{bmatrix} =
+        \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} 
+        \begin{bmatrix} 1 \\ 1 \end{bmatrix} = 
+        \begin{bmatrix} (1)(1) + (1)(1) \\ (1)(1) + (-1)(1) \end{bmatrix} =
+        \begin{bmatrix} 1 + 1 \\ 1 - 1 \end{bmatrix} =
+        \begin{bmatrix} 2 \\ 0 \end{bmatrix}
+        $$
+    </p>
+    <p>最终结果: <code>X(k) = {2, 0}</code></p>
+    
+    <h3>4. 3D 可视化</h3>
+    <div id="plotContainer">
+        <div id="plotDiv" style="width:100%; height:600px;"></div>
+    </div>
+
+    <hr>
+
+    <h2>信号: <code>x[n] = {1, 1, 1, 1}</code> (N=4)</h2>
+    
+    <h3>1. DTFT</h3>
+    <p>
+        $$
+        X(e^{j\omega}) = \sum_{n=0}^{3} e^{-j\omega n} = e^{-j\omega(0)} + e^{-j\omega(1)} + e^{-j\omega(2)} + e^{-j\omega(3)} = \frac{1 - (e^{-j\omega})^4}{1 - e^{-j\omega}} = \frac{1 - e^{-j4\omega}}{1 - e^{-j\omega}}
+        $$
+    </p>
+
+    <h3>2. ZT</h3>
+    <p>
+        $$
+        X(z) = \sum_{n=0}^{3} z^{-n} = z^{-0} + z^{-1} + z^{-2} + z^{-3} = \frac{1 - (z^{-1})^4}{1 - z^{-1}} = \frac{1 - z^{-4}}{1 - z^{-1}}, \quad (\text{ROC: } z \neq 0)
+        $$
+    </p>
+
+    <h3>3. DFT</h3>
+    <h4>步骤 1: 构建变换矩阵 W 并进行计算</h4>
+    <p>
+        $$
+        \begin{bmatrix} X(0) \\ X(1) \\ X(2) \\ X(3) \end{bmatrix} = 
+        \begin{bmatrix} W_4^{0} & W_4^{0} & W_4^{0} & W_4^{0} \\ W_4^{0} & W_4^{1} & W_4^{2} & W_4^{3} \\ W_4^{0} & W_4^{2} & W_4^{4} & W_4^{6} \\ W_4^{0} & W_4^{3} & W_4^{6} & W_4^{9} \end{bmatrix}
+        \begin{bmatrix} 1 \\ 1 \\ 1 \\ 1 \end{bmatrix} = 
+        \begin{bmatrix} 1 & 1 & 1 & 1 \\ 1 & -j & -1 & j \\ 1 & -1 & 1 & -1 \\ 1 & j & -1 & -j \end{bmatrix} 
+        \begin{bmatrix} 1 \\ 1 \\ 1 \\ 1 \end{bmatrix} =
+        \begin{bmatrix} (1)(1)+(1)(1)+(1)(1)+(1)(1) \\ (1)(1)+(-j)(1)+(-1)(1)+(j)(1) \\ (1)(1)+(-1)(1)+(1)(1)+(-1)(1) \\ (1)(1)+(j)(1)+(-1)(1)+(-j)(1) \end{bmatrix} =
+        \begin{bmatrix} 4 \\ 0 \\ 0 \\ 0 \end{bmatrix}
+        $$
+    </p>
+    <p>最终结果: <code>X(k) = {4, 0, 0, 0}</code></p>
+    
+    <h3>4. 3D 可视化</h3>
+    <div id="plotContainer2">
+        <div id="plotDiv2" style="width:100%; height:600px;"></div>
+    </div>
+
+<script>
+    // 【解决方案】将所有绘图代码包裹在 DOMContentLoaded 事件监听器中
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // --- PLOT 1: x[n] = {1, 1} ---
+        (function() {
+            const size = 100, range = 2.0;
+            const x_vals = Array.from({ length: size }, (_, i) => -range + (2 * range * i) / (size - 1));
+            const y_vals = Array.from({ length: size }, (_, i) => -range + (2 * range * i) / (size - 1));
+            const z_data = Array(size).fill(0).map(() => Array(size).fill(0));
+            const max_mag = 5;
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    const x = x_vals[i], y = y_vals[j];
+                    const z_sq_mag = x * x + y * y;
+                    if (z_sq_mag < 1e-6) { z_data[j][i] = max_mag; continue; }
+                    const real_part = 1 + x / z_sq_mag, imag_part = -y / z_sq_mag;
+                    const mag = Math.sqrt(real_part * real_part + imag_part * imag_part);
+                    z_data[j][i] = Math.min(mag, max_mag);
+                }
+            }
+            const dtft_points = 200;
+            const dtft_x = [], dtft_y = [], dtft_z = [];
+            for (let i = 0; i <= dtft_points; i++) {
+                const theta = (2 * Math.PI * i) / dtft_points;
+                const x = Math.cos(theta), y = Math.sin(theta);
+                const mag = Math.sqrt((1 + Math.cos(theta))**2 + (-Math.sin(theta))**2);
+                dtft_x.push(x); dtft_y.push(y); dtft_z.push(mag);
+            }
+            const dft_x = [1, -1], dft_y = [0, 0], dft_z = [2, 0];
+            const surfaceTrace = {
+                x: x_vals, y: y_vals, z: z_data, type: 'surface', colorscale: 'Blues', showscale: false, name: '|X(z)| Surface',
+                contours: { z: { show: true, project: { z: true }, colorscale: 'Pastel1', usecolormap: false, highlightcolor: "#000000", highlightwidth: 4 } }
+            };
+            const dtftTrace = {
+                x: dtft_x, y: dtft_y, z: dtft_z, type: 'scatter3d', mode: 'lines', name: 'DTFT: |X(e<sup>jω</sup>)|', line: { width: 8, color: '#ff4d4d' }
+            };
+            const dftTrace = {
+                x: dft_x, y: dft_y, z: dft_z, type: 'scatter3d', mode: 'markers', name: 'DFT Points: |X(k)|',
+                marker: { size: 8, color: '#000000', line: { color: '#ffff00', width: 2 } }
+            };
+            const layout = {
+                title: '<b>3D View for x[n]={1,1}</b><br>|X(z)| = |1 + z<sup>-1</sup>|',
+                scene: { xaxis: { title: 'Re(z)' }, yaxis: { title: 'Im(z)' }, zaxis: { title: '|X(z)| (Magnitude)' }, camera: { eye: { x: 1.8, y: -1.8, z: 1.5 } } },
+                margin: { l: 0, r: 0, b: 0, t: 40 }, legend: { x: 0.8, y: 0.95 }
+            };
+            Plotly.newPlot('plotDiv', [surfaceTrace, dtftTrace, dftTrace], layout);
+        })();
+
+        // --- PLOT 2: x[n] = {1, 1, 1, 1} ---
+        (function() {
+            const size = 100, range = 2.0;
+            const x_vals = Array.from({ length: size }, (_, i) => -range + (2 * range * i) / (size - 1));
+            const y_vals = Array.from({ length: size }, (_, i) => -range + (2 * range * i) / (size - 1));
+            const z_data2 = Array(size).fill(0).map(() => Array(size).fill(0));
+            const max_mag = 10;
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    const x = x_vals[i], y = y_vals[j];
+                    const r = Math.sqrt(x * x + y * y);
+                    if (r < 1e-6) { z_data2[j][i] = max_mag; continue; }
+                    const theta = Math.atan2(y, x);
+                    let real_part = 0, imag_part = 0;
+                    for (let n = 0; n < 4; n++) {
+                        const r_n = Math.pow(r, -n);
+                        real_part += r_n * Math.cos(-n * theta);
+                        imag_part += r_n * Math.sin(-n * theta);
+                    }
+                    const mag = Math.sqrt(real_part * real_part + imag_part * imag_part);
+                    z_data2[j][i] = Math.min(mag, max_mag);
+                }
+            }
+            const dtft_points = 200;
+            const dtft_x2 = [], dtft_y2 = [], dtft_z2 = [];
+            for (let i = 0; i <= dtft_points; i++) {
+                const omega = (2 * Math.PI * i) / dtft_points;
+                const x = Math.cos(omega), y = Math.sin(omega);
+                let real_part = 0, imag_part = 0;
+                for (let n = 0; n < 4; n++) {
+                    real_part += Math.cos(-n * omega);
+                    imag_part += Math.sin(-n * omega);
+                }
+                const mag = Math.sqrt(real_part * real_part + imag_part * imag_part);
+                dtft_x2.push(x); dtft_y2.push(y); dtft_z2.push(mag);
+            }
+            const dft_x2 = [1, 0, -1, 0];
+            const dft_y2 = [0, 1, 0, -1];
+            const dft_z2 = [4, 0, 0, 0];
+            const surfaceTrace2 = {
+                x: x_vals, y: y_vals, z: z_data2, type: 'surface', colorscale: 'Blues', showscale: false, name: '|X(z)| Surface',
+                contours: { z: { show: true, project: { z: true }, colorscale: 'Pastel1', usecolormap: false, highlightcolor: "#000000", highlightwidth: 4 } }
+            };
+            const dtftTrace2 = {
+                x: dtft_x2, y: dtft_y2, z: dtft_z2, type: 'scatter3d', mode: 'lines', name: 'DTFT: |X(e<sup>jω</sup>)|', line: { width: 8, color: '#ff4d4d' }
+            };
+            const dftTrace2 = {
+                x: dft_x2, y: dft_y2, z: dft_z2, type: 'scatter3d', mode: 'markers', name: 'DFT Points: |X(k)|',
+                marker: { size: 8, color: '#000000', line: { color: '#ffff00', width: 2 } }
+            };
+            const layout2 = {
+                title: '<b>3D View for x[n]={1,1,1,1}</b><br>|X(z)| = |(1-z<sup>-4</sup>)/(1-z<sup>-1</sup>)|',
+                scene: { xaxis: { title: 'Re(z)' }, yaxis: { title: 'Im(z)' }, zaxis: { title: '|X(z)| (Magnitude)' }, camera: { eye: { x: 1.8, y: -1.8, z: 1.5 } } },
+                margin: { l: 0, r: 0, b: 0, t: 50 }, legend: { x: 0.8, y: 0.95 }
+            };
+            Plotly.newPlot('plotDiv2', [surfaceTrace2, dtftTrace2, dftTrace2], layout2);
+        })();
+
+    }); // 结束 DOMContentLoaded 事件监听器
+</script>
+
+</body>
+</html>

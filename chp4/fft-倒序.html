@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFT 码位倒序（Bit-Reversal）证明</title>
+    <style>
+        /* Google Fonts for a nicer look (Optional) */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+
+        :root {
+            --color-even: #4a90e2; /* A nice, professional blue */
+            --color-odd: #f5a623;  /* A warm, inviting orange */
+            --color-bg: #f8f9fa;
+            --color-text: #2c3e50;
+            --color-border: #dee2e6;
+            --font-main: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+        }
+
+        body {
+            font-family: var(--font-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            width: 95%;
+            max-width: 1200px;
+            background-color: #ffffff;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+        }
+        h1, p {
+            text-align: center;
+        }
+        h1 {
+            color: #34495e;
+        }
+        p {
+            color: #7f8c8d;
+            max-width: 800px;
+            margin: 0 auto 25px auto;
+        }
+
+        .legend {
+            border: 1px solid var(--color-border);
+            background-color: #fff;
+            padding: 15px;
+            margin: 20px auto;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .legend-item {
+            display: inline-block;
+            margin: 0 15px;
+            font-weight: bold;
+        }
+        .legend-left { color: var(--color-even); }
+        .legend-right { color: var(--color-odd); }
+
+        .row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .group {
+            border: 2px solid var(--color-border);
+            padding: 10px 5px;
+            border-radius: 8px;
+            background-color: #ffffff;
+            font-size: 1.2em;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-around; /* This ensures even distribution */
+            align-items: center;
+        }
+        .group span {
+            padding: 0 8px; /* Add some space around each number */
+        }
+        
+        .final-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px 10px;
+            background-color: #fff;
+            border: 2px solid var(--color-border);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            width: 11%;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .final-column:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.1);
+        }
+        .final-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--color-text);
+        }
+        .binary-info {
+            font-family: var(--font-mono);
+            font-size: 1.1em;
+            line-height: 1.6;
+            text-align: left;
+        }
+        .label {
+            font-weight: bold;
+        }
+        .reversed { color: var(--color-odd); }
+        .normal { color: var(--color-even); }
+        
+        .arrow-svg {
+            width: 100%;
+            height: 60px; /* Arrow height */
+            overflow: visible;
+        }
+        .arrow-svg line {
+            stroke-width: 2.5;
+            stroke-linecap: round;
+        }
+        .arrow-svg .left-arrow { stroke: var(--color-even); }
+        .arrow-svg .right-arrow { stroke: var(--color-odd); }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>FFT 码位倒序（Bit-Reversal）可视化证明</h1>
+        <p>通过递归地按奇偶分组，元素的最终位置由其分组路径决定。该路径恰好是其原始索引的二进制倒序。</p>
+
+        <!-- 图例 -->
+        <div style="text-align: center;">
+            <div class="legend">
+                <span class="legend-item"><span class="legend-left">蓝色箭头 (左)</span>: 偶数位分组 (路径记为 '0')</span>
+                <span class="legend-item"><span class="legend-right">橙色箭头 (右)</span>: 奇数位分组 (路径记为 '1')</span>
+            </div>
+        </div>
+
+        <!-- 第1行: 初始序列 -->
+        <div class="row">
+            <div class="group" style="width: 80%;">
+                <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+            </div>
+        </div>
+
+        <!-- 箭头: 第1层 -> 第2层 -->
+        <div class="row">
+            <svg class="arrow-svg">
+                <defs><marker id="arrowhead-left" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#4a90e2"/></marker></defs>
+                <defs><marker id="arrowhead-right" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#f5a623"/></marker></defs>
+                <line x1="50%" y1="0" x2="25%" y2="50" class="left-arrow" marker-end="url(#arrowhead-left)"/>
+                <line x1="50%" y1="0" x2="75%" y2="50" class="right-arrow" marker-end="url(#arrowhead-right)"/>
+            </svg>
+        </div>
+
+        <!-- 第2行: 奇偶分组 -->
+        <div class="row">
+            <div class="group" style="width: 38%;">
+                <span>0</span><span>2</span><span>4</span><span>6</span>
+            </div>
+            <div class="group" style="width: 38%;">
+                <span>1</span><span>3</span><span>5</span><span>7</span>
+            </div>
+        </div>
+
+        <!-- 箭头: 第2层 -> 第3层 -->
+        <div class="row">
+            <svg class="arrow-svg">
+                <line x1="25%" y1="0" x2="12.5%" y2="50" class="left-arrow" marker-end="url(#arrowhead-left)"/>
+                <line x1="25%" y1="0" x2="37.5%" y2="50" class="right-arrow" marker-end="url(#arrowhead-right)"/>
+                <line x1="75%" y1="0" x2="62.5%" y2="50" class="left-arrow" marker-end="url(#arrowhead-left)"/>
+                <line x1="75%" y1="0" x2="87.5%" y2="50" class="right-arrow" marker-end="url(#arrowhead-right)"/>
+            </svg>
+        </div>
+
+        <!-- 第3行: 二次奇偶分组 -->
+        <div class="row">
+            <div class="group" style="width: 18%;"><span>0</span><span>4</span></div>
+            <div class="group" style="width: 18%;"><span>2</span><span>6</span></div>
+            <div class="group" style="width: 18%;"><span>1</span><span>5</span></div>
+            <div class="group" style="width: 18%;"><span>3</span><span>7</span></div>
+        </div>
+
+        <!-- 箭头: 第3层 -> 第4层 -->
+        <div class="row">
+             <svg class="arrow-svg">
+                <line x1="12.5%" y1="0" x2="6.25%" y2="50" class="left-arrow" marker-end="url(#arrowhead-left)"/>
+                <line x1="12.5%" y1="0" x2="18.75%" y2="50" class="right-arrow" marker-end="url(#arrowhead-right)"/>
+                <line x1="37.5%" y1="0" x2="31.25%" y2="50" class="left-arrow" marker-end="url(#arrowhead-left)"/>
+                <line x1="37.5%" y1="0" x2="43.75%" y2="50" class="right-arrow" marker-end="url(#arrowhead-right)"/>
+                <line x1="62.5%" y1="0" x2="56.25%" y2="50" class="left-arrow" marker-end="url(#arrowhead-left)"/>
+                <line x1="62.5%" y1="0" x2="68.75%" y2="50" class="right-arrow" marker-end="url(#arrowhead-right)"/>
+                <line x1="87.5%" y1="0" x2="81.25%" y2="50" class="left-arrow" marker-end="url(#arrowhead-left)"/>
+                <line x1="87.5%" y1="0" x2="93.75%" y2="50" class="right-arrow" marker-end="url(#arrowhead-right)"/>
+            </svg>
+        </div>
+        
+        <!-- 最终结果与二进制码 -->
+        <div class="row">
+            <div class="final-column">
+                <div class="final-number">0</div>
+                <div class="binary-info">
+                    <span class="label reversed">倒序: 000</span> <br>
+                    <span class="label normal">正序: 000</span>
+                </div>
+            </div>
+            <div class="final-column">
+                <div class="final-number">4</div>
+                <div class="binary-info">
+                    <span class="label reversed">倒序: 001</span> <br>
+                    <span class="label normal">正序: 100</span>
+                </div>
+            </div>
+            <div class="final-column">
+                <div class="final-number">2</div>
+                <div class="binary-info">
+                    <span class="label reversed">倒序: 010</span> <br>
+                    <span class="label normal">正序: 010</span>
+                </div>
+            </div>
+            <div class="final-column">
+                <div class="final-number">6</div>
+                <div class="binary-info">
+                    <span class="label reversed">倒序: 011</span> <br>
+                    <span class="label normal">正序: 110</span>
+                </div>
+            </div>
+            <div class="final-column">
+                <div class="final-number">1</div>
+                <div class="binary-info">
+                    <span class="label reversed">倒序: 100</span> <br>
+                    <span class="label normal">正序: 001</span>
+                </div>
+            </div>
+            <div class="final-column">
+                <div class="final-number">5</div>
+                <div class="binary-info">
+                    <span class="label reversed">倒序: 101</span> <br>
+                    <span class="label normal">正序: 101</span>
+                </div>
+            </div>
+            <div class="final-column">
+                <div class="final-number">3</div>
+                <div class="binary-info">
+                    <span class="label reversed">倒序: 110</span> <br>
+                    <span class="label normal">正序: 011</span>
+                </div>
+            </div>
+            <div class="final-column">
+                <div class="final-number">7</div>
+                <div class="binary-info">
+                    <span class="label reversed">倒序: 111</span> <br>
+                    <span class="label normal">正序: 111</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

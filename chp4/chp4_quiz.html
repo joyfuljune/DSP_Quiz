@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFT/FFT专项测验</title>
+    
+    <!-- 使用稳定可靠的官方CDN加载MathJax脚本 -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        /* 开始界面样式 */
+        .start-screen {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .info-form {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .exam-info {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .exam-info h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .exam-info ul {
+            margin-left: 20px;
+            color: #34495e;
+            line-height: 1.8;
+        }
+
+        .progress-bar {
+            background: #ecf0f1;
+            height: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            height: 100%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .question-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid #dee2e6;
+            transition: all 0.3s;
+        }
+
+        .question-card.answered {
+            border-color: #3498db;
+            background: #e8f4f8;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .question-number {
+            background: #3498db;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .question-category {
+            background: #95a5a6;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+        }
+        
+        .question-category.dft_basic { background: #e74c3c; }
+        .question-category.dft_props { background: #f39c12; }
+        .question-category.fft_algo { background: #27ae60; }
+        .question-category.fft_app { background: #8e44ad; }
+
+
+        .question-text {
+            font-size: 1.1em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .option:hover {
+            background: #f8f9fa;
+            border-color: #3498db;
+            transform: translateX(5px);
+        }
+
+        .option.selected {
+            background: #e8f4f8;
+            border-color: #3498db;
+            border-width: 3px;
+        }
+
+        .option.correct {
+            background: #d4edda;
+            border-color: #28a745;
+            border-width: 3px;
+        }
+
+        .option.incorrect {
+            background: #f8d7da;
+            border-color: #dc3545;
+            border-width: 3px;
+        }
+
+        .option-label {
+            background: #3498db;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .option.correct .option-label { background: #28a745; }
+        .option.incorrect .option-label { background: #dc3545; }
+        .option-text { flex: 1; color: #2c3e50; }
+
+        .explanation {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .explanation.show { display: block; animation: slideDown 0.3s ease; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation h4 {
+            color: #856404;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .explanation p { color: #856404; line-height: 1.6; }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-submit { background: #3498db; color: white; }
+        .btn-next { background: #2ecc71; color: white; }
+        .btn-prev { background: #95a5a6; color: white; }
+        .btn-finish { background: #e74c3c; color: white; }
+        .btn-start { background: #3498db; color: white; padding: 15px 50px; font-size: 1.2em; }
+
+        .result-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            display: none;
+        }
+
+        .result-panel.show { display: block; animation: fadeIn 0.5s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .student-info {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        .student-info p { margin: 5px 0; }
+        .result-score { font-size: 4em; font-weight: bold; margin: 20px 0; }
+        .result-message { font-size: 1.5em; margin-bottom: 20px; }
+        .result-details { background: rgba(255,255,255,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; }
+        .result-details table { width: 100%; border-collapse: collapse; }
+        .result-details td { padding: 10px; font-size: 1.1em; }
+        .review-section { margin-top: 30px; }
+
+        .review-question {
+            background: white;
+            color: #2c3e50;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .review-status {
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .review-status.correct { background: #d4edda; color: #155724; }
+        .review-status.wrong { background: #f8d7da; color: #721c24; }
+        .statistics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            color: #2c3e50;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value { font-size: 2em; font-weight: bold; margin: 10px 0; }
+        .stat-label { color: #7f8c8d; font-size: 0.9em; }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.5em; }
+            .button-group { flex-direction: column; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DFT/FFT专项测验</h1>
+        <p class="subtitle">南京工业大学浦江学院 | DSP - 快速傅里叶变换</p>
+
+        <!-- 开始界面 -->
+        <div id="startScreen" class="start-screen">
+            <div class="exam-info">
+                <h3>📋 测验说明</h3>
+                <ul>
+                    <li>共20道选择题，涵盖DFT基础、性质、FFT算法与应用</li>
+                    <li>每题1分，总分20分</li>
+                    <li>点击选项选择答案,可以随时修改</li>
+                    <li>提交后可查看详细解析和正确答案</li>
+                </ul>
+            </div>
+
+            <div class="info-form">
+                <h3 style="color: #2c3e50; margin-bottom: 20px;">请填写你的信息</h3>
+                <div class="form-group">
+                    <label for="studentId">学号 <span style="color: red;">*</span></label>
+                    <input type="text" id="studentId" placeholder="请输入学号" required="">
+                </div>
+                <div class="form-group">
+                    <label for="studentName">姓名 <span style="color: red;">*</span></label>
+                    <input type="text" id="studentName" placeholder="请输入姓名" required="">
+                </div>
+                <button class="btn-start" onclick="startExam()">开始考试</button>
+            </div>
+        </div>
+
+        <!-- 考试界面 -->
+        <div id="examScreen" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar">0/20 已完成</div>
+            </div>
+
+            <div id="questionContainer"></div>
+
+            <div class="button-group">
+                <button class="btn-prev" id="prevBtn" onclick="previousQuestion()">⬅️ 上一题</button>
+                <button class="btn-submit" id="submitBtn" onclick="submitAnswer()">✓ 提交答案</button>
+                <button class="btn-next" id="nextBtn" onclick="nextQuestion()">下一题 ➡️</button>
+                <button class="btn-finish" id="finishBtn" onclick="finishExam()" style="display: none;">🏁 完成考试</button>
+            </div>
+        </div>
+
+        <!-- 结果界面 -->
+        <div class="result-panel" id="resultPanel">
+            <h2>考试完成！</h2>
+            
+            <div class="student-info">
+                <p><strong>学号：</strong><span id="resultStudentId"></span></p>
+                <p><strong>姓名：</strong><span id="resultStudentName"></span></p>
+            </div>
+
+            <div class="result-score" id="resultScore">0/20</div>
+            <div class="result-message" id="resultMessage"></div>
+            
+            <div class="statistics">
+                <div class="stat-card">
+                    <div class="stat-label">正确率</div>
+                    <div class="stat-value" id="accuracyRate">0%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">DFT基础</div>
+                    <div class="stat-value" id="dftBasicScore">0/5</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">DFT性质</div>
+                    <div class="stat-value" id="dftPropsScore">0/5</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">FFT算法</div>
+                    <div class="stat-value" id="fftAlgoScore">0/6</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">FFT应用</div>
+                    <div class="stat-value" id="fftAppScore">0/4</div>
+                </div>
+            </div>
+
+            <button class="btn-submit" onclick="showReview()" style="margin-top: 30px;">📝 查看详细解析</button>
+            <button class="btn-next" onclick="location.reload()" style="margin-top: 10px;">🔄 重新开始</button>
+        </div>
+
+        <div id="reviewSection" style="display: none;">
+            <h2 style="margin: 30px 0 20px 0; color: #2c3e50;">📚 答题回顾与解析</h2>
+            <div id="reviewContainer"></div>
+        </div>
+    </div>
+
+<script>
+    const originalQuestions = [
+        {
+            id: 1,
+            category: 'dft_basic',
+            categoryName: 'DFT基础',
+            question: 'N点DFT（离散傅里叶变换）的分析公式是？',
+            options: [
+                '$X[k] = \\sum_{n=0}^{N-1} x[n] e^{j \\frac{2\\pi}{N} kn}$',
+                '$X[k] = \\frac{1}{N} \\sum_{n=0}^{N-1} x[n] e^{-j \\frac{2\\pi}{N} kn}$',
+                '$X[k] = \\sum_{n=0}^{N-1} x[n] e^{-j \\frac{2\\pi}{N} kn}$',
+                '$X[k] = \\frac{1}{N} \\sum_{n=0}^{N-1} x[n] e^{j \\frac{2\\pi}{N} kn}$'
+            ],
+            correct: 2,
+            explanation: 'N点DFT的分析公式（正变换）为 $X[k] = \\sum_{n=0}^{N-1} x[n] e^{-j \\frac{2\\pi}{N} kn}$，其中 $k=0, 1, ..., N-1$。注意指数项为负号，且没有 $1/N$ 的系数。$1/N$ 系数出现在IDFT（逆变换）中。'
+        },
+        {
+            id: 2,
+            category: 'fft_algo',
+            categoryName: 'FFT算法',
+            question: '直接计算N点DFT所需的复数乘法次数与N的关系是什么量级的？而FFT算法呢？',
+            options: [
+                'DFT: $O(N)$, FFT: $O(\\log_2 N)$',
+                'DFT: $O(N^2)$, FFT: $O(N \\log_2 N)$',
+                'DFT: $O(N \\log_2 N)$, FFT: $O(N^2)$',
+                'DFT: $O(N^2)$, FFT: $O(N)$'
+            ],
+            correct: 1,
+            explanation: '直接计算N点DFT需要进行N次求和，每次求和包含N个复数乘法，总复杂度为 $O(N^2)$。而FFT（快速傅里叶变换）是一种高效算法，利用旋转因子的对称性和周期性，将复杂度降低到 $O(N \\log_2 N)$，极大地提高了计算效率。'
+        },
+        {
+            id: 3,
+            category: 'dft_basic',
+            categoryName: 'DFT基础',
+            question: 'DFT与DTFT（离散时间傅里叶变换）之间的关系是？',
+            options: [
+                'DFT是DTFT在单位圆上的均匀采样',
+                'DTFT是DFT的周期延拓',
+                '两者完全等价',
+                '两者没有直接关系'
+            ],
+            correct: 0,
+            explanation: '一个长度为N的有限长序列$x[n]$，其N点DFT $X[k]$ 实质上是该序列的DTFT $X(e^{j\\omega})$ 在频域 $[0, 2\\pi]$ 区间上的N个等间隔点的采样值。即 $X[k] = X(e^{j\\omega})|_{\\omega = \\frac{2\\pi}{N}k}$。'
+        },
+        {
+            id: 4,
+            category: 'fft_algo',
+            categoryName: 'FFT算法',
+            question: '在FFT算法中，旋转因子 $W_N^k$ 定义为 $e^{-j\\frac{2\\pi k}{N}}$。它具有对称性质，即 $W_N^{k+N/2}$ 等于？',
+            options: [
+                '$W_N^k$',
+                '$-W_N^k$',
+                '$(W_N^k)^*$',
+                '$1/W_N^k$'
+            ],
+            correct: 1,
+            explanation: '利用欧拉公式，$W_N^{k+N/2} = e^{-j\\frac{2\\pi}{N}(k+N/2)} = e^{-j\\frac{2\\pi k}{N}} \\cdot e^{-j\\pi} = W_N^k \\cdot (-1) = -W_N^k$。这个性质是构成FFT蝶形运算的基础，使得运算可以被分解和简化。'
+        },
+        {
+            id: 5,
+            category: 'fft_algo',
+            categoryName: 'FFT算法',
+            question: '基-2 DIT-FFT（按时间抽选的FFT）算法的输入和输出序列的顺序是？',
+            options: [
+                '输入自然顺序，输出码位倒序',
+                '输入码位倒序，输出自然顺序',
+                '输入和输出均为自然顺序',
+                '输入和输出均为码位倒序'
+            ],
+            correct: 1,
+            explanation: 'DIT-FFT（Decimation-In-Time）算法通过不断地将时域序列分解为偶数项和奇数项来进行计算。这种分解过程自然地要求输入序列是按码位倒置（bit-reversal）排列的，而计算结果则是有序的（自然顺序）。'
+        },
+        {
+            id: 6,
+            category: 'fft_algo',
+            categoryName: 'FFT算法',
+            question: '基-2 DIF-FFT（按频率抽选的FFT）算法的输入和输出序列的顺序是？',
+            options: [
+                '输入自然顺序，输出码位倒序',
+                '输入码位倒序，输出自然顺序',
+                '输入和输出均为自然顺序',
+                '输入和输出均为码位倒序'
+            ],
+            correct: 0,
+            explanation: 'DIF-FFT（Decimation-In-Frequency）算法与DIT-FFT相反，它在频域进行抽选。其输入序列是自然顺序的，经过各级蝶形运算后，输出的频域序列是码位倒序（bit-reversal）排列的。'
+        },
+        {
+            id: 7,
+            category: 'fft_algo',
+            categoryName: 'FFT算法',
+            question: '对于一个8点FFT，输入序列的索引为3（二进制为011），其码位倒序后的索引是多少？',
+            options: [
+                '3 (011)',
+                '5 (101)',
+                '6 (110)',
+                '1 (001)'
+            ],
+            correct: 2,
+            explanation: '码位倒序（bit-reversal）是指将索引的二进制表示进行翻转。对于8点FFT，索引需要3位二进制表示。索引3的二进制是011，翻转后得到110，其十进制值为 $1*4 + 1*2 + 0*1 = 6$。'
+        },
+        {
+            id: 8,
+            category: 'dft_props',
+            categoryName: 'DFT性质',
+            question: 'DFT的一个重要性质是循环卷积定理。如果两个N点序列 $x_1[n]$ 和 $x_2[n]$ 的N点循环卷积为 $y[n]$，那么它们的N点DFT $X_1[k]$, $X_2[k]$ 和 $Y[k]$ 满足什么关系？',
+            options: [
+                '$Y[k] = X_1[k] + X_2[k]$',
+                '$Y[k] = X_1[k] * X_2[k]$ (线性卷积)',
+                '$Y[k] = X_1[k] \\cdot X_2[k]$',
+                '$Y[k] = X_1[k] / X_2[k]$'
+            ],
+            correct: 2,
+            explanation: '循环卷积定理指出：时域中的N点循环卷积等价于频域（DFT域）中对应点的乘积。即 $\\text{DFT}(x_1[n] \\circledast_N x_2[n]) = X_1[k] \\cdot X_2[k]$。这个性质是利用FFT快速计算卷积的基础。'
+        },
+        {
+            id: 9,
+            category: 'fft_app',
+            categoryName: 'FFT应用',
+            question: '利用FFT计算两个有限长序列 $x[n]$（长度L）和 $h[n]$（长度M）的线性卷积，需要对两个序列补零到至少多长，再做DFT？',
+            options: [
+                '$\\max(L, M)$',
+                '$L+M-1$',
+                '$L+M$',
+                '$L \\cdot M$'
+            ],
+            correct: 1,
+            explanation: '线性卷积的结果序列长度为 $L+M-1$。为了用循环卷积来模拟线性卷积，必须避免由于周期性带来的混叠。因此，需要将两个序列都补零（zero-padding）到长度 $N \\geq L+M-1$，然后进行N点DFT、相乘、再IDFT，得到的结果才是线性卷积。'
+        },
+        {
+            id: 10,
+            category: 'fft_app',
+            categoryName: 'FFT应用',
+            question: '对一个有限长序列进行补零（zero-padding）后再做DFT，这在频域上会产生什么效果？',
+            options: [
+                '改变了原始信号的频谱形状',
+                '提高了频谱的真实分辨率',
+                '增加了频域的采样点数，使频谱曲线更平滑',
+                '减小了频谱的幅度'
+            ],
+            correct: 2,
+            explanation: '补零操作不会改变原始信号的DTFT（即频谱的包络形状），因此不会提高真实的分辨率。但是，补零增加了DFT的点数N，相当于在原始的DTFT频谱上进行了更密集的采样。这使得画出的频谱图更加平滑，更容易观察到谱峰和谱谷的细节。'
+        },
+        {
+            id: 11,
+            category: 'dft_basic',
+            categoryName: 'DFT基础',
+            question: '对于N点序列 $x[n]$ 的N点DFT $X[k]$，频点 $k=0$ 对应的 $X[0]$ 代表了什么？',
+            options: [
+                '信号的最高频分量',
+                '信号的直流分量（或总和）',
+                '信号的平均功率',
+                '信号的奈奎斯特频率分量'
+            ],
+            correct: 1,
+            explanation: '根据DFT公式，$X[0] = \\sum_{n=0}^{N-1} x[n] e^{-j \\frac{2\\pi}{N} \\cdot 0 \\cdot n} = \\sum_{n=0}^{N-1} x[n]$。它等于序列所有样本值的总和，代表了信号的直流（DC）分量。'
+        },
+        {
+            id: 12,
+            category: 'dft_props',
+            categoryName: 'DFT性质',
+            question: '如果一个N点序列 $x[n]$ 是实数序列，那么它的N点DFT $X[k]$ 具有什么对称性？',
+            options: [
+                '$X[k] = X[N-k]$ (偶对称)',
+                '$X[k] = -X[N-k]$ (奇对称)',
+                '$X[k] = X^*[N-k]$ (共轭对称)',
+                '没有任何对称性'
+            ],
+            correct: 2,
+            explanation: '实序列的DFT具有共轭对称性，即 $X[k] = X^*[N-k]$。这意味着其幅度谱是偶对称的 ($|X[k]| = |X[N-k]|$), 相位谱是奇对称的 ($\\angle X[k] = -\\angle X[N-k]$)。这个性质可以用于节省存储和计算量。'
+        },
+        {
+            id: 13,
+            category: 'dft_props',
+            categoryName: 'DFT性质',
+            question: 'N点DFT的周期性体现在哪里？',
+            options: [
+                '时域序列 $x[n]$ 是周期的，周期为N',
+                '频域序列 $X[k]$ 是周期的，周期为N',
+                '时域和频域序列都是周期的，周期均为N',
+                'DFT本身不具有周期性'
+            ],
+            correct: 2,
+            explanation: 'DFT隐含着时域和频域的双重周期性。它将长度为N的有限长序列 $x[n]$ 视为周期为N的序列的一个主值周期，其变换结果 $X[k]$ 也是周期为N的序列的一个主值周期。即 $x[n] = x[n+N]$ 和 $X[k] = X[k+N]$。'
+        },
+        {
+            id: 14,
+            category: 'dft_basic',
+            categoryName: 'DFT基础',
+            question: 'N点IDFT（逆离散傅里叶变换）的合成公式是？',
+            options: [
+                '$x[n] = \\sum_{k=0}^{N-1} X[k] e^{j \\frac{2\\pi}{N} kn}$',
+                '$x[n] = \\frac{1}{N} \\sum_{k=0}^{N-1} X[k] e^{j \\frac{2\\pi}{N} kn}$',
+                '$x[n] = \\frac{1}{N} \\sum_{k=0}^{N-1} X[k] e^{-j \\frac{2\\pi}{N} kn}$',
+                '$x[n] = \\sum_{k=0}^{N-1} X[k] e^{-j \\frac{2\\pi}{N} kn}$'
+            ],
+            correct: 1,
+            explanation: 'IDFT的合成公式为 $x[n] = \\frac{1}{N} \\sum_{k=0}^{N-1} X[k] e^{j \\frac{2\\pi}{N} kn}$。与DFT公式相比，它有 $1/N$ 的归一化因子，且指数项的符号为正。'
+        },
+        {
+            id: 15,
+            category: 'fft_algo',
+            categoryName: 'FFT算法',
+            question: '基-2 FFT算法的基本运算单元被称为“蝶形运算”，它需要多少次复数乘法和复数加法？',
+            options: [
+                '1次乘法，2次加法',
+                '2次乘法，1次加法',
+                '2次乘法，2次加法',
+                '1次乘法，1次加法'
+            ],
+            correct: 0,
+            explanation: '一个标准的蝶形运算输入为A和B，输出为 $A+W_N^k B$ 和 $A-W_N^k B$。这个过程需要先计算 $W_N^k B$（1次复数乘法），然后再进行一次加法和一次减法（总共2次复数加/减法）。因此是1次乘法和2次加法。'
+        },
+        {
+            id: 16,
+            category: 'dft_props',
+            categoryName: 'DFT性质',
+            question: '循环时移性质：如果 $x[n]$ 的N点DFT是 $X[k]$，那么序列 $x[(n-n_0)_N]$ (循环移位) 的N点DFT是？',
+            options: [
+                '$e^{-j \\frac{2\\pi}{N} kn_0} X[k]$',
+                '$e^{j \\frac{2\\pi}{N} kn_0} X[k]$',
+                '$X[k-k_0]$',
+                '$X[k] - X[k_0]$'
+            ],
+            correct: 0,
+            explanation: '时域的循环移位对应于频域乘以一个线性相位因子。具体来说，如果 $x[n] \\xrightarrow{DFT} X[k]$，则 $x[(n-n_0)_N] \\xrightarrow{DFT} W_N^{kn_0} X[k] = e^{-j \\frac{2\\pi}{N} kn_0} X[k]$。'
+        },
+        {
+            id: 17,
+            category: 'fft_app',
+            categoryName: 'FFT应用',
+            question: '在对一个连续信号进行采样和FFT分析时，如果采样时间窗口截取了非整数个周期的信号，会导致频谱出现什么现象？',
+            options: [
+                '频谱分辨率降低',
+                '频谱泄漏（Spectral Leakage）',
+                '栅栏效应（Picket-fence Effect）',
+                '直流分量增大'
+            ],
+            correct: 1,
+            explanation: '频谱泄漏是指一个频率分量的能量扩散到其相邻的频率点上。这主要是因为有限长度的矩形窗截断效应。当截取的信号不是周期的整数倍时，信号在截断点会产生不连续，其能量就会“泄漏”到整个频带，形成旁瓣。'
+        },
+        {
+            id: 18,
+            category: 'dft_basic',
+            categoryName: 'DFT基础',
+            question: '一个长度为1024的序列，做1024点DFT，其输出的 $X[k]$ 中，代表最高频率（奈奎斯特频率）的点是？',
+            options: [
+                '$X[1023]$',
+                '$X[1]$',
+                '$X[512]$',
+                '$X[1024]$'
+            ],
+            correct: 2,
+            explanation: '对于N点DFT（N为偶数），$k=0$ 是直流分量，$k=1$ 到 $k=N/2-1$ 是正频率分量，频率逐渐升高。$k=N/2$ 对应的是奈奎斯特频率。$k=N/2+1$ 到 $k=N-1$ 是负频率的镜像。因此，对于1024点DFT，奈奎斯特频率点是 $X[1024/2] = X[512]$。'
+        },
+        {
+            id: 19,
+            category: 'fft_app',
+            categoryName: 'FFT应用',
+            question: '进行1024点基-2 FFT运算，需要多少级蝶形运算？',
+            options: [
+                '1024',
+                '512',
+                '32',
+                '10'
+            ],
+            correct: 3,
+            explanation: '对于N点的基-2 FFT，蝶形运算的级数为 $M = \\log_2 N$。对于N=1024，因为 $2^{10} = 1024$，所以需要 $\\log_2 1024 = 10$ 级蝶形运算。'
+        },
+        {
+            id: 20,
+            category: 'dft_props',
+            categoryName: 'DFT性质',
+            question: '帕斯瓦尔定理（Parseval\'s Theorem）在DFT中的形式是什么？',
+            options: [
+                '$\\sum_{n=0}^{N-1} |x[n]|^2 = \\sum_{k=0}^{N-1} |X[k]|^2$',
+                '$\\sum_{n=0}^{N-1} x[n] = \\frac{1}{N} \\sum_{k=0}^{N-1} X[k]$',
+                '$\\sum_{n=0}^{N-1} |x[n]|^2 = \\frac{1}{N} \\sum_{k=0}^{N-1} |X[k]|^2$',
+                '$\\sum_{n=0}^{N-1} x[n]^2 = \\frac{1}{N} \\sum_{k=0}^{N-1} X[k]^2$'
+            ],
+            correct: 2,
+            explanation: '帕斯瓦尔定理描述了信号在时域和频域的能量关系。对于DFT，它表明时域信号能量的总和等于频域信号能量总和的 $1/N$。即 $\\sum_{n=0}^{N-1} |x[n]|^2 = \\frac{1}{N} \\sum_{k=0}^{N-1} |X[k]|^2$。这个定理是能量守恒在离散信号处理中的体现。'
+        }
+    ];
+
+        let questions = [];
+        let currentQuestion = 0;
+        let userAnswers = new Array(20).fill(null);
+        let submitted = false;
+        let studentInfo = { id: '', name: '' };
+
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        function shuffleQuestions() {
+            questions = originalQuestions.map(q => {
+                const optionsWithIndex = q.options.map((option, index) => ({
+                    text: option,
+                    originalIndex: index
+                }));
+                const shuffledOptions = shuffleArray(optionsWithIndex);
+                const newCorrectIndex = shuffledOptions.findIndex(
+                    opt => opt.originalIndex === q.correct
+                );
+                return {
+                    ...q,
+                    options: shuffledOptions.map(opt => opt.text),
+                    correct: newCorrectIndex
+                };
+            });
+        }
+
+        function startExam() {
+            const studentId = document.getElementById('studentId').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+            if (!studentId || !studentName) {
+                alert('请填写完整的学号和姓名！');
+                return;
+            }
+            studentInfo.id = studentId;
+            studentInfo.name = studentName;
+            shuffleQuestions();
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('examScreen').style.display = 'block';
+            init();
+        }
+
+        function init() {
+            displayQuestion();
+            updateButtons();
+            updateProgress();
+        }
+
+        function displayQuestion() {
+            const q = questions[currentQuestion];
+            const container = document.getElementById('questionContainer');
+            let html = `
+                <div class="question-card ${userAnswers[currentQuestion] !== null ? 'answered' : ''}">
+                    <div class="question-header">
+                        <span class="question-number">第 ${currentQuestion + 1} 题</span>
+                        <span class="question-category ${q.category}">${q.categoryName}</span>
+                    </div>
+                    <div class="question-text">${q.question}</div>
+                    <div class="options">`;
+
+            q.options.forEach((option, index) => {
+                const selected = userAnswers[currentQuestion] === index ? 'selected' : '';
+                const label = String.fromCharCode(65 + index);
+                html += `
+                    <div class="option ${selected}" onclick="selectOption(${index})">
+                        <div class="option-label">${label}</div>
+                        <div class="option-text">${option}</div>
+                    </div>`;
+            });
+            html += `</div><div class="explanation" id="explanation"></div></div>`;
+            container.innerHTML = html;
+            if (window.MathJax) {
+                MathJax.typesetPromise([container]).catch((err) => console.log(err));
+            }
+        }
+
+        function selectOption(index) {
+            if (submitted) return;
+            userAnswers[currentQuestion] = index;
+            displayQuestion();
+            updateProgress();
+        }
+
+        function submitAnswer() {
+            if (userAnswers[currentQuestion] === null) {
+                alert('请先选择一个答案！');
+                return;
+            }
+            const q = questions[currentQuestion];
+            const userAnswer = userAnswers[currentQuestion];
+            const isCorrect = userAnswer === q.correct;
+            const options = document.querySelectorAll('.option');
+            options.forEach((option, index) => {
+                if (index === q.correct) {
+                    option.classList.add('correct');
+                } else if (index === userAnswer && !isCorrect) {
+                    option.classList.add('incorrect');
+                }
+                option.style.pointerEvents = 'none';
+            });
+            const explanation = document.getElementById('explanation');
+            const icon = isCorrect ? '✓' : '✗';
+            const style = isCorrect ? 'color: #28a745;' : 'color: #dc3545;';
+            explanation.innerHTML = `
+                <h4><span style="${style}">${icon}</span> ${isCorrect ? '回答正确！' : '回答错误！'}</h4>
+                <p><strong>正确答案：</strong>${String.fromCharCode(65 + q.correct)}</p>
+                <p><strong>解析：</strong>${q.explanation}</p>`;
+            explanation.classList.add('show');
+            if (window.MathJax) {
+                MathJax.typesetPromise([explanation]).catch((err) => console.log(err));
+            }
+            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'inline-block';
+            if (currentQuestion === questions.length - 1) {
+                document.getElementById('finishBtn').style.display = 'inline-block';
+                document.getElementById('nextBtn').style.display = 'none';
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < questions.length - 1) {
+                currentQuestion++;
+                displayQuestion();
+                updateButtons();
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                displayQuestion();
+                updateButtons();
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function updateButtons() {
+            document.getElementById('prevBtn').disabled = currentQuestion === 0;
+            document.getElementById('submitBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('finishBtn').style.display = 'none';
+        }
+
+        function updateProgress() {
+            const answered = userAnswers.filter(a => a !== null).length;
+            const progressBar = document.getElementById('progressBar');
+            const percentage = (answered / questions.length) * 100;
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = `${answered}/${questions.length} 已完成`;
+        }
+
+        function finishExam() {
+            const unanswered = userAnswers.filter(a => a === null).length;
+            if (unanswered > 0) {
+                if (!confirm(`还有 ${unanswered} 题未作答，确定要提交吗？`)) {
+                    return;
+                }
+            }
+            submitted = true;
+            calculateResults();
+            document.getElementById('examScreen').style.display = 'none';
+            document.getElementById('resultPanel').classList.add('show');
+        }
+
+        function calculateResults() {
+            let correctCount = 0;
+            let categoryScores = {
+                dft_basic: { correct: 0, total: 0 },
+                dft_props: { correct: 0, total: 0 },
+                fft_algo: { correct: 0, total: 0 },
+                fft_app: { correct: 0, total: 0 }
+            };
+            questions.forEach((q, index) => {
+                const isCorrect = userAnswers[index] === q.correct;
+                if (isCorrect) correctCount++;
+                categoryScores[q.category].total++;
+                if (isCorrect) categoryScores[q.category].correct++;
+            });
+
+            const percentage = (correctCount / questions.length * 100).toFixed(1);
+            document.getElementById('resultStudentId').textContent = studentInfo.id;
+            document.getElementById('resultStudentName').textContent = studentInfo.name;
+            document.getElementById('resultScore').textContent = `${correctCount}/${questions.length}`;
+            document.getElementById('accuracyRate').textContent = percentage + '%';
+            let message = '';
+            if (percentage >= 90) message = '🎉 优秀！你对DFT/FFT掌握得非常扎实！';
+            else if (percentage >= 80) message = '👍 良好！继续保持，稍加巩固就能更好！';
+            else if (percentage >= 70) message = '✓ 及格！基础还可以，建议多关注算法细节。';
+            else if (percentage >= 60) message = '⚠️ 刚及格，请重点复习DFT性质和FFT算法！';
+            else message = '❌ 需要努力！请认真复习课程内容！';
+            document.getElementById('resultMessage').textContent = message;
+            document.getElementById('dftBasicScore').textContent = `${categoryScores.dft_basic.correct}/${categoryScores.dft_basic.total}`;
+            document.getElementById('dftPropsScore').textContent = `${categoryScores.dft_props.correct}/${categoryScores.dft_props.total}`;
+            document.getElementById('fftAlgoScore').textContent = `${categoryScores.fft_algo.correct}/${categoryScores.fft_algo.total}`;
+            document.getElementById('fftAppScore').textContent = `${categoryScores.fft_app.correct}/${categoryScores.fft_app.total}`;
+        }
+
+        function showReview() {
+            const reviewSection = document.getElementById('reviewSection');
+            const reviewContainer = document.getElementById('reviewContainer');
+            let html = '';
+            questions.forEach((q, index) => {
+                const userAnswer = userAnswers[index];
+                const isCorrect = userAnswer === q.correct;
+                const statusClass = isCorrect ? 'correct' : 'wrong';
+                const statusText = isCorrect ? '✓ 正确' : '✗ 错误';
+                html += `
+                    <div class="review-question">
+                        <div class="review-header">
+                            <div>
+                                <span class="question-number">第 ${index + 1} 题</span>
+                                <span class="question-category ${q.category}">${q.categoryName}</span>
+                            </div>
+                            <span class="review-status ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="question-text">${q.question}</div>
+                        <div style="margin-top: 15px;">
+                            <p><strong>你的答案：</strong>${userAnswer !== null ? String.fromCharCode(65 + userAnswer) + '. ' + q.options[userAnswer] : '未作答'}</p>
+                            <p style="color: #28a745;"><strong>正确答案：</strong>${String.fromCharCode(65 + q.correct)}. ${q.options[q.correct]}</p>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                            <strong>📖 解析：</strong>${q.explanation}
+                        </div>
+                    </div>`;
+            });
+            reviewContainer.innerHTML = html;
+            reviewSection.style.display = 'block';
+            if (window.MathJax) {
+                MathJax.typesetPromise([reviewContainer]).catch((err) => console.log(err));
+            }
+            reviewSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
