@@ -1,215 +1,224 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSP 课程资料</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f4f7f9;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 800px;
-            width: 100%;
-            background-color: #fff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #2c3e50;
-            border-bottom: 3px solid #3498db;
-            padding-bottom: 15px;
-            margin-bottom: 30px;
-            text-align: center;
-            font-size: 2em;
-        }
-        ul {
-            list-style: none;
-            padding: 0;
-        }
-        /* 主章节样式 */
-        .chapter-list > li {
-            margin-bottom: 10px;
-            background-color: #f8f9fa;
-            border-left: 4px solid #3498db;
-            border-radius: 5px;
-            transition: all 0.2s ease-in-out;
-        }
-        .chapter-list > li:hover {
-            transform: translateX(5px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            border-left-color: #e74c3c;
-        }
-        
-        a {
-            display: block;
-            padding: 18px 25px;
-            color: #2980b9;
-            text-decoration: none;
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        a:hover {
-            color: #2c3e50;
-        }
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>DSP 课程资料</title>
+ <style>
+ body {
+ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+ line-height: 1.6;
+ color: #333;
+ background-color: #f4f7f9;
+ margin: 0;
+ padding: 20px;
+ display: flex;
+ justify-content: center;
+ align-items: flex-start;
+ min-height: 100vh;
+ }
+ .container {
+ max-width: 800px;
+ width: 100%;
+ background-color: #fff;
+ padding: 40px;
+ border-radius: 10px;
+ box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+ }
+ h1 {
+ color: #2c3e50;
+ border-bottom: 3px solid #3498db;
+ padding-bottom: 15px;
+ margin-bottom: 30px;
+ text-align: center;
+ font-size: 2em;
+ }
+ ul {
+ list-style: none;
+ padding: 0;
+ }
+ /* 主章节样式 */
+ .chapter-list > li {
+ margin-bottom: 10px;
+ background-color: #f8f9fa;
+ border-left: 4px solid #3498db;
+ border-radius: 5px;
+ transition: all 0.2s ease-in-out;
+ }
+ .chapter-list > li:hover {
+ transform: translateX(5px);
+ box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+ border-left-color: #e74c3c;
+ }
+ 
+ a {
+ display: block;
+ padding: 18px 25px;
+ color: #2980b9;
+ text-decoration: none;
+ font-size: 1.2em;
+ font-weight: bold;
+ }
+ a:hover {
+ color: #2c3e50;
+ }
 
-        /* 子项目列表样式 */
-        .sub-list {
-            display: none; /* Hide sub-lists by default */
-            padding-left: 40px;
-            margin-top: 5px;
-            margin-bottom: 15px;
-        }
-        .sub-list li {
-            background-color: #fff;
-            margin-bottom: 8px;
-            border-left: 3px solid #95a5a6;
-            transition: border-color 0.2s;
-        }
-        .sub-list li:hover {
-             border-left-color: #2ecc71;
-        }
-        .sub-list a {
-            padding: 12px 20px;
-            font-size: 1.1em;
-            font-weight: normal;
-            color: #34495e;
-            position: relative;
-        }
-        /* 为不同类型的文件添加图标 */
-        .sub-list a.html::before { content: '📄'; margin-right: 10px; font-size: 0.9em; }
-        .sub-list a.quiz::before { content: '✏️'; margin-right: 10px; font-size: 0.9em; }
-        .sub-list a.pdf::before { content: '📜'; margin-right: 10px; font-size: 0.9em; }
-        .sub-list a.img::before { content: '🖼️'; margin-right: 10px; font-size: 0.9em; }
-        
-        /* 知识点分组标题 */
-        .group-title {
-            font-weight: bold;
-            color: #7f8c8d;
-            margin-top: 20px;
-            margin-bottom: 10px;
-            padding-left: 20px;
-            font-size: 1.1em;
-        }
-        .group-title:first-child {
-            margin-top: 5px;
-        }
+ /* 子项目列表样式 */
+ .sub-list {
+ display: none; /* Hide sub-lists by default */
+ padding-left: 40px;
+ margin-top: 5px;
+ margin-bottom: 15px;
+ }
+ .sub-list li {
+ background-color: #fff;
+ margin-bottom: 8px;
+ border-left: 3px solid #95a5a6;
+ transition: border-color 0.2s;
+ }
+ .sub-list li:hover {
+ border-left-color: #2ecc71;
+ }
+ .sub-list a {
+ padding: 12px 20px;
+ font-size: 1.1em;
+ font-weight: normal;
+ color: #34495e;
+ position: relative;
+ }
+ /* 为不同类型的文件添加图标 */
+ .sub-list a.html::before { content: '📄'; margin-right: 10px; font-size: 0.9em; }
+ .sub-list a.quiz::before { content: '✏️'; margin-right: 10px; font-size: 0.9em; }
+ .sub-list a.pdf::before { content: '📜'; margin-right: 10px; font-size: 0.9em; }
+ .sub-list a.img::before { content: '🖼️'; margin-right: 10px; font-size: 0.9em; }
+ 
+ /* 知识点分组标题 */
+ .group-title {
+ font-weight: bold;
+ color: #7f8c8d;
+ margin-top: 20px;
+ margin-bottom: 10px;
+ padding-left: 20px;
+ font-size: 1.1em;
+ }
+ .group-title:first-child {
+ margin-top: 5px;
+ }
 
-        /* Styles for collapsible chapters */
-        .chapter-list > li.collapsible > a {
-            position: relative;
-            cursor: pointer;
-        }
-        .chapter-list > li.collapsible > a::after {
-            content: '▶'; /* Collapsed state arrow */
-            position: absolute;
-            right: 25px;
-            font-size: 0.8em;
-            transition: transform 0.2s ease-in-out;
-        }
-        .chapter-list > li.collapsible.active > a::after {
-            transform: rotate(90deg); /* Expanded state arrow */
-        }
-    </style>
+ /* Styles for collapsible chapters */
+ .chapter-list > li.collapsible > a {
+ position: relative;
+ cursor: pointer;
+ }
+ .chapter-list > li.collapsible > a::after {
+ content: '▶'; /* Collapsed state arrow */
+ position: absolute;
+ right: 25px;
+ font-size: 0.8em;
+ transition: transform 0.2s ease-in-out;
+ }
+ .chapter-list > li.collapsible.active > a::after {
+ transform: rotate(90deg); /* Expanded state arrow */
+ }
+ </style>
 </head>
 <body>
-    <div class="container">
-        <h1>数字信号处理 (DSP) 课程资料</h1>
-        <ul class="chapter-list">
-            <li><a href="#">第一章：绪论 (Chp 1)</a></li>
-            
-            <li>
-                <a href="#">第二章：DTFT/DFS/ZT (Chp 2)</a>
-                <ul class="sub-list">
-                    <li class="group-title">理论基础：DTFT 与 DFS</li>
-                    <li><a href="chp2/dtft-theory.pdf" class="pdf">DTFT 核心理论 (PDF)</a></li>
-                    <li><a href="chp2/dfs-ppt.pdf" class="pdf">DFS 核心理论 (PDF)</a></li>
-                    <li><a href="chp2/dtft-dfs-aliasing-sampling.png" class="img">DTFT/DFS 的采样与混叠 (图)</a></li>
+ <div class="container">
+ <h1>数字信号处理 (DSP) 课程资料</h1>
+ <ul class="chapter-list">
+ <li><a href="#">第一章：绪论 (Chp 1)</a></li>
+ 
+ <li>
+ <a href="#">第二章：DTFT/DFS/ZT (Chp 2)</a>
+ <ul class="sub-list">
+ <li class="group-title">理论基础：DTFT 与 DFS</li>
+ <li><a href="chp2/dtft-theory.pdf" class="pdf">DTFT 核心理论 (PDF)</a></li>
+ <li><a href="chp2/dfs-ppt.pdf" class="pdf">DFS 核心理论 (PDF)</a></li>
+ <li><a href="chp2/dtft-dfs-aliasing-sampling.png" class="img">DTFT/DFS 的采样与混叠 (图)</a></li>
 
-                    <li class="group-title">核心工具：Z变换</li>
-                    <li><a href="chp2/z_transform_examples.png" class="img">Z变换常见序列示例 (图)</a></li>
-                    <li><a href="chp2/零极点位置稳定性.html" class="html">零极点位置与系统稳定性 (交互)</a></li>
-                    <li><a href="chp2/零极点-频率响应.html" class="html">从零极点看频率响应 (交互)</a></li>
+ <li class="group-title">核心工具：Z变换</li>
+ <li><a href="chp2/z_transform_examples.png" class="img">Z变换常见序列示例 (图)</a></li>
+ <li><a href="chp2/零极点位置稳定性.html" class="html">零极点位置与系统稳定性 (交互)</a></li>
+ <li><a href="chp2/零极点-频率响应.html" class="html">从零极点看频率响应 (交互)</a></li>
 
-                    <li class="group-title">应用：系统响应与方程求解</li>
-                    <li><a href="chp2/x[n]卷积delta[n].pdf" class="pdf">卷积基本性质 (PDF)</a></li>
-                    <li><a href="chp2/z变换-系统响应.html" class="html">Z变换求系统响应 (交互)</a></li>
-                    <li><a href="chp2/z域解差分方程-全响应.pdf" class="pdf">Z变换解差分方程 (讲义)</a></li>
-                    <li><a href="chp2/z变换求系统响应习题.pdf" class="pdf">Z变换求系统响应 (习题)</a></li>
+ <li class="group-title">应用：系统响应与方程求解</li>
+ <li><a href="chp2/x[n]卷积delta[n].pdf" class="pdf">卷积基本性质 (PDF)</a></li>
+ <li><a href="chp2/z变换-系统响应.html" class="html">Z变换求系统响应 (交互)</a></li>
+ <li><a href="chp2/z域解差分方程-全响应.pdf" class="pdf">Z变换解差分方程 (讲义)</a></li>
+ <li><a href="chp2/z变换求系统响应习题.pdf" class="pdf">Z变换求系统响应 (习题)</a></li>
 
-                    <li class="group-title">总结与测验</li>
-                    <li><a href="chp2/dtft-dfs-zt.png" class="img">DTFT/DFS/ZT 关系总结 (图)</a></li>
-                    <li><a href="chp2/chp2_quiz.html" class="quiz">随堂测验 (Quiz 2)</a></li>
-                </ul>
-            </li>
+ <li class="group-title">总结与测验</li>
+ <li><a href="chp2/dtft-dfs-zt.png" class="img">DTFT/DFS/ZT 关系总结 (图)</a></li>
+ <li><a href="chp2/chp2_quiz.html" class="quiz">随堂测验 (Quiz 2)</a></li>
+ </ul>
+ </li>
 
-            <li>
-                <a href="#">第三章：DFT (Chp 3)</a>
-                <ul class="sub-list">
-                     <li class="group-title">核心理论</li>
-                    <li><a href="chp3/四大变换对比.html" class="html">四大变换关系对比 (交互)</a></li>
-                    <li><a href="chp3/dft循环卷积.html" class="html">DFT旋转因子与循环卷积 (交互)</a></li>
-                     <li class="group-title">测验</li>
-                    <li><a href="chp3/chp3_quiz.html" class="quiz">随堂测验 (Quiz 3)</a></li>
-                </ul>
-            </li>
-            
-            <li>
-                <a href="#">第四章：FFT (Chp 4)</a>
-                <ul class="sub-list">
-                    <li class="group-title">核心理论</li>
-                    <li><a href="chp4/从dft到fft.html" class="html">从DFT到FFT (交互)</a></li>
-                    <li><a href="chp4/矩阵法与蝶形图的等效性.html" class="html">矩阵法与蝶形图的等效性 (交互)</a></li>
-                    <li><a href="chp4/fft-倒序.html" class="html">FFT中的倒序 (交互)</a></li>
-                    <li class="group-title">测验</li>
-                    <li><a href="chp4/chp4_quiz.html" class="quiz">随堂测验 (Quiz 4)</a></li>
-                </ul>
-            </li>
+ <li>
+ <a href="#">第三章：DFT (Chp 3)</a>
+ <ul class="sub-list">
+ <li class="group-title">核心理论</li>
+ <li><a href="chp3/四大变换对比.html" class="html">四大变换关系对比 (交互)</a></li>
+ <li><a href="chp3/dft循环卷积.html" class="html">DFT旋转因子与循环卷积 (交互)</a></li>
+ <li class="group-title">测验</li>
+ <li><a href="chp3/chp3_quiz.html" class="quiz">随堂测验 (Quiz 3)</a></li>
+ </ul>
+ </li>
+ 
+ <li>
+ <a href="#">第四章：FFT (Chp 4)</a>
+ <ul class="sub-list">
+ <li class="group-title">核心理论</li>
+ <li><a href="chp4/从dft到fft.html" class="html">从DFT到FFT (交互)</a></li>
+ <li><a href="chp4/dft-fft.html" class="html">DFT与FFT对比 (交互)</a></li>
+ <li><a href="chp4/fft_ani.html" class="html">FFT 动画演示 (交互)</a></li>
+ <li><a href="chp4/矩阵法与蝶形图的等效性.html" class="html">矩阵法与蝶形图的等效性 (交互)</a></li>
+ <li><a href="chp4/fft-倒序.html" class="html">FFT中的倒序 (交互)</a></li>
+ <li class="group-title">测验</li>
+ <li><a href="chp4/chp4_quiz.html" class="quiz">随堂测验 (Quiz 4)</a></li>
+ </ul>
+ </li>
 
-            <li><a href="#">第五章：网络结构 (Chp 5)</a></li>
-            <li><a href="#">第六章：IIR (Chp 6)</a></li>
-            <li><a href="#">第七章：FIR (Chp 7)</a></li>
-            <li><a href="#">第八章：采样与重建 (Chp 8)</a></li>
-            <li><a href="#">第九章：多速率信号处理 (Chp 9)</a></li>
-            <li><a href="#">第十章：DSP应用 (Chp 10)</a></li>
-        </ul>
-    </div>
+ <li>
+ <a href="#">第五章：网络结构 (Chp 5)</a>
+ <ul class="sub-list">
+ <li class="group-title">网络流图</li>
+ <li><a href="chp5/iir-flowchar.html" class="html">IIR 信号流图结构 (交互)</a></li>
+ </ul>
+ </li>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const chapterLinks = document.querySelectorAll('.chapter-list > li > a');
+ <li><a href="#">第六章：IIR (Chp 6)</a></li>
+ <li><a href="#">第七章：FIR (Chp 7)</a></li>
+ <li><a href="#">第八章：采样与重建 (Chp 8)</a></li>
+ <li><a href="#">第九章：多速率信号处理 (Chp 9)</a></li>
+ <li><a href="#">第十章：DSP应用 (Chp 10)</a></li>
+ </ul>
+ </div>
 
-            chapterLinks.forEach(link => {
-                const subList = link.nextElementSibling;
-                // Check if a sub-list actually exists for this chapter
-                if (subList && subList.classList.contains('sub-list')) {
-                    const parentLi = link.parentElement;
-                    parentLi.classList.add('collapsible'); // Add a class for styling the arrow
+ <script>
+ document.addEventListener('DOMContentLoaded', function() {
+ const chapterLinks = document.querySelectorAll('.chapter-list > li > a');
 
-                    link.addEventListener('click', function(event) {
-                        event.preventDefault(); // Prevent default link behavior
-                        parentLi.classList.toggle('active');
-                        
-                        // Toggle the display of the sub-list
-                        if (parentLi.classList.contains('active')) {
-                            subList.style.display = 'block';
-                        } else {
-                            subList.style.display = 'none';
-                        }
-                    });
-                }
-            });
-        });
-    </script>
+ chapterLinks.forEach(link => {
+ const subList = link.nextElementSibling;
+ // Check if a sub-list actually exists for this chapter
+ if (subList && subList.classList.contains('sub-list')) {
+ const parentLi = link.parentElement;
+ parentLi.classList.add('collapsible'); // Add a class for styling the arrow
+
+ link.addEventListener('click', function(event) {
+ event.preventDefault(); // Prevent default link behavior
+ parentLi.classList.toggle('active');
+ 
+ // Toggle the display of the sub-list
+ if (parentLi.classList.contains('active')) {
+ subList.style.display = 'block';
+ } else {
+ subList.style.display = 'none';
+ }
+ });
+ }
+ });
+ });
+ </script>
 </body>
 </html>
