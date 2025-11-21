@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIT/DIF FFT 动画演示 (高级版)</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            font-size: 2.2em; /* 放大标题 */
+        }
+        #container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 25px;
+            width: 98%;
+            max-width: 1800px; /* 增加最大宽度以适应更宽的流图 */
+        }
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 25px;
+            border-bottom: 1px solid #ddd;
+        }
+        #controls label, #controls button, #controls select {
+            font-size: 20px; /* 放大控件文本 */
+        }
+        #controls input[type="text"] {
+            width: 450px; 
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 18px; /* 放大输入框文本 */
+        }
+        #controls button {
+            padding: 12px 22px;
+            border-radius: 5px;
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #startBtn { background-color: #28a745; }
+        #startBtn:hover { background-color: #218838; }
+        #pauseBtn { background-color: #ffc107; }
+        #pauseBtn:hover { background-color: #e0a800; }
+
+        canvas {
+            border: 1px solid #ccc;
+            background-color: #ffffff;
+            width: 100%;
+            height: auto;
+        }
+        .info {
+            margin-top: 20px;
+            padding: 18px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 20px; /* 放大信息文本 */
+            line-height: 1.6;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <h1>FFT 计算过程动画演示</h1>
+        <div id="controls">
+            <label for="fft-type">算法:</label>
+            <select id="fft-type">
+                <option value="DIT" selected>DIT (按时间抽选)</option>
+                <option value="DIF">DIF (按频率抽选)</option>
+            </select>
+            <label for="fft-size">N:</label>
+            <select id="fft-size">
+                <option value="4">4</option>
+                <option value="8" selected>8</option>
+                <option value="16">16</option>
+            </select>
+            <label for="input-data">输入 x[n]:</label>
+            <input type="text" id="input-data" value="1, 2, 3, 4, 4, 3, 2, 1">
+            <button id="startBtn">开始/重新开始</button>
+            <button id="pauseBtn">暂停/继续</button>
+            <label for="speed-slider">速度 (慢 ← → 快):</label>
+            <input type="range" id="speed-slider" min="50" max="2000" value="1500" step="50">
+        </div>
+        
+        <canvas id="fftCanvas"></canvas>
+
+        <div class="info" id="status-info">
+            请配置参数并点击“开始”以启动动画。
+        </div>
+    </div>
+
+    <script>
+    // --- 1. 全局变量和初始化 ---
+    const canvas = document.getElementById('fftCanvas');
+    const ctx = canvas.getContext('2d');
+    const typeSelect = document.getElementById('fft-type');
+    const sizeSelect = document.getElementById('fft-size');
+    const dataInput = document.getElementById('input-data');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const speedSlider = document.getElementById('speed-slider');
+    const statusInfo = document.getElementById('status-info');
+
+    let N = 8;
+    let logN = 3;
+    let fftType = 'DIT';
+    let initialData = []; 
+    let fftData = []; 
+    
+    let animationState = {
+        running: false, paused: false, stage: -1, 
+        group: 0, butterfly: 0, timer: null,
+    };
+
+    const FONT_SIZE_HEADER = 20;
+    const FONT_SIZE_NORMAL = 16;
+    const FONT_SIZE_SMALL = 13;
+    const MAX_DELAY = 2050;
+
+    class Complex {
+        constructor(re = 0, im = 0) { this.re = re; this.im = im; }
+        add(o) { return new Complex(this.re + o.re, this.im + o.im); }
+        sub(o) { return new Complex(this.re - o.re, this.im - o.im); }
+        mul(o) { return new Complex(this.re * o.re - this.im * o.im, this.re * o.im + this.im * o.re); }
+        toString(p = 2, useParens = false) {
+            if (Math.abs(this.re) < 1e-9) this.re = 0;
+            if (Math.abs(this.im) < 1e-9) this.im = 0;
+            const imSign = this.im < 0 ? "-" : "+";
+            const str = `${this.re.toFixed(p)} ${imSign} ${Math.abs(this.im).toFixed(p)}j`;
+            return useParens ? `(${str})` : str;
+        }
+    }
+
+    // --- 2. 核心算法逻辑 ---
+    function bitReverse(n, bits) {
+        let reversedN = 0;
+        for (let i = 0; i < bits; i++) {
+            reversedN = (reversedN << 1) | (n & 1);
+            n >>= 1;
+        }
+        return reversedN;
+    }
+
+    function performStepCalculation() {
+        const stage = animationState.stage;
+        const group = animationState.group;
+        const butterfly = animationState.butterfly;
+        const isDIT = fftType === 'DIT';
+        
+        const m = 1 << (isDIT ? stage : logN - 1 - stage);
+        const groupSize = 2 * m;
+        const k = butterfly;
+        
+        const index1 = group * groupSize + k;
+        const index2 = index1 + m;
+        
+        const twiddleAngle = -2 * Math.PI * k / groupSize;
+        const twiddle = new Complex(Math.cos(twiddleAngle), Math.sin(twiddleAngle));
+        
+        const term1 = fftData[index1];
+        const term2 = fftData[index2];
+        
+        if (isDIT) {
+            const twiddledTerm = twiddle.mul(term2);
+            fftData[index1] = term1.add(twiddledTerm);
+            fftData[index2] = term1.sub(twiddledTerm);
+        } else { // DIF
+            fftData[index1] = term1.add(term2);
+            fftData[index2] = term1.sub(term2).mul(twiddle);
+        }
+    }
+    
+    // --- 3. 绘图逻辑 ---
+    let nodePositions = [];
+
+    function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = (N * 55 + 120) * dpr; // 略微增加高度以防文本重叠
+        ctx.scale(dpr, dpr);
+    }
+
+    function calculateLayout() {
+        nodePositions = [];
+        const canvasWidth = canvas.clientWidth;
+        const canvasHeight = canvas.clientHeight;
+        const marginX = 220; // 为左右文本留出更多空间
+        const marginY = 70;
+
+        const totalStages = logN + 3; 
+        const stageX = new Array(totalStages);
+        
+        const effectiveWidth = canvasWidth - 2 * marginX;
+        const step = effectiveWidth / (totalStages - 1);
+        
+        for (let i = 0; i < totalStages; i++) {
+            stageX[i] = marginX + i * step;
+        }
+
+        for (let i = 0; i < N; i++) {
+            let row = [];
+            const y = marginY + i * (canvasHeight - 2 * marginY) / (N - 1);
+            for (let j = 0; j < totalStages; j++) {
+                row.push({ x: stageX[j], y });
+            }
+            nodePositions.push(row);
+        }
+    }
+    
+    function draw() {
+        if (!initialData.length) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawStructure();
+        drawData();
+        highlightStep();
+    }
+    
+    function drawStructure() {
+        const isDIT = fftType === 'DIT';
+        
+        ctx.fillStyle = '#333';
+        ctx.font = `bold ${FONT_SIZE_HEADER}px Arial`;
+        ctx.textAlign = 'center';
+        const labelY = 35;
+        
+        const stageLabels = new Array(logN + 3);
+        if(isDIT) {
+            stageLabels[0] = "输入 x[n]";
+            stageLabels[1] = "位倒序输入";
+            for(let s=0; s<logN; s++) stageLabels[s+2] = `第 ${s+1} 级`;
+            stageLabels[logN+2] = "输出 X[k]";
+        } else {
+            stageLabels[0] = "输入 x[n]";
+            for(let s=0; s<logN; s++) stageLabels[s+1] = `第 ${s+1} 级`;
+            stageLabels[logN+1] = "位倒序输出";
+            stageLabels[logN+2] = "自然序 X[k]";
+        }
+
+        for(let i=0; i<stageLabels.length; i++) {
+            if(stageLabels[i]) ctx.fillText(stageLabels[i], nodePositions[0][i].x, labelY);
+        }
+        
+        ctx.strokeStyle = '#ddd';
+        ctx.lineWidth = 1;
+        const calcStartStage = isDIT ? 1 : 0;
+        for (let stage = 0; stage < logN; stage++) {
+            const m = 1 << (isDIT ? stage : logN - 1 - stage);
+            for (let group = 0; group < N / (2 * m); group++) {
+                for (let i = 0; i < m; i++) {
+                    const p1 = group * 2 * m + i;
+                    const p2 = p1 + m;
+                    
+                    const startNode1 = nodePositions[p1][stage + calcStartStage + 1];
+                    const startNode2 = nodePositions[p2][stage + calcStartStage + 1];
+                    const endNode1 = nodePositions[p1][stage + calcStartStage + 2];
+                    const endNode2 = nodePositions[p2][stage + calcStartStage + 2];
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(startNode1.x, startNode1.y); ctx.lineTo(endNode2.x, endNode2.y);
+                    ctx.moveTo(startNode2.x, startNode2.y); ctx.lineTo(endNode1.x, endNode1.y);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        ctx.strokeStyle = '#aaa';
+        ctx.setLineDash([5, 5]);
+        const reorderStartStage = isDIT ? 0 : logN + 1;
+        const reorderEndStage = isDIT ? 1 : logN + 2;
+        for (let i = 0; i < N; i++) {
+            const reversedIndex = bitReverse(i, logN);
+            const startNode = nodePositions[i][reorderStartStage];
+            const endNode = nodePositions[reversedIndex][reorderEndStage];
+            ctx.beginPath();
+            ctx.moveTo(startNode.x, startNode.y); ctx.lineTo(endNode.x, endNode.y);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+    }
+
+    function drawData() {
+        ctx.font = `${FONT_SIZE_NORMAL}px Arial`;
+        ctx.fillStyle = '#000';
+        
+        ctx.textAlign = 'right';
+        for (let i = 0; i < N; i++) {
+            const pos = nodePositions[i][0];
+            drawNode(pos, '#6c757d');
+            ctx.fillText(`x[${i}]=${initialData[i].re.toFixed(2)}`, pos.x - 15, pos.y + 5);
+        }
+
+        for(let i=0; i<N; i++) {
+            for(let j=1; j < logN+3; j++) {
+                drawNode(nodePositions[i][j], '#6c757d');
+            }
+        }
+        
+        if (animationState.stage >= logN) {
+            if (fftType === 'DIF') {
+                ctx.textAlign = 'left';
+                ctx.fillStyle = '#dc3545'; // Red color
+                ctx.font = `bold ${FONT_SIZE_NORMAL}px Arial`;
+                const bitReversedStageIndex = logN + 1;
+                for (let i = 0; i < N; i++) {
+                    const pos = nodePositions[i][bitReversedStageIndex];
+                    drawNode(pos, '#dc3545', 8);
+                    const finalK = bitReverse(i, logN);
+                    ctx.fillText(`X[${finalK}]`, pos.x + 15, pos.y + 5);
+                }
+            }
+            
+            ctx.fillStyle = '#007bff'; // Blue color for final output
+            ctx.font = `bold ${FONT_SIZE_NORMAL}px Arial`;
+            ctx.textAlign = 'left';
+            const resultStageIndex = logN + 2;
+            for (let i = 0; i < N; i++) {
+                const pos = nodePositions[i][resultStageIndex];
+                drawNode(pos, '#007bff', 8);
+                const finalVal = fftType === 'DIT' ? fftData[i] : fftData[bitReverse(i, logN)];
+                ctx.fillText(`X[${i}]=${finalVal.toString()}`, pos.x + 15, pos.y + 5);
+            }
+        }
+    }
+
+    function highlightStep() {
+        if (!animationState.running) return;
+
+        const stage = animationState.stage;
+        const isDIT = fftType === 'DIT';
+
+        if (stage === -1) { 
+            statusInfo.innerHTML = `步骤1: 对${isDIT ? '输入' : '输出'}序列进行位倒序排列。`;
+            ctx.strokeStyle = '#dc3545';
+            ctx.lineWidth = 2.5;
+            const reorderStartStage = isDIT ? 0 : logN + 1;
+            const reorderEndStage = isDIT ? 1 : logN + 2;
+            for (let i = 0; i < N; i++) {
+                const reversedIndex = bitReverse(i, logN);
+                const startNode = nodePositions[i][reorderStartStage];
+                const endNode = nodePositions[reversedIndex][reorderEndStage];
+                ctx.beginPath();
+                ctx.moveTo(startNode.x, startNode.y); ctx.lineTo(endNode.x, endNode.y);
+                ctx.stroke();
+                drawNode(startNode, '#dc3545', 8);
+                drawNode(endNode, '#dc3545', 8);
+            }
+        }
+        else if (stage >= 0 && stage < logN) {
+            const group = animationState.group;
+            const butterfly = animationState.butterfly;
+            const m = 1 << (isDIT ? stage : logN - 1 - stage);
+            const groupSize = 2 * m;
+            const k = butterfly;
+            
+            const index1 = group * groupSize + k;
+            const index2 = index1 + m;
+            
+            const twiddleAngle = -2 * Math.PI * k / groupSize;
+            const twiddle = new Complex(Math.cos(twiddleAngle), Math.sin(twiddleAngle));
+
+            statusInfo.innerHTML = `第 ${stage + 1} 级: 组 ${group}, 蝶形 ${k}. &nbsp; W<sub>${groupSize}</sub><sup>${k}</sup> = ${twiddle.toString()}`;
+            
+            const calcStartStage = isDIT ? 1 : 0;
+            const startNode1 = nodePositions[index1][stage + calcStartStage + 1];
+            const startNode2 = nodePositions[index2][stage + calcStartStage + 1];
+            const endNode1 = nodePositions[index1][stage + calcStartStage + 2];
+            const endNode2 = nodePositions[index2][stage + calcStartStage + 2];
+            
+            ctx.strokeStyle = '#28a745'; ctx.lineWidth = 3.5;
+            ctx.beginPath();
+            ctx.moveTo(startNode1.x, startNode1.y); ctx.lineTo(endNode2.x, endNode2.y);
+            ctx.moveTo(startNode2.x, startNode2.y); ctx.lineTo(endNode1.x, endNode1.y);
+            ctx.stroke();
+
+            drawNode(startNode1, '#ffc107', 9); drawNode(startNode2, '#ffc107', 9);
+            drawNode(endNode1, '#28a745', 9); drawNode(endNode2, '#28a745', 9);
+            
+            const A = fftData[index1];
+            const B = fftData[index2];
+            
+            ctx.fillStyle = '#333'; ctx.font = `bold ${FONT_SIZE_NORMAL}px Arial`;
+            ctx.textAlign = 'right';
+            ctx.fillText(A.toString(2), startNode1.x - 12, startNode1.y + 5);
+            ctx.fillText(B.toString(2), startNode2.x - 12, startNode2.y + 5);
+            
+            // ⭐ 修改 1 & 2: 调整计算文本样式并处理边界溢出
+            const isLastStage = (stage === logN - 1);
+            ctx.textAlign = isLastStage ? 'right' : 'left';
+            const xOffset = isLastStage ? -15 : 15;
+            const FONT_SIZE_CALC = 15;
+            ctx.font = `bold ${FONT_SIZE_CALC}px 'Courier New', Courier, monospace`;
+            ctx.fillStyle = '#6f42c1'; // Vivid purple color
+            
+            const PRECISION = 1;
+            
+            if (isDIT) {
+                const B_twiddled = twiddle.mul(B);
+                const res1 = A.add(B_twiddled);
+                const res2 = A.sub(B_twiddled);
+                ctx.fillText(`${A.toString(PRECISION, true)} + ${twiddle.toString(PRECISION, true)}*${B.toString(PRECISION, true)} = ${res1.toString(PRECISION)}`, endNode1.x + xOffset, endNode1.y - 8);
+                ctx.fillText(`${A.toString(PRECISION, true)} - ${twiddle.toString(PRECISION, true)}*${B.toString(PRECISION, true)} = ${res2.toString(PRECISION)}`, endNode2.x + xOffset, endNode2.y + 12);
+                
+                const midX = (startNode2.x + endNode1.x) / 2;
+                const midY = (startNode2.y + endNode1.y) / 2;
+                ctx.fillStyle = '#e83e8c'; drawMathText(ctx, `W_${groupSize}^${k}`, midX, midY, `bold ${FONT_SIZE_NORMAL}px Arial`);
+            } else { // DIF
+                const res1 = A.add(B);
+                const A_minus_B = A.sub(B);
+                const res2 = A_minus_B.mul(twiddle);
+                ctx.fillText(`${A.toString(PRECISION, true)} + ${B.toString(PRECISION, true)} = ${res1.toString(PRECISION)}`, endNode1.x + xOffset, endNode1.y - 8);
+                ctx.fillText(`(${A.toString(PRECISION, true)} - ${B.toString(PRECISION, true)}) * ${twiddle.toString(PRECISION, true)} = ${res2.toString(PRECISION)}`, endNode2.x + xOffset, endNode2.y + 12);
+                
+                const midX = (startNode2.x + endNode2.x) / 2;
+                const midY = (startNode2.y + endNode2.y) / 2;
+                ctx.fillStyle = '#e83e8c'; drawMathText(ctx, `W_${groupSize}^${k}`, midX, midY, `bold ${FONT_SIZE_NORMAL}px Arial`);
+            }
+        } else if (stage === logN) {
+            statusInfo.innerHTML = "FFT 计算完成！";
+        }
+    }
+    
+    function drawNode(pos, color, radius = 7) {
+        ctx.beginPath(); ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = color; ctx.fill();
+    }
+    
+    function drawMathText(ctx, text, x, y, baseFont) {
+        const parts = text.split(/(_|\^)/);
+        ctx.font = baseFont; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        let currentX = x;
+        let isSub = false, isSuper = false;
+
+        let totalWidth = 0;
+        let tempIsSub = false, tempIsSuper = false;
+        parts.forEach(part => {
+             if (part === '_') { tempIsSub = true; return; }
+             if (part === '^') { tempIsSuper = true; return; }
+             const fontSize = parseInt(baseFont);
+             const smallFontSize = Math.max(FONT_SIZE_SMALL, fontSize - 4);
+             ctx.font = (tempIsSub || tempIsSuper) ? `${smallFontSize}px Arial` : baseFont;
+             totalWidth += ctx.measureText(part).width * 0.95; 
+             tempIsSub = tempIsSuper = false;
+        });
+        currentX -= totalWidth / 2;
+        
+        isSub = false; isSuper = false;
+        for (const part of parts) {
+            if (part === '_') { isSub = true; isSuper = false; continue; }
+            if (part === '^') { isSuper = true; isSub = false; continue; }
+            
+            const fontSize = parseInt(baseFont.match(/\d+/)[0]);
+            const smallFontSize = Math.max(FONT_SIZE_SMALL, fontSize - 4);
+            const fontName = baseFont.split(' ').slice(1).join(' ');
+            let verticalOffset = 0;
+            
+            if (isSub) { ctx.font = `${smallFontSize}px ${fontName}`; verticalOffset = fontSize / 3; } 
+            else if (isSuper) { ctx.font = `${smallFontSize}px ${fontName}`; verticalOffset = -fontSize / 2.5; }
+            else { ctx.font = baseFont; }
+            
+            ctx.fillText(part, currentX, y + verticalOffset);
+            currentX += ctx.measureText(part).width * 0.95;
+            isSub = isSuper = false;
+        }
+    }
+
+    // --- 4. 动画控制 ---
+    function startAnimation() {
+        stopAnimation();
+        setupState();
+        
+        const inputStr = dataInput.value.split(',').map(s => s.trim());
+        initialData = Array.from({length: N}, (_, i) => new Complex(parseFloat(inputStr[i]) || 0));
+
+        if (fftType === 'DIT') {
+            fftData = Array.from({length: N}, (_, i) => initialData[bitReverse(i, logN)]);
+        } else {
+            fftData = [...initialData].map(c => new Complex(c.re, c.im));
+        }
+        
+        animationState = { running: true, paused: false, stage: -1, group: 0, butterfly: 0, timer: null };
+        animationLoop();
+    }
+
+    function animationLoop() {
+        if (!animationState.running || animationState.paused) return;
+        
+        const delay = (MAX_DELAY - parseInt(speedSlider.value));
+        
+        draw(); 
+        
+        if (animationState.stage >= 0 && animationState.stage < logN) {
+             performStepCalculation();
+        }
+
+        if (animationState.stage >= logN) {
+            draw(); 
+            stopAnimation();
+            statusInfo.innerHTML = "FFT 计算完成！";
+            return;
+        }
+        
+        if (animationState.stage === -1) {
+            animationState.stage = 0;
+        } else {
+            const isDIT = fftType === 'DIT';
+            const m = 1 << (isDIT ? animationState.stage : logN - 1 - animationState.stage);
+            animationState.butterfly++;
+            if (animationState.butterfly >= m) {
+                animationState.butterfly = 0;
+                animationState.group++;
+                if (animationState.group >= N / (2 * m)) {
+                    animationState.group = 0;
+                    animationState.stage++;
+                }
+            }
+        }
+        animationState.timer = setTimeout(animationLoop, delay);
+    }
+    
+    function stopAnimation() {
+        if (animationState.timer) clearTimeout(animationState.timer);
+        animationState.running = false;
+        pauseBtn.textContent = '暂停';
+        animationState.paused = false;
+    }
+    
+    function togglePause() {
+        if (!animationState.running) return;
+        animationState.paused = !animationState.paused;
+        if (animationState.paused) {
+            pauseBtn.textContent = '继续';
+            statusInfo.innerHTML += " (已暂停)";
+        } else {
+            pauseBtn.textContent = '暂停';
+            animationLoop();
+        }
+    }
+
+    // --- 5. 初始化和事件监听 ---
+    function setupState() {
+        N = parseInt(sizeSelect.value);
+        logN = Math.log2(N);
+        fftType = typeSelect.value;
+        animationState.stage = -1; 
+    }
+
+    function setupAndDrawInitialStructure() {
+        stopAnimation();
+        setupState();
+        resizeCanvas();
+        calculateLayout();
+        
+        const inputStr = dataInput.value.split(',').map(s => s.trim());
+        initialData = Array.from({length: N}, (_, i) => new Complex(parseFloat(inputStr[i]) || 0));
+        
+        statusInfo.innerHTML = "请配置参数并点击“开始”以启动动画。";
+        animationState.stage = 999;
+        draw();
+        animationState.stage = -1;
+    }
+
+    startBtn.addEventListener('click', startAnimation);
+    pauseBtn.addEventListener('click', togglePause);
+    
+    sizeSelect.addEventListener('change', () => {
+        const newN = parseInt(sizeSelect.value);
+        let defaultData = [];
+        if(newN === 4) defaultData = [1, 2, 3, 4];
+        else if(newN === 8) defaultData = [1, 2, 3, 4, 4, 3, 2, 1];
+        else if(newN === 16) defaultData = [1,1,1,1,0,0,0,0,1,1,1,1,0,0,0,0];
+        dataInput.value = defaultData.join(', ');
+        setupAndDrawInitialStructure();
+    });
+    
+    typeSelect.addEventListener('change', setupAndDrawInitialStructure);
+    dataInput.addEventListener('change', setupAndDrawInitialStructure);
+    window.addEventListener('resize', setupAndDrawInitialStructure);
+    window.onload = setupAndDrawInitialStructure;
+
+    </script>
+</body>
+</html>
