@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IIR滤波器结构对比</title>
+    
+    <!-- KaTeX CSS & JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --border-radius: 8px;
+            --text-color: #333;
+            --panel-spacing: 15px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            /* 1. 统一字体：仅使用无衬线字体，确保中英文一致 */
+            font-family: -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text-color);
+            padding: 15px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            font-size: 18px; 
+            font-style: normal; /* 强制全局非斜体 */
+        }
+
+        /* 主容器 */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: var(--panel-spacing);
+            max-width: 1900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* 通用面板样式 */
+        .panel {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            padding: 12px 15px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .panel-header {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #eee;
+            color: #222;
+        }
+
+        /* --- 顶部区域 --- */
+        .top-row {
+            display: flex;
+            gap: var(--panel-spacing);
+            height: 28%;
+            min-height: 220px;
+        }
+
+        #panel-input {
+            flex: 2.5; 
+            overflow: visible;
+        }
+
+        #panel-formula {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fffbf0;
+        }
+        
+        #hz-display {
+            font-size: 1.2em;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* --- 底部区域 --- */
+        .bottom-row {
+            display: flex;
+            gap: var(--panel-spacing);
+            flex: 1;
+            min-height: 300px;
+        }
+
+        .graph-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 输入区域样式 --- */
+        .order-settings {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 10px;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 6px;
+        }
+        .order-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .order-input {
+            width: 70px;
+            padding: 4px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            text-align: center;
+            font-family: inherit; /* 继承统一字体 */
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .equation-container {
+            font-size: 1.5rem;
+            line-height: 2.2;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            font-family: inherit; /* 继承 Body 的统一字体，不使用 Times New Roman */
+            font-style: normal;   /* 确保非斜体 */
+            padding-top: 5px;
+        }
+        
+        .coeff-wrapper {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 2px;
+            white-space: nowrap;
+        }
+
+        .coeff-input {
+            width: 75px;
+            padding: 2px 0;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-weight: bold;
+            font-family: inherit; /* 继承统一字体 */
+            font-size: 1.3rem;
+            margin: 0 6px;
+            outline: none;
+            background: rgba(255,255,255,0.9);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .coeff-input:focus {
+            transform: scale(1.05);
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        
+        .term-label {
+            color: #222;
+            font-style: normal; /* 强制非斜体 */
+            font-family: inherit;
+        }
+        .op-sign {
+            margin: 0 6px;
+            color: #444;
+            font-weight: bold;
+            font-family: inherit;
+        }
+        .eq-equals {
+            margin: 0 15px;
+            font-weight: bold;
+            font-size: 1.6rem;
+            font-family: inherit;
+        }
+
+        /* --- SVG 容器 --- */
+        .svg-container {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* SVG 元素样式 - 统一字体 */
+        .io-text { font-size: 22px; font-weight: bold; font-family: inherit; fill: #000; font-style: normal; }
+        .summer-text { font-size: 28px; font-weight: bold; text-anchor: middle; dominant-baseline: middle; font-family: inherit; font-style: normal; }
+        .delay-text { font-size: 18px; text-anchor: start; fill: #555; font-family: inherit; font-weight: bold; font-style: normal; }
+        .coeff-text { font-weight: bold; font-size: 20px; text-anchor: middle; font-family: inherit; text-shadow: 0px 0px 4px white; font-style: normal; }
+        
+        /* KaTeX */
+        .katex { font-size: 1.6em !important; }
+        /* 尝试让 KaTeX 内部的一些基础数学符号也不斜体（可选，取决于库的渲染，但主要通过 LaTeX 语法控制） */
+
+        @media (max-width: 1200px) {
+            body { overflow: auto; height: auto; }
+            .main-container { height: auto; display: block; }
+            .top-row, .bottom-row { display: flex; flex-direction: column; height: auto; gap: 20px; margin-bottom: 20px;}
+            .panel { min-height: 250px; }
+            .equation-container { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+
+    <!-- 上半部分 -->
+    <div class="top-row">
+        
+        <!-- 左上：参数设置 -->
+        <div id="panel-input" class="panel">
+            <div class="panel-header">差分方程设置 (Difference Equation)</div>
+            
+            <div class="order-settings">
+                <div class="order-control">
+                    <label>输入阶数 N (x):</label>
+                    <input type="number" id="order-n" class="order-input" value="2" min="0" max="5">
+                </div>
+                <div class="order-control">
+                    <label>输出阶数 M (y):</label>
+                    <input type="number" id="order-m" class="order-input" value="2" min="0" max="5">
+                </div>
+            </div>
+
+            <div id="diff-equation" class="equation-container">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+
+        <!-- 右上：系统函数 -->
+        <div id="panel-formula" class="panel">
+            <div class="panel-header">系统传递函数 H(z)</div>
+            <div id="hz-display"></div>
+        </div>
+
+    </div>
+
+    <!-- 下半部分 -->
+    <div class="bottom-row">
+        
+        <!-- 左下：直接I型 -->
+        <div id="panel-df1" class="panel graph-panel">
+            <div class="panel-header">直接 I 型 (Direct Form I)</div>
+            <div class="svg-container">
+                <svg id="svg-df1" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+        </div>
+
+        <!-- 右下：直接II型 -->
+        <div id="panel-df2" class="panel graph-panel">
+            <div class="panel-header">直接 II 型 (Direct Form II)</div>
+            <div class="svg-container">
+                <svg id="svg-df2" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+// --- 颜色定义 ---
+const interpolateColor = (color1, color2, factor) => {
+    const result = color1.slice();
+    for (let i = 0; i < 3; i++) {
+        result[i] = Math.round(result[i] + factor * (color2[i] - result[i]));
+    }
+    return `rgb(${result[0]}, ${result[1]}, ${result[2]})`;
+};
+
+const bColors = { start: [0, 123, 255], end: [30, 60, 180] }; 
+const aColors = { start: [255, 150, 0], end: [220, 20, 60] };
+
+function getBColor(i, totalN) {
+    const factor = totalN > 0 ? i / totalN : 0;
+    return interpolateColor(bColors.start, bColors.end, factor);
+}
+
+function getAColor(i, totalM) {
+    const factor = totalM > 1 ? (i - 1) / (totalM - 1) : 0;
+    return interpolateColor(aColors.start, aColors.end, factor);
+}
+
+// --- 状态管理 ---
+// 2. 修改默认系数为 1
+let state = {
+    N: 2,
+    M: 2,
+    b: [1, 1, 1], // 默认全部为 1
+    a: [1, 1, 1]  // 默认全部为 1 (注意 a[0] 始终固定为1)
+};
+
+// DOM 元素
+const dom = {
+    nInput: document.getElementById('order-n'),
+    mInput: document.getElementById('order-m'),
+    eqContainer: document.getElementById('diff-equation'),
+    hzDisplay: document.getElementById('hz-display'),
+    svg1: document.getElementById('svg-df1'),
+    svg2: document.getElementById('svg-df2')
+};
+
+// --- 逻辑核心 ---
+
+function generateEquationInputs() {
+    dom.eqContainer.innerHTML = '';
+
+    const N = parseInt(dom.nInput.value) || 0;
+    const M = parseInt(dom.mInput.value) || 0;
+    
+    // 数据同步 - 确保数组长度足够
+    // 2. 修改新增系数逻辑：新增项默认为 1，而不是 0
+    while (state.b.length <= N) state.b.push(1);
+    state.b = state.b.slice(0, N + 1);
+    
+    while (state.a.length <= M) state.a.push(1);
+    state.a = state.a.slice(0, M + 1);
+    if (state.a[0] !== 1) state.a[0] = 1;
+
+    state.N = N;
+    state.M = M;
+
+    // --- 左侧：y 项 ---
+    
+    // y[n]
+    const ynWrapper = document.createElement('span');
+    ynWrapper.className = 'coeff-wrapper';
+    ynWrapper.innerHTML = `<span class="term-label" style="font-weight:bold; margin-left:0;">y[n]</span>`;
+    dom.eqContainer.appendChild(ynWrapper);
+
+    // a1 ... aM
+    for (let i = 1; i <= M; i++) {
+        const wrapper = document.createElement('span');
+        wrapper.className = 'coeff-wrapper';
+        const color = getAColor(i, M);
+        
+        wrapper.innerHTML = `<span class="op-sign">+</span>`;
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'coeff-input';
+        input.value = state.a[i];
+        input.style.borderColor = color;
+        input.style.color = color;
+        input.oninput = (e) => {
+            state.a[i] = parseFloat(e.target.value) || 0;
+            updateVisuals();
+        };
+
+        const term = `y[n-${i}]`;
+        wrapper.appendChild(input);
+        wrapper.insertAdjacentHTML('beforeend', `<span class="term-label">${term}</span>`);
+        dom.eqContainer.appendChild(wrapper);
+    }
+
+    // --- 等号 ---
+    const eqSign = document.createElement('span');
+    eqSign.className = 'eq-equals';
+    eqSign.textContent = '=';
+    dom.eqContainer.appendChild(eqSign);
+
+    // --- 右侧：x 项 ---
+    
+    for (let i = 0; i <= N; i++) {
+        const wrapper = document.createElement('span');
+        wrapper.className = 'coeff-wrapper';
+        const color = getBColor(i, N);
+        
+        if (i > 0) wrapper.innerHTML = `<span class="op-sign">+</span>`;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'coeff-input';
+        input.value = state.b[i];
+        input.style.borderColor = color;
+        input.style.color = color;
+        input.oninput = (e) => {
+            state.b[i] = parseFloat(e.target.value) || 0;
+            updateVisuals();
+        };
+
+        const term = i === 0 ? `x[n]` : `x[n-${i}]`;
+        
+        wrapper.appendChild(input);
+        wrapper.insertAdjacentHTML('beforeend', `<span class="term-label">${term}</span>`);
+        dom.eqContainer.appendChild(wrapper);
+    }
+    
+    updateVisuals();
+}
+
+function updateVisuals() {
+    renderFormula();
+    drawDirectFormI();
+    drawDirectFormII();
+}
+
+function renderFormula() {
+    // 分子 (b)
+    const bTerms = state.b.map((c, i) => {
+        if (c === 0) return null;
+        const sign = c >= 0 ? (i > 0 ? '+' : '') : ''; 
+        // 使用 \mathrm 尽量让 KaTeX 内部字母也不斜体 (虽然数学公式习惯斜体，但这里尝试统一风格)
+        // 但通常 H(z) 这种数学符号还是保留标准数学字体看起来比较专业，若需完全去斜体需包裹 \mathrm
+        const z = i === 0 ? '' : (i === 1 ? 'z^{-1}' : `z^{-${i}}`);
+        return `${sign}${c}${z}`;
+    }).filter(t => t !== null).join(' ');
+    
+    // 分母 (a)
+    const aTerms = state.a.slice(1).map((c, i) => {
+        if (c === 0) return null;
+        const sign = c >= 0 ? '+' : ''; 
+        const z = `z^{-${i+1}}`;
+        return `${sign}${c}${z}`;
+    }).filter(t => t !== null).join(' ');
+
+    const num = bTerms || '0';
+    const den = aTerms ? `1 ${aTerms}` : '1';
+
+    // 这里保留 H(z) 标准数学格式
+    dom.hzDisplay.innerHTML = `$$ H(z) = \\frac{Y(z)}{X(z)} = \\frac{${num}}{${den}} $$`;
+    
+    if (window.renderMathInElement) {
+        renderMathInElement(dom.hzDisplay, {
+            delimiters: [{left: "$$", right: "$$", display: true}],
+            throwOnError: false
+        });
+    }
+}
+
+// SVG Helpers
+const SVG_NS = "http://www.w3.org/2000/svg";
+function createEl(type, attrs) {
+    const e = document.createElementNS(SVG_NS, type);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+}
+function drawArrow(svg, x1, y1, x2, y2, color="#333", width=3) {
+    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+    const midX = (x1 + x2) / 2;
+    const midY = (y1 + y2) / 2;
+    svg.appendChild(createEl('line', { x1, y1, x2, y2, stroke: color, "stroke-width": width }));
+    const size = 10 + width;
+    svg.appendChild(createEl('path', {
+        d: `M 0 0 L ${-size} ${-size/2} L ${-size} ${size/2} z`,
+        fill: color,
+        transform: `translate(${midX}, ${midY}) rotate(${angle})`
+    }));
+}
+function drawNode(svg, cx, cy) {
+    svg.appendChild(createEl('circle', { cx, cy, r: 9, fill: 'white', stroke: '#333', 'stroke-width': 3 }));
+}
+function drawSummer(svg, cx, cy) {
+    drawNode(svg, cx, cy);
+    const txt = createEl('text', { x: cx, y: cy+2, class: 'summer-text' });
+    txt.textContent = '+';
+    svg.appendChild(txt);
+}
+
+// DF I
+function drawDirectFormI() {
+    const svg = dom.svg1;
+    svg.innerHTML = '';
+    const maxOrder = Math.max(state.N, state.M, 1);
+    
+    const V_SPACING = 90;
+    const TOP_MARGIN = 60;
+    const WIDTH = 800;
+    const HEIGHT = TOP_MARGIN + maxOrder * V_SPACING + 50;
+    svg.setAttribute('viewBox', `0 0 ${WIDTH} ${HEIGHT}`);
+
+    const x_in = 60, x_delay_L = 220, x_sum_L = 320, x_sum_R = 460, x_delay_R = 560, x_out = 720;
+
+    drawArrow(svg, x_in, TOP_MARGIN, x_delay_L, TOP_MARGIN);
+    svg.appendChild(createEl('text', { x: x_in, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'x[n]';
+
+    // Left
+    for (let i=0; i<state.N; i++) {
+        const y1 = TOP_MARGIN + i*V_SPACING, y2 = TOP_MARGIN + (i+1)*V_SPACING;
+        drawArrow(svg, x_delay_L, y1, x_delay_L, y2);
+        drawNode(svg, x_delay_L, y1 + V_SPACING/2);
+        svg.appendChild(createEl('text', {x: x_delay_L+18, y: y1+V_SPACING/2+8, class:'delay-text'})).textContent = 'z⁻¹';
+    }
+    
+    drawSummer(svg, x_sum_L, TOP_MARGIN);
+
+    for (let i=0; i<=state.N; i++) {
+        const y = TOP_MARGIN + i*V_SPACING;
+        const color = getBColor(i, state.N);
+        drawNode(svg, x_delay_L, y);
+        if (i === 0) {
+            drawArrow(svg, x_delay_L, y, x_sum_L, y, color, 3);
+        } else {
+            svg.appendChild(createEl('polyline', { points: `${x_delay_L},${y} ${x_sum_L},${y} ${x_sum_L},${TOP_MARGIN+12}`, fill: 'none', stroke: color, "stroke-width": 3 }));
+            drawArrow(svg, x_delay_L, y, (x_delay_L+x_sum_L)/2, y, color, 3); 
+        }
+        svg.appendChild(createEl('text', {x: (x_delay_L+x_sum_L)/2, y: y-12, class:'coeff-text', fill: color})).textContent = state.b[i];
+    }
+
+    // Middle
+    drawArrow(svg, x_sum_L, TOP_MARGIN, x_sum_R, TOP_MARGIN);
+    const wTxt = createEl('text', {x:(x_sum_L+x_sum_R)/2, y: TOP_MARGIN-15, class:'io-text', 'text-anchor':'middle'});
+    wTxt.textContent = 'w[n]';
+    svg.appendChild(wTxt);
+
+    drawSummer(svg, x_sum_R, TOP_MARGIN);
+    drawArrow(svg, x_sum_R, TOP_MARGIN, x_out, TOP_MARGIN); 
+    drawArrow(svg, x_sum_R, TOP_MARGIN, x_delay_R, TOP_MARGIN); 
+    svg.appendChild(createEl('text', { x: x_out-10, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'y[n]';
+
+    // Right
+    for (let i=0; i<state.M; i++) {
+        const y1 = TOP_MARGIN + i*V_SPACING, y2 = TOP_MARGIN + (i+1)*V_SPACING;
+        drawArrow(svg, x_delay_R, y1, x_delay_R, y2);
+        drawNode(svg, x_delay_R, y1 + V_SPACING/2);
+        svg.appendChild(createEl('text', {x: x_delay_R+18, y: y1+V_SPACING/2+8, class:'delay-text'})).textContent = 'z⁻¹';
+    }
+
+    for (let i=1; i<=state.M; i++) {
+        const y = TOP_MARGIN + i*V_SPACING;
+        const color = getAColor(i, state.M);
+        drawNode(svg, x_delay_R, y);
+        svg.appendChild(createEl('polyline', { points: `${x_delay_R},${y} ${x_sum_R},${y} ${x_sum_R},${TOP_MARGIN+12}`, fill: 'none', stroke: color, "stroke-width": 3 }));
+        drawArrow(svg, x_delay_R, y, (x_delay_R+x_sum_R)/2, y, color, 3);
+        
+        // 符号反转
+        let val = -state.a[i];
+        val = Math.round(val * 1000) / 1000;
+        svg.appendChild(createEl('text', {x: (x_delay_R+x_sum_R)/2, y: y-12, class:'coeff-text', fill: color})).textContent = val;
+    }
+}
+
+// DF II
+function drawDirectFormII() {
+    const svg = dom.svg2;
+    svg.innerHTML = '';
+    const maxOrder = Math.max(state.N, state.M, 1);
+    
+    const V_SPACING = 90, TOP_MARGIN = 60, WIDTH = 800;
+    const HEIGHT = TOP_MARGIN + maxOrder * V_SPACING + 50;
+    svg.setAttribute('viewBox', `0 0 ${WIDTH} ${HEIGHT}`);
+
+    const centerX = WIDTH / 2;
+    const wingSpan = 160; 
+    const leftSumX = centerX - wingSpan;
+    const rightSumX = centerX + wingSpan;
+
+    drawArrow(svg, 60, TOP_MARGIN, leftSumX, TOP_MARGIN);
+    svg.appendChild(createEl('text', { x: 60, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'x[n]';
+
+    drawSummer(svg, leftSumX, TOP_MARGIN);
+    drawArrow(svg, leftSumX, TOP_MARGIN, centerX, TOP_MARGIN);
+    const wTxt = createEl('text', {x:(leftSumX+centerX)/2, y: TOP_MARGIN-15, class:'io-text', 'text-anchor':'middle'});
+    wTxt.textContent = 'w[n]';
+    svg.appendChild(wTxt);
+
+    for (let i=0; i<maxOrder; i++) {
+        const y1 = TOP_MARGIN + i*V_SPACING, y2 = TOP_MARGIN + (i+1)*V_SPACING;
+        drawArrow(svg, centerX, y1, centerX, y2);
+        drawNode(svg, centerX, y1 + V_SPACING/2);
+        svg.appendChild(createEl('text', {x: centerX+18, y: y1+V_SPACING/2+8, class:'delay-text'})).textContent = 'z⁻¹';
+    }
+    drawNode(svg, centerX, TOP_MARGIN + maxOrder * V_SPACING);
+
+    drawSummer(svg, rightSumX, TOP_MARGIN);
+    drawArrow(svg, rightSumX, TOP_MARGIN, WIDTH-60, TOP_MARGIN);
+    svg.appendChild(createEl('text', { x: WIDTH-80, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'y[n]';
+
+    // Left Wings
+    for (let i=1; i<=state.M; i++) {
+        const y = TOP_MARGIN + i*V_SPACING;
+        const color = getAColor(i, state.M);
+        drawNode(svg, centerX, y);
+        svg.appendChild(createEl('polyline', { points: `${centerX},${y} ${leftSumX},${y} ${leftSumX},${TOP_MARGIN+12}`, fill: 'none', stroke: color, "stroke-width": 3 }));
+        drawArrow(svg, centerX, y, (centerX+leftSumX)/2, y, color, 3);
+        
+        let val = -state.a[i];
+        val = Math.round(val * 1000) / 1000;
+        svg.appendChild(createEl('text', {x: centerX - wingSpan/2, y: y-12, class:'coeff-text', fill: color})).textContent = val;
+    }
+
+    // Right Wings
+    for (let i=0; i<=state.N; i++) {
+        const y = TOP_MARGIN + i*V_SPACING;
+        const color = getBColor(i, state.N);
+        drawNode(svg, centerX, y);
+        if (i === 0) {
+            drawArrow(svg, centerX, y, rightSumX, y, color, 3);
+        } else {
+            svg.appendChild(createEl('polyline', { points: `${centerX},${y} ${rightSumX},${y} ${rightSumX},${TOP_MARGIN+12}`, fill: 'none', stroke: color, "stroke-width": 3 }));
+            drawArrow(svg, centerX, y, (centerX+rightSumX)/2, y, color, 3);
+        }
+        svg.appendChild(createEl('text', {x: centerX + wingSpan/2, y: y-12, class:'coeff-text', fill: color})).textContent = state.b[i];
+    }
+}
+
+dom.nInput.addEventListener('change', generateEquationInputs);
+dom.mInput.addEventListener('change', generateEquationInputs);
+// Init
+generateEquationInputs();
+
+</script>
+</body>
+</html>

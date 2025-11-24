@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第五章：数字滤波器系统分析与结构测验</title>
+    
+    <!-- 加载 MathJax -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <style>
+        /* 保持原样式，微调配色以示区分 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            /* 调整为青色/深蓝渐变，区别于上一章 */
+            background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        /* 开始界面样式 */
+        .start-screen {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .info-form {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #2ecc71;
+        }
+
+        .exam-info {
+            background: #e8f8f5;
+            border-left: 4px solid #2ecc71;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .exam-info h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .exam-info ul {
+            margin-left: 20px;
+            color: #34495e;
+            line-height: 1.8;
+        }
+
+        .progress-bar {
+            background: #ecf0f1;
+            height: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            height: 100%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .question-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid #dee2e6;
+            transition: all 0.3s;
+        }
+
+        .question-card.answered {
+            border-color: #2ecc71;
+            background: #f0fdf4;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .question-number {
+            background: #27ae60;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .question-category {
+            background: #95a5a6;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+        }
+        
+        /* 针对第五章的分类颜色 */
+        .question-category.concept { background: #3498db; }  /* 基础概念 */
+        .question-category.structure { background: #e67e22; } /* 流图结构 */
+        .question-category.phase { background: #9b59b6; }     /* 线性相位 */
+        .question-category.calc { background: #e74c3c; }      /* 计算与方程 */
+
+        .question-text {
+            font-size: 1.1em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .option:hover {
+            background: #f8f9fa;
+            border-color: #2ecc71;
+            transform: translateX(5px);
+        }
+
+        .option.selected {
+            background: #e8f8f5;
+            border-color: #2ecc71;
+            border-width: 3px;
+        }
+
+        .option.correct {
+            background: #d4edda;
+            border-color: #28a745;
+            border-width: 3px;
+        }
+
+        .option.incorrect {
+            background: #f8d7da;
+            border-color: #dc3545;
+            border-width: 3px;
+        }
+
+        .option-label {
+            background: #27ae60;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .option.correct .option-label { background: #28a745; }
+        .option.incorrect .option-label { background: #dc3545; }
+        .option-text { flex: 1; color: #2c3e50; }
+
+        .explanation {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .explanation.show { display: block; animation: slideDown 0.3s ease; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation h4 {
+            color: #856404;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .explanation p { color: #856404; line-height: 1.6; }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-submit { background: #2980b9; color: white; }
+        .btn-next { background: #27ae60; color: white; }
+        .btn-prev { background: #95a5a6; color: white; }
+        .btn-finish { background: #c0392b; color: white; }
+        .btn-start { background: #27ae60; color: white; padding: 15px 50px; font-size: 1.2em; }
+
+        .result-panel {
+            background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            display: none;
+        }
+
+        .result-panel.show { display: block; animation: fadeIn 0.5s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .student-info {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        .student-info p { margin: 5px 0; }
+        .result-score { font-size: 4em; font-weight: bold; margin: 20px 0; }
+        .result-message { font-size: 1.5em; margin-bottom: 20px; }
+        .result-details { background: rgba(255,255,255,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; }
+        .result-details table { width: 100%; border-collapse: collapse; }
+        .result-details td { padding: 10px; font-size: 1.1em; }
+        .review-section { margin-top: 30px; }
+
+        .review-question {
+            background: white;
+            color: #2c3e50;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .review-status {
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .review-status.correct { background: #d4edda; color: #155724; }
+        .review-status.wrong { background: #f8d7da; color: #721c24; }
+        .statistics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            color: #2c3e50;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value { font-size: 2em; font-weight: bold; margin: 10px 0; }
+        .stat-label { color: #7f8c8d; font-size: 0.9em; }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.5em; }
+            .button-group { flex-direction: column; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>第五章：数字滤波器系统分析与结构</h1>
+        <p class="subtitle">南京工业大学浦江学院 | DSP - 系统响应、相位特性与流图实现</p>
+
+        <!-- 开始界面 -->
+        <div id="startScreen" class="start-screen">
+            <div class="exam-info">
+                <h3>📋 测验说明</h3>
+                <ul>
+                    <li>共20道题目，涵盖系统响应、FIR/IIR对比、线性相位及流图结构</li>
+                    <li>包含选择题、判断题（作为选项形式）及简单计算</li>
+                    <li>选项顺序每次随机打乱，请仔细阅读</li>
+                    <li>提交后可查看详细图解解析和正确答案</li>
+                </ul>
+            </div>
+
+            <div class="info-form">
+                <h3 style="color: #2c3e50; margin-bottom: 20px;">请填写你的信息</h3>
+                <div class="form-group">
+                    <label for="studentId">学号 <span style="color: red;">*</span></label>
+                    <input type="text" id="studentId" placeholder="请输入学号" required="">
+                </div>
+                <div class="form-group">
+                    <label for="studentName">姓名 <span style="color: red;">*</span></label>
+                    <input type="text" id="studentName" placeholder="请输入姓名" required="">
+                </div>
+                <button class="btn-start" onclick="startExam()">开始考试</button>
+            </div>
+        </div>
+
+        <!-- 考试界面 -->
+        <div id="examScreen" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar">0/20 已完成</div>
+            </div>
+
+            <div id="questionContainer"></div>
+
+            <div class="button-group">
+                <button class="btn-prev" id="prevBtn" onclick="previousQuestion()">⬅️ 上一题</button>
+                <button class="btn-submit" id="submitBtn" onclick="submitAnswer()">✓ 提交答案</button>
+                <button class="btn-next" id="nextBtn" onclick="nextQuestion()">下一题 ➡️</button>
+                <button class="btn-finish" id="finishBtn" onclick="finishExam()" style="display: none;">🏁 完成考试</button>
+            </div>
+        </div>
+
+        <!-- 结果界面 -->
+        <div class="result-panel" id="resultPanel">
+            <h2>考试完成！</h2>
+            
+            <div class="student-info">
+                <p><strong>学号：</strong><span id="resultStudentId"></span></p>
+                <p><strong>姓名：</strong><span id="resultStudentName"></span></p>
+            </div>
+
+            <div class="result-score" id="resultScore">0/20</div>
+            <div class="result-message" id="resultMessage"></div>
+            
+            <div class="statistics">
+                <div class="stat-card">
+                    <div class="stat-label">正确率</div>
+                    <div class="stat-value" id="accuracyRate">0%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">基础概念</div>
+                    <div class="stat-value" id="conceptScore">0/5</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">FIR vs IIR</div>
+                    <div class="stat-value" id="structCompareScore">0/5</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">线性相位</div>
+                    <div class="stat-value" id="phaseScore">0/4</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">流图与计算</div>
+                    <div class="stat-value" id="calcScore">0/6</div>
+                </div>
+            </div>
+
+            <button class="btn-submit" onclick="showReview()" style="margin-top: 30px;">📝 查看详细解析</button>
+            <button class="btn-next" onclick="location.reload()" style="margin-top: 10px;">🔄 重新开始</button>
+        </div>
+
+        <div id="reviewSection" style="display: none;">
+            <h2 style="margin: 30px 0 20px 0; color: #2c3e50;">📚 答题回顾与解析</h2>
+            <div id="reviewContainer"></div>
+        </div>
+    </div>
+
+<script>
+    // 题目库 - 基于之前提供的 HTML 教学材料定制
+    const originalQuestions = [
+        // --- 基础概念 (concept) ---
+        {
+            id: 1,
+            category: 'concept',
+            categoryName: '基础概念',
+            question: '对于一个线性时不变（LTI）系统，对其输入一个单位脉冲序列 $\\delta[n]$（类似敲击大钟），系统的输出 $h[n]$ 被称为什么？',
+            options: [
+                '频率响应',
+                '单位脉冲响应',
+                '阶跃响应',
+                '传递函数'
+            ],
+            correct: 1,
+            explanation: '物理动作“敲击”对应数学上的单位脉冲 $\\delta[n]$，由此激发的系统固有震动波形即为单位脉冲响应 $h[n]$。这是时域分析的核心。'
+        },
+        {
+            id: 2,
+            category: 'concept',
+            categoryName: '基础概念',
+            question: '在时域与频域的对应关系中，如果时域波形 $h[n]$ 衰减得非常快（持续时间极短），那么其频域响应（带宽）通常具有什么特征？',
+            options: [
+                '频带极窄',
+                '频带极宽（趋于平坦）',
+                '只有直流分量',
+                '频率响应为零'
+            ],
+            correct: 1,
+            explanation: '根据时频不确定性原理，时域越窄（如尖锐的敲击），频域越宽。理想的 $\\delta[n]$ 对应全频带常数 $1$（全通）。'
+        },
+        {
+            id: 3,
+            category: 'concept',
+            categoryName: '基础概念',
+            question: '在滤波器的频率响应 $H(e^{j\\omega})$ 中，$\\omega=0$ 处的幅度 $|H(e^{j0})|$ 对应于信号的什么成分？',
+            options: [
+                '直流分量 (DC)',
+                '奈奎斯特频率分量',
+                '采样率一半的分量',
+                '高频噪声'
+            ],
+            correct: 0,
+            explanation: '$\\omega=0$ 对应频率为零，即直流分量。其数值等于时域序列 $h[n]$ 的所有系数之和。'
+        },
+        {
+            id: 4,
+            category: 'concept',
+            categoryName: '基础概念',
+            question: '低通滤波器（Low Pass Filter）的主要作用类似于生活中的什么物体？',
+            options: [
+                '纱窗（挡住大的苍蝇，允许空气通过）',
+                '厚墙（挡住高频尖锐声，只透低沉声音）',
+                '三棱镜（分解光线）',
+                '放大镜（放大信号）'
+            ],
+            correct: 1,
+            explanation: '低通滤波器允许低频（变化缓慢、沉闷）的信号通过，衰减高频（变化剧烈、尖锐）的信号，类似于厚墙对声音的阻隔作用（参见 test.html 中的原理描述）。'
+        },
+        {
+            id: 5,
+            category: 'concept',
+            categoryName: '基础概念',
+            question: '卷积运算 $y[n] = x[n] * h[n]$ 在物理上可以理解为？',
+            options: [
+                '信号的简单相加',
+                '输入信号与系统“回声”的加权叠加',
+                '信号频率的搬移',
+                '信号幅度的平方'
+            ],
+            correct: 1,
+            explanation: '卷积本质上是“翻转、平移、相乘、求和”，物理上可以理解为当前输出不仅取决于当前输入，还取决于过去输入在系统内残留的“回声”或记忆的叠加。'
+        },
+
+        // --- FIR vs IIR (structure) ---
+        {
+            id: 6,
+            category: 'structure',
+            categoryName: 'FIR vs IIR',
+            question: '判断题：IIR（无限冲激响应）滤波器之所以被称为“无限”，是因为其结构中存在什么？',
+            options: [
+                '反馈回路 (Feedback)',
+                '无限长的输入信号',
+                '无限大的增益',
+                '极高的采样率'
+            ],
+            correct: 0,
+            explanation: 'IIR 滤波器由于存在输出到输入的反馈回路（差分方程中有 $y[n-k]$ 项），导致能量在回路中循环震荡衰减，理论上永远不会完全消失（参见 iir-vs-fir.html）。'
+        },
+        {
+            id: 7,
+            category: 'structure',
+            categoryName: 'FIR vs IIR',
+            question: '以下关于 FIR 滤波器的描述，哪一项是**错误**的？',
+            options: [
+                'FIR 滤波器总是稳定的',
+                'FIR 滤波器很容易设计成严格线性相位',
+                'FIR 滤波器通常没有反馈回路',
+                '达到相同性能指标，FIR 所需的阶数通常比 IIR 少'
+            ],
+            correct: 3,
+            explanation: 'FIR 的一个缺点是效率较低。为了达到与 IIR 相同的陡峭截止特性，FIR 通常需要高得多的阶数（更多的计算量）。前三项描述均正确。'
+        },
+        {
+            id: 8,
+            category: 'structure',
+            categoryName: 'FIR vs IIR',
+            question: '若差分方程为 $y[n] = 0.5x[n] + 0.3x[n-1] + 0.2x[n-2]$，该系统属于哪种类型？',
+            options: [
+                'IIR 滤波器',
+                'FIR 滤波器',
+                '全通滤波器',
+                '不稳定滤波器'
+            ],
+            correct: 1,
+            explanation: '该方程只包含输入 $x$ 的当前值和过去值，没有输出 $y$ 的反馈项（$y[n-k]$），因此是有限冲激响应（FIR）系统。'
+        },
+        {
+            id: 9,
+            category: 'structure',
+            categoryName: 'FIR vs IIR',
+            question: '为了保证 IIR 滤波器的稳定性，其系统函数 $H(z)$ 的极点必须位于？',
+            options: [
+                '单位圆内',
+                '单位圆上',
+                '单位圆外',
+                '实轴上'
+            ],
+            correct: 0,
+            explanation: '对于因果系统，稳定性要求极点模值小于1，即所有极点必须严格位于 Z 平面的单位圆内部。'
+        },
+        {
+            id: 10,
+            category: 'structure',
+            categoryName: 'FIR vs IIR',
+            question: '在图像处理中，为了避免物体边缘产生“不对称拖尾”或“位置偏移”，通常优先选择哪种滤波器？',
+            options: [
+                '具有线性相位的 FIR 滤波器',
+                '具有非线性相位的 IIR 滤波器',
+                '模拟滤波器',
+                '带阻滤波器'
+            ],
+            correct: 0,
+            explanation: '线性相位能保证所有频率成分延时一致，不会产生相位失真（色散）。在图像中体现为模糊是对称的，不会像非线性相位（IIR）那样产生方向性的拖尾（参见 linear-phase.html 的视觉实验）。'
+        },
+
+        // --- 线性相位 (phase) ---
+        {
+            id: 11,
+            category: 'phase',
+            categoryName: '线性相位',
+            question: '如果一个系统的相位响应为 $\\theta(\\omega) = -k\\omega$（线性函数），则其**群延时**（Group Delay）为？',
+            options: [
+                '常数 $k$',
+                '随频率变化的函数',
+                '0',
+                '无穷大'
+            ],
+            correct: 0,
+            explanation: '群延时定义为相位对频率导数的负数：$\\tau_g(\\omega) = -d\\theta(\\omega)/d\\omega$。对于线性相位，导数为常数 $k$。这意味着所有频率成分以相同的速度通过系统。'
+        },
+        {
+            id: 12,
+            category: 'phase',
+            categoryName: '线性相位',
+            question: '在音频信号处理中，非线性相位滤波器会导致什么听觉现象（如 linear-phase.html 实验所示）？',
+            options: [
+                '声音变大',
+                '出现“色散”感（高频低频到达时间不一致，产生激光声/弹簧声）',
+                '产生回声',
+                '引入直流偏置'
+            ],
+            correct: 1,
+            explanation: '非线性相位意味着不同频率的延时不同。对于富含谐波的声音（如锯齿波），高频和低频成分到达耳朵的时间错开，导致音色发生“涂抹”或“色散”。'
+        },
+        {
+            id: 13,
+            category: 'phase',
+            categoryName: '线性相位',
+            question: 'FIR 滤波器要具有线性相位特性，其单位脉冲响应 $h[n]$ 必须满足什么条件？',
+            options: [
+                '必须是全正数',
+                '必须关于中心点偶对称或奇对称',
+                '必须长度为偶数',
+                '必须单调递减'
+            ],
+            correct: 1,
+            explanation: 'FIR 滤波器的线性相位条件是 $h[n]$ 必须满足对称性：$h[n] = h[N-1-n]$（偶对称）或 $h[n] = -h[N-1-n]$（奇对称）。'
+        },
+        {
+            id: 14,
+            category: 'phase',
+            categoryName: '线性相位',
+            question: 'IIR 滤波器能否实现严格的线性相位？',
+            options: [
+                '能，只要阶数够高',
+                '能，只要系数对称',
+                '不能（对于因果稳定系统）',
+                '只有低通可以'
+            ],
+            correct: 2,
+            explanation: '因果稳定的 IIR 滤波器无法实现严格的线性相位。这是选择 FIR 滤波器的主要理由之一。'
+        },
+
+        // --- 流图与计算 (calc) ---
+        {
+            id: 15,
+            category: 'calc',
+            categoryName: '流图与计算',
+            question: '已知系统函数 $H(z) = \\frac{1}{1 - 0.5z^{-1}}$，对应的差分方程是？',
+            options: [
+                '$y[n] = x[n] + 0.5y[n-1]$',
+                '$y[n] = x[n] - 0.5y[n-1]$',
+                '$y[n] = x[n] + 0.5x[n-1]$',
+                '$y[n] = 0.5x[n] + y[n-1]$'
+            ],
+            correct: 0,
+            explanation: '由 $Y(z)/X(z) = 1/(1 - 0.5z^{-1})$ 可得 $Y(z)(1 - 0.5z^{-1}) = X(z)$，即 $Y(z) - 0.5z^{-1}Y(z) = X(z)$。变换回时域为 $y[n] - 0.5y[n-1] = x[n]$，移项得 $y[n] = x[n] + 0.5y[n-1]$。'
+        },
+        {
+            id: 16,
+            category: 'calc',
+            categoryName: '流图与计算',
+            question: 'Direct Form II（直接II型/典范型）结构相比 Direct Form I 的主要优势是什么？',
+            options: [
+                '计算速度更快',
+                '所需的延时单元（存储器）数量最少',
+                '系数对量化噪声不敏感',
+                '更容易实现线性相位'
+            ],
+            correct: 1,
+            explanation: '直接II型结构通过交换前馈和反馈部分的顺序，使得两部分共用延时单元。对于N阶系统，它只需要N个延时单元，而直接I型需要2N个。'
+        },
+        {
+            id: 17,
+            category: 'calc',
+            categoryName: '流图与计算',
+            question: '流图中的符号 $z^{-1}$ 代表什么操作？',
+            options: [
+                '倒数',
+                '单位延时（Delay）',
+                '微分',
+                '积分'
+            ],
+            correct: 1,
+            explanation: '$z^{-1}$ 在 Z 变换中对应时域的移位性质 $x[n-1]$，在流图实现中代表一个单位的存储或延时操作。'
+        },
+        {
+            id: 18,
+            category: 'calc',
+            categoryName: '流图与计算',
+            question: '级联型（Cascade Form）结构是将系统函数 $H(z)$ 分解为多个子系统的什么关系？',
+            options: [
+                '相加（和的形式）',
+                '相乘（积的形式）',
+                '嵌套',
+                '卷积'
+            ],
+            correct: 1,
+            explanation: '级联型是将高阶 $H(z)$ 分解为多个一阶或二阶节的乘积：$H(z) = H_1(z) \\cdot H_2(z) \\cdot ...$，对应于系统结构的串联。'
+        },
+        {
+            id: 19,
+            category: 'calc',
+            categoryName: '流图与计算',
+            question: '并联型（Parallel Form）结构通常通过什么数学方法获得？',
+            options: [
+                '部分分式展开',
+                '因式分解',
+                '傅里叶级数展开',
+                '泰勒级数展开'
+            ],
+            correct: 0,
+            explanation: '并联型是将 $H(z)$ 展开为部分分式之和：$H(z) = C + H_1(z) + H_2(z) + ...$，对应于系统结构的并联相加。'
+        },
+        {
+            id: 20,
+            category: 'calc',
+            categoryName: '流图与计算',
+            question: '计算题：若 $h[n] = \\{1, 2, 1\\}$ (FIR)，该滤波器在 $\\omega=0$ (直流) 处的增益是多少？',
+            options: [
+                '1',
+                '2',
+                '4',
+                '0'
+            ],
+            correct: 2,
+            explanation: '直流增益即 $H(e^{j0}) = \\sum h[n] = 1 + 2 + 1 = 4$。'
+        }
+    ];
+
+        let questions = [];
+        let currentQuestion = 0;
+        let userAnswers = new Array(20).fill(null);
+        let submitted = false;
+        let studentInfo = { id: '', name: '' };
+
+        // 经典的 Fisher-Yates 洗牌算法
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // 初始化题目：打乱题目顺序 + 打乱选项顺序
+        function shuffleQuestions() {
+            questions = shuffleArray(originalQuestions).map(q => {
+                // 为每个选项创建带索引的对象，以便追踪正确答案
+                const optionsWithIndex = q.options.map((option, index) => ({
+                    text: option,
+                    originalIndex: index
+                }));
+                // 打乱选项
+                const shuffledOptions = shuffleArray(optionsWithIndex);
+                // 找到正确答案在打乱后的新索引
+                const newCorrectIndex = shuffledOptions.findIndex(
+                    opt => opt.originalIndex === q.correct
+                );
+                return {
+                    ...q,
+                    options: shuffledOptions.map(opt => opt.text),
+                    correct: newCorrectIndex
+                };
+            });
+        }
+
+        function startExam() {
+            const studentId = document.getElementById('studentId').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+            if (!studentId || !studentName) {
+                alert('请填写完整的学号和姓名！');
+                return;
+            }
+            studentInfo.id = studentId;
+            studentInfo.name = studentName;
+            shuffleQuestions();
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('examScreen').style.display = 'block';
+            init();
+        }
+
+        function init() {
+            displayQuestion();
+            updateButtons();
+            updateProgress();
+        }
+
+        function displayQuestion() {
+            const q = questions[currentQuestion];
+            const container = document.getElementById('questionContainer');
+            let html = `
+                <div class="question-card ${userAnswers[currentQuestion] !== null ? 'answered' : ''}">
+                    <div class="question-header">
+                        <span class="question-number">第 ${currentQuestion + 1} 题</span>
+                        <span class="question-category ${q.category}">${q.categoryName}</span>
+                    </div>
+                    <div class="question-text">${q.question}</div>
+                    <div class="options">`;
+
+            q.options.forEach((option, index) => {
+                const selected = userAnswers[currentQuestion] === index ? 'selected' : '';
+                const label = String.fromCharCode(65 + index);
+                html += `
+                    <div class="option ${selected}" onclick="selectOption(${index})">
+                        <div class="option-label">${label}</div>
+                        <div class="option-text">${option}</div>
+                    </div>`;
+            });
+            html += `</div><div class="explanation" id="explanation"></div></div>`;
+            container.innerHTML = html;
+            // 每次渲染新题目后，触发 MathJax 渲染公式
+            if (window.MathJax) {
+                MathJax.typesetPromise([container]).catch((err) => console.log(err));
+            }
+        }
+
+        function selectOption(index) {
+            if (submitted) return;
+            userAnswers[currentQuestion] = index;
+            displayQuestion();
+            updateProgress();
+        }
+
+        function submitAnswer() {
+            if (userAnswers[currentQuestion] === null) {
+                alert('请先选择一个答案！');
+                return;
+            }
+            const q = questions[currentQuestion];
+            const userAnswer = userAnswers[currentQuestion];
+            const isCorrect = userAnswer === q.correct;
+            const options = document.querySelectorAll('.option');
+            options.forEach((option, index) => {
+                if (index === q.correct) {
+                    option.classList.add('correct');
+                } else if (index === userAnswer && !isCorrect) {
+                    option.classList.add('incorrect');
+                }
+                option.style.pointerEvents = 'none';
+            });
+            const explanation = document.getElementById('explanation');
+            const icon = isCorrect ? '✓' : '✗';
+            const style = isCorrect ? 'color: #28a745;' : 'color: #dc3545;';
+            explanation.innerHTML = `
+                <h4><span style="${style}">${icon}</span> ${isCorrect ? '回答正确！' : '回答错误！'}</h4>
+                <p><strong>正确答案：</strong>${String.fromCharCode(65 + q.correct)}</p>
+                <p><strong>解析：</strong>${q.explanation}</p>`;
+            explanation.classList.add('show');
+            // 解析中也有公式，需要渲染
+            if (window.MathJax) {
+                MathJax.typesetPromise([explanation]).catch((err) => console.log(err));
+            }
+            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'inline-block';
+            if (currentQuestion === questions.length - 1) {
+                document.getElementById('finishBtn').style.display = 'inline-block';
+                document.getElementById('nextBtn').style.display = 'none';
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < questions.length - 1) {
+                currentQuestion++;
+                displayQuestion();
+                updateButtons();
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                displayQuestion();
+                updateButtons();
+                window.scrollTo(0, 0);
+            }
+        }
+
+        function updateButtons() {
+            document.getElementById('prevBtn').disabled = currentQuestion === 0;
+            document.getElementById('submitBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('finishBtn').style.display = 'none';
+            
+            // 如果已提交，显示下一题或完成按钮，隐藏提交按钮
+            if (document.querySelector('.explanation.show')) {
+                document.getElementById('submitBtn').style.display = 'none';
+                if (currentQuestion === questions.length - 1) {
+                    document.getElementById('finishBtn').style.display = 'inline-block';
+                } else {
+                    document.getElementById('nextBtn').style.display = 'inline-block';
+                }
+            }
+        }
+
+        function updateProgress() {
+            const answered = userAnswers.filter(a => a !== null).length;
+            const progressBar = document.getElementById('progressBar');
+            const percentage = (answered / questions.length) * 100;
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = `${answered}/${questions.length} 已完成`;
+        }
+
+        function finishExam() {
+            const unanswered = userAnswers.filter(a => a === null).length;
+            if (unanswered > 0) {
+                if (!confirm(`还有 ${unanswered} 题未作答，确定要提交吗？`)) {
+                    return;
+                }
+            }
+            submitted = true;
+            calculateResults();
+            document.getElementById('examScreen').style.display = 'none';
+            document.getElementById('resultPanel').classList.add('show');
+        }
+
+        function calculateResults() {
+            let correctCount = 0;
+            let categoryScores = {
+                concept: { correct: 0, total: 0 },
+                structure: { correct: 0, total: 0 },
+                phase: { correct: 0, total: 0 },
+                calc: { correct: 0, total: 0 }
+            };
+            questions.forEach((q, index) => {
+                const isCorrect = userAnswers[index] === q.correct;
+                if (isCorrect) correctCount++;
+                categoryScores[q.category].total++;
+                if (isCorrect) categoryScores[q.category].correct++;
+            });
+
+            const percentage = (correctCount / questions.length * 100).toFixed(1);
+            document.getElementById('resultStudentId').textContent = studentInfo.id;
+            document.getElementById('resultStudentName').textContent = studentInfo.name;
+            document.getElementById('resultScore').textContent = `${correctCount}/${questions.length}`;
+            document.getElementById('accuracyRate').textContent = percentage + '%';
+            let message = '';
+            if (percentage >= 90) message = '🎉 优秀！你对滤波器结构掌握得非常扎实！';
+            else if (percentage >= 80) message = '👍 良好！继续保持，对细节再加把劲！';
+            else if (percentage >= 70) message = '✓ 及格！基础还可以，建议多看流图分解。';
+            else if (percentage >= 60) message = '⚠️ 刚及格，请重点复习 FIR/IIR 的区别！';
+            else message = '❌ 需要努力！请务必复习教学演示材料！';
+            document.getElementById('resultMessage').textContent = message;
+            
+            // 更新分类统计
+            document.getElementById('conceptScore').textContent = `${categoryScores.concept.correct}/${categoryScores.concept.total}`;
+            document.getElementById('structCompareScore').textContent = `${categoryScores.structure.correct}/${categoryScores.structure.total}`;
+            document.getElementById('phaseScore').textContent = `${categoryScores.phase.correct}/${categoryScores.phase.total}`;
+            document.getElementById('calcScore').textContent = `${categoryScores.calc.correct}/${categoryScores.calc.total}`;
+        }
+
+        function showReview() {
+            const reviewSection = document.getElementById('reviewSection');
+            const reviewContainer = document.getElementById('reviewContainer');
+            let html = '';
+            questions.forEach((q, index) => {
+                const userAnswer = userAnswers[index];
+                const isCorrect = userAnswer === q.correct;
+                const statusClass = isCorrect ? 'correct' : 'wrong';
+                const statusText = isCorrect ? '✓ 正确' : '✗ 错误';
+                html += `
+                    <div class="review-question">
+                        <div class="review-header">
+                            <div>
+                                <span class="question-number">第 ${index + 1} 题</span>
+                                <span class="question-category ${q.category}">${q.categoryName}</span>
+                            </div>
+                            <span class="review-status ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="question-text">${q.question}</div>
+                        <div style="margin-top: 15px;">
+                            <p><strong>你的答案：</strong>${userAnswer !== null ? String.fromCharCode(65 + userAnswer) + '. ' + q.options[userAnswer] : '未作答'}</p>
+                            <p style="color: #28a745;"><strong>正确答案：</strong>${String.fromCharCode(65 + q.correct)}. ${q.options[q.correct]}</p>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                            <strong>📖 解析：</strong>${q.explanation}
+                        </div>
+                    </div>`;
+            });
+            reviewContainer.innerHTML = html;
+            reviewSection.style.display = 'block';
+            if (window.MathJax) {
+                MathJax.typesetPromise([reviewContainer]).catch((err) => console.log(err));
+            }
+            reviewSection.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

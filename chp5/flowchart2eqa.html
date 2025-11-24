@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字信号处理流图汇总 (终极完整版)</title>
+    
+    <!-- 1. MathJax 配置 -->
+    <script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$']],
+            packages: ['base', 'ams']
+        },
+        options: {
+            ignoreHtmlClass: 'tex2jax_ignore',
+            processHtmlClass: 'tex2jax_process'
+        },
+        loader: {
+            load: ['[tex]/ams']
+        }
+    };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js">
+    </script>
+
+    <style>
+        body {
+            font-family: "Times New Roman", "SimSun", serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 26px;
+        }
+
+        /* 布局容器 */
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        /* 单个卡片样式 */
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 500px; /* 统一宽度 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* SVG 通用样式 */
+        svg {
+            overflow: visible;
+            margin-bottom: 15px;
+            cursor: default;
+        }
+
+        text {
+            font-family: "Times New Roman", serif;
+            font-size: 18px; /* 放大字号 */
+            fill: #000;
+        }
+        
+        .math-italic { font-style: italic; font-size: 20px; } /* 变量名稍大 */
+        .sup { font-size: 12px; }
+
+        path, line {
+            fill: none;
+            stroke: #000;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        circle {
+            fill: #000;
+            stroke: none;
+        }
+
+        /* 特殊高亮样式 (棕红色) */
+        .highlight-text {
+            fill: #d63031; 
+            font-weight: bold;
+            font-size: 18px;
+            opacity: 0; /* 默认隐藏 */
+            transition: opacity 0.5s ease;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: auto; /* 推到底部 */
+        }
+        .btn:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        /* 答案区域样式 */
+        .answer-container {
+            width: 100%;
+            margin-top: 15px;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+
+        .answer-box {
+            text-align: left;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #2c3e50;
+            border-left: 4px solid #007BFF;
+            padding: 15px;
+            background-color: #f8fbff;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>数字信号处理：流图与系统函数汇总</h1>
+
+    <div class="gallery">
+
+        <!-- =========================
+             图 (a): 单极点反馈结构
+             ========================= -->
+        <div class="card">
+            <div class="card-title">图 (a): 单极点反馈结构</div>
+            
+            <svg width="350" height="150" viewBox="0 0 350 150">
+                <defs>
+                    <marker id="arrow-a" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000" />
+                    </marker>
+                </defs>
+
+                <text x="40" y="35" class="math-italic">x(n)</text>
+                <text x="280" y="35" class="math-italic">y(n)</text>
+                <text x="110" y="125" class="math-italic">a</text>
+                <text x="220" y="125"><tspan class="math-italic">z</tspan><tspan dy="-8" class="sup">-1</tspan></text>
+
+                <path d="M50,50 L80,50" marker-end="url(#arrow-a)" />
+                <path d="M80,50 L110,50" />
+                <path d="M110,50 L170,50" marker-end="url(#arrow-a)" />
+                <path d="M170,50 L230,50" />
+                <path d="M230,50 L260,50" marker-end="url(#arrow-a)" />
+                <path d="M260,50 L290,50" />
+
+                <path d="M230,50 Q225,90 200,100" marker-end="url(#arrow-a)" />
+                <path d="M200,100 Q185,108 170,110" />
+                <path d="M170,110 Q145,105 130,95" marker-end="url(#arrow-a)" />
+                <path d="M130,95 Q115,85 110,50" />
+
+                <circle cx="50" cy="50" r="3.5" />
+                <circle cx="290" cy="50" r="3.5" />
+                <circle cx="170" cy="110" r="3.5" />
+            </svg>
+
+            <button class="btn" onclick="toggleAnswer('ans1', this)">显示答案</button>
+
+            <div id="ans1" class="answer-container">
+                <div class="answer-box">
+                    <strong>解析：</strong><br>
+                    这是一个一阶 IIR 滤波器。
+                    $$ y[n] = x[n] + a y[n-1] $$
+                    $$ H(z) = \frac{1}{1 - az^{-1}} $$
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================
+             图 (b): 桥式 IIR 结构
+             ========================= -->
+        <div class="card">
+            <div class="card-title">图 (b): 桥式 IIR 结构</div>
+
+            <svg width="380" height="180" viewBox="0 0 380 180">
+                <defs>
+                    <marker id="arrow-b" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000" />
+                    </marker>
+                </defs>
+                <text x="30" y="35" class="math-italic">x(n)</text>
+                <text x="350" y="35" class="math-italic">y(n)</text>
+                <text id="wn-label-b" x="190" y="30" class="highlight-text math-italic">w[n]</text>
+                
+                <text x="210" y="100"><tspan class="math-italic">z</tspan><tspan class="sup" dy="-8">-1</tspan></text>
+                <text x="135" y="130">0.3</text>
+                <text x="245" y="130">0.5</text>
+
+                <path d="M40,50 L110,50" marker-end="url(#arrow-b)" />
+                <path d="M110,50 L190,50" marker-end="url(#arrow-b)" />
+                <path d="M190,50 L270,50" marker-end="url(#arrow-b)" />
+                <path d="M270,50 L340,50" marker-end="url(#arrow-b)" />
+                <path d="M190,50 L190,100" marker-end="url(#arrow-b)" />
+                <path d="M190,100 L190,150" />
+                <path d="M190,150 Q150,150 120,80" marker-end="url(#arrow-b)" />
+                <path d="M120,80 Q112,60 110,50" />
+                <path d="M190,150 Q230,150 260,80" marker-end="url(#arrow-b)" />
+                <path d="M260,80 Q268,60 270,50" />
+
+                <circle cx="40" cy="50" r="3.5" />
+                <circle cx="110" cy="50" r="3.5" />
+                <circle cx="190" cy="50" r="3.5" />
+                <circle cx="270" cy="50" r="3.5" />
+                <circle cx="340" cy="50" r="3.5" />
+                <circle cx="190" cy="150" r="3.5" />
+            </svg>
+
+            <button class="btn" onclick="toggleAnswer('ans3', this, ['wn-label-b'])">显示答案</button>
+
+            <div id="ans3" class="answer-container">
+                <div class="answer-box">
+                    <strong>解析：</strong><br>
+                    设中间变量 <span style="color:#d63031; font-weight:bold;">$w[n]$</span>。
+                    $$ w[n] = x[n] + 0.3w[n-1] $$
+                    $$ y[n] = w[n] + 0.5w[n-1] $$
+                    $$ H(z) = \frac{1 + 0.5z^{-1}}{1 - 0.3z^{-1}} $$
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================
+             图 (c): FIR 横向结构
+             ========================= -->
+        <div class="card">
+            <div class="card-title">图 (c): FIR 横向结构</div>
+
+            <svg width="380" height="180" viewBox="0 0 380 180">
+                <defs>
+                    <marker id="arrow-c" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000" />
+                    </marker>
+                </defs>
+                <text x="20" y="35" class="math-italic">x(n)</text>
+                <text x="330" y="145" class="math-italic">y(n)</text>
+                <text x="115" y="40"><tspan class="math-italic">z</tspan><tspan class="sup" dy="-8">-1</tspan></text>
+                <text x="215" y="40"><tspan class="math-italic">z</tspan><tspan class="sup" dy="-8">-1</tspan></text>
+                <text x="55" y="100" class="math-italic">a</text>
+                <text x="155" y="100" class="math-italic">b</text>
+                <text x="255" y="100" class="math-italic">c</text>
+
+                <path d="M30,50 L55,50" marker-end="url(#arrow-c)" /> <path d="M55,50 L80,50" />
+                <path d="M80,50 L130,50" marker-end="url(#arrow-c)" /> <path d="M130,50 L180,50" />
+                <path d="M180,50 L230,50" marker-end="url(#arrow-c)" /> <path d="M230,50 L280,50" />
+                <path d="M80,50 L80,100" marker-end="url(#arrow-c)" /> <path d="M80,100 L80,150" />
+                <path d="M180,50 L180,100" marker-end="url(#arrow-c)" /> <path d="M180,100 L180,150" />
+                <path d="M280,50 L280,100" marker-end="url(#arrow-c)" /> <path d="M280,100 L280,150" />
+                <path d="M80,150 L130,150" marker-end="url(#arrow-c)" /> <path d="M130,150 L180,150" />
+                <path d="M180,150 L230,150" marker-end="url(#arrow-c)" /> <path d="M230,150 L280,150" />
+                <path d="M280,150 L310,150" marker-end="url(#arrow-c)" /> <path d="M310,150 L340,150" />
+
+                <circle cx="30" cy="50" r="3.5" />
+                <circle cx="80" cy="50" r="3.5" /> <circle cx="180" cy="50" r="3.5" /> <circle cx="280" cy="50" r="3.5" />
+                <circle cx="80" cy="150" r="3.5" /> <circle cx="180" cy="150" r="3.5" /> <circle cx="280" cy="150" r="3.5" />
+                <circle cx="340" cy="150" r="3.5" />
+            </svg>
+
+            <button class="btn" onclick="toggleAnswer('ans2', this)">显示答案</button>
+
+            <div id="ans2" class="answer-container">
+                <div class="answer-box">
+                    <strong>解析：</strong><br>
+                    $$ y[n] = a x[n] + b x[n-1] + c x[n-2] $$
+                    $$ H(z) = a + bz^{-1} + cz^{-2} $$
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================
+             图 (d): 直接型 II 变体
+             ========================= -->
+        <div class="card">
+            <div class="card-title">图 (d): 直接型 II 变体</div>
+            
+            <svg width="380" height="200" viewBox="0 0 380 200">
+                <defs>
+                    <marker id="arrow-d" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000" />
+                    </marker>
+                </defs>
+                <text x="20" y="30" class="math-italic">x(n)</text>
+                <text x="340" y="30" class="math-italic">y(n)</text>
+                <!-- w[n] -->
+                <text id="wd-label" x="160" y="25" class="highlight-text math-italic">w[n]</text>
+                
+                <text x="170" y="75"><tspan class="math-italic">z</tspan><tspan class="sup" dy="-8">-1</tspan></text>
+                <text x="170" y="155"><tspan class="math-italic">z</tspan><tspan class="sup" dy="-8">-1</tspan></text>
+                
+                <text x="215" y="25">2</text>
+                <text x="215" y="95">0.25</text>
+                <text x="110" y="95">0.25</text>
+                <text x="110" y="165">-3/8</text>
+
+                <!-- Paths -->
+                <path d="M30,40 L90,40" marker-end="url(#arrow-d)" />
+                <path d="M90,40 L160,40" marker-end="url(#arrow-d)" />
+                <path d="M150,40 L210,40" marker-end="url(#arrow-d)" />
+                <path d="M210,40 L270,40" marker-end="url(#arrow-d)" />
+                <path d="M270,40 L330,40" marker-end="url(#arrow-d)" />
+
+                <path d="M160,40 L160,100" marker-end="url(#arrow-d)" />
+                <path d="M160,100 L160,180" marker-end="url(#arrow-d)" />
+
+                <path d="M150,100 L270,100" marker-end="url(#arrow-d)" />
+                <path d="M270,100 L270,40" marker-end="url(#arrow-d)" />
+
+                <path d="M160,100 L90,100" marker-end="url(#arrow-d)" />
+                <path d="M90,100 L90,40" marker-end="url(#arrow-d)" />
+                <path d="M160,180 L90,180" marker-end="url(#arrow-d)" />
+                <path d="M90,180 L90,100" />
+
+                <circle cx="30" cy="40" r="3.5" />
+                <circle cx="90" cy="40" r="3.5" />
+                <circle cx="150" cy="40" r="3.5" />
+                <circle cx="270" cy="40" r="3.5" />
+                <circle cx="330" cy="40" r="3.5" />
+                <circle cx="160" cy="100" r="3.5" />
+                <circle cx="160" cy="180" r="3.5" />
+            </svg>
+
+            <button class="btn" onclick="toggleAnswer('ans4', this, ['wd-label'])">显示答案</button>
+
+            <div id="ans4" class="answer-container">
+                <div class="answer-box">
+                    <strong>解析：</strong><br>
+                    设中间节点（延时线顶端）为 <span style="color:#d63031; font-weight:bold;">$w[n]$</span>。<br>
+                    <strong>反馈部分 (左侧)：</strong>
+                    $$ w[n] = x[n] + 0.25w[n-1] - \frac{3}{8}w[n-2] $$
+                    <strong>前馈部分 (右侧)：</strong>
+                    $$ y[n] = 2w[n] + 0.25w[n-1] $$
+                    <strong>系统函数：</strong>
+                    $$ H(z) = \frac{2 + 0.25z^{-1}}{1 - 0.25z^{-1} + 0.375z^{-2}} $$
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================
+             图 (e): 耦合振荡器结构
+             ========================= -->
+        <div class="card">
+            <div class="card-title">图 (e): 耦合振荡器结构</div>
+            
+            <svg width="420" height="280" viewBox="0 0 420 280">
+                <defs>
+                    <marker id="arrow-e" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000" />
+                    </marker>
+                </defs>
+
+                <text x="20" y="45" class="math-italic">x(n)</text>
+                <text x="370" y="145" class="math-italic">y(n)</text>
+                
+                <!-- w节点 -->
+                <text id="node-w1" x="200" y="40" class="math-italic highlight-text">w<tspan class="sup">1</tspan>[n]</text>
+                <text id="node-w2" x="200" y="140" class="math-italic highlight-text">w<tspan class="sup">2</tspan>[n]</text>
+                <text id="node-w3" x="200" y="240" class="math-italic highlight-text">w<tspan class="sup">3</tspan>[n]</text>
+
+                <text x="255" y="100"><tspan class="math-italic">z</tspan><tspan class="sup" dy="-8">-1</tspan></text>
+                <text x="255" y="200"><tspan class="math-italic">z</tspan><tspan class="sup" dy="-8">-1</tspan></text>
+
+                <text x="25" y="150" font-size="18">-sin 3/4</text>
+                <text x="165" y="90" font-size="18">cos 3/4</text>
+                <text x="165" y="190" font-size="18">cos 3/4</text>
+                <text x="280" y="135" font-size="18">sin 3/4</text>
+
+                <path d="M60,50 L240,50" marker-end="url(#arrow-e)" />
+                <path d="M240,50 L240,150" marker-end="url(#arrow-e)" />
+                <path d="M240,150 L240,250" marker-end="url(#arrow-e)" />
+                <path d="M240,150 Q190,100 235,55" marker-end="url(#arrow-e)" />
+                <path d="M240,250 Q190,200 235,155" marker-end="url(#arrow-e)" />
+                <path d="M240,250 L90,250" marker-end="url(#arrow-e)" /> 
+                <path d="M90,250 L90,50" marker-end="url(#arrow-e)" />   
+                <path d="M90,50 L140,50" marker-end="url(#arrow-e)" />   
+                <path d="M240,150 L360,150" marker-end="url(#arrow-e)" />
+
+                <circle cx="60" cy="50" r="3.5" />
+                <circle cx="240" cy="50" r="3.5" />
+                <circle cx="240" cy="150" r="3.5" />
+                <circle cx="240" cy="250" r="3.5" />
+                <circle cx="360" cy="150" r="3.5" />
+            </svg>
+
+            <button class="btn" onclick="toggleAnswer('ans5', this, ['node-w1', 'node-w2', 'node-w3'])">显示答案</button>
+
+            <div id="ans5" class="answer-container">
+                <div class="answer-box">
+                    <strong>解析：</strong><br>
+                    令 $c = \cos(3/4)$, $s = \sin(3/4)$。<br>
+                    设垂直线上的三个节点变量为 <span style="color:#d63031; font-weight:bold;">$w_1[n], w_2[n], w_3[n]$</span>。<br>
+                    由图推导可得系统函数：
+                    $$ H(z) = \frac{\sin(\frac{3}{4})z^{-1}}{1 - 2\cos(\frac{3}{4})z^{-1} + \sin(\frac{3}{4})z^{-2}} $$
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================
+             图 (f): 并行 FIR 结构
+             ========================= -->
+        <div class="card">
+            <div class="card-title">图 (f): 并行 FIR 结构</div>
+
+            <svg width="450" height="200" viewBox="0 0 450 200">
+                <defs>
+                    <marker id="arrow-f" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000" />
+                    </marker>
+                </defs>
+                <text x="50" y="40" class="math-italic">x(n)</text>
+                <text x="400" y="40" class="math-italic">y(n)</text>
+                
+                <text x="180" y="100" class="math-italic">a</text>
+                <text x="260" y="100"><tspan class="math-italic">z</tspan><tspan dy="-8" class="sup">-1</tspan></text>
+                <text x="180" y="200" class="math-italic">b</text>
+                <text x="260" y="200"><tspan class="math-italic">z</tspan><tspan dy="-8" class="sup">-1</tspan></text>
+
+                <path d="M20,100 L50,100" marker-end="url(#arrow-f)" />
+                <path d="M50,100 L80,100" />
+                <path d="M80,100 L80,50" marker-end="url(#arrow-f)" />
+                <path d="M80,100 L80,150" marker-end="url(#arrow-f)" />
+
+                <path d="M80,50 L200,50" marker-end="url(#arrow-f)" />
+                <path d="M200,50 L320,50" />
+                <path d="M80,50 L140,75" marker-end="url(#arrow-f)" />
+                <path d="M140,75 L200,100" />
+                <path d="M200,100 L260,75" marker-end="url(#arrow-f)" />
+                <path d="M260,75 L320,50" />
+
+                <path d="M80,150 L200,150" marker-end="url(#arrow-f)" />
+                <path d="M200,150 L320,150" />
+                <path d="M80,150 L140,175" marker-end="url(#arrow-f)" />
+                <path d="M140,175 L200,200" />
+                <path d="M200,200 L260,175" marker-end="url(#arrow-f)" />
+                <path d="M260,175 L320,150" />
+
+                <path d="M320,50 L320,80" marker-end="url(#arrow-f)" />
+                <path d="M320,80 L320,100" />
+                <path d="M320,150 L320,120" marker-end="url(#arrow-f)" />
+                <path d="M320,120 L320,100" />
+                <path d="M320,100 L370,100" marker-end="url(#arrow-f)" />
+                <path d="M370,100 L420,100" />
+
+                <circle cx="20" cy="100" r="4" />  
+                <circle cx="80" cy="100" r="4" />  
+                <circle cx="80" cy="50" r="4" /> <circle cx="200" cy="100" r="4" /> <circle cx="320" cy="50" r="4" />
+                <circle cx="80" cy="150" r="4" /> <circle cx="200" cy="200" r="4" /> <circle cx="320" cy="150" r="4" />
+                <circle cx="320" cy="100" r="4" /> <circle cx="420" cy="100" r="4" />
+            </svg>
+
+            <button class="btn" onclick="toggleAnswer('ans6', this)">显示答案</button>
+
+            <div id="ans6" class="answer-container">
+                <div class="answer-box">
+                    <strong>解析：</strong><br>
+                    该流图为并联结构。
+                    $$ H(z) = (1 + a z^{-1}) + (1 + b z^{-1}) = 2 + (a+b)z^{-1} $$
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================
+             图 (g): IIR 级联结构
+             ========================= -->
+        <div class="card">
+            <div class="card-title">图 (g): IIR 级联结构</div>
+
+            <svg width="500" height="220" viewBox="0 0 500 220">
+                <defs>
+                    <marker id="arrow-g" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000" />
+                    </marker>
+                </defs>
+
+                <text x="20" y="35" class="math-italic">x(n)</text>
+                <text x="460" y="35" class="math-italic">y(n)</text>
+                <text id="wn-label-g" x="155" y="25" class="math-italic highlight-text">w[n]</text>
+
+                <text x="210" y="45" class="math-italic">b<tspan dy="5" class="sup">0</tspan></text>
+                <text x="175" y="90"><tspan class="math-italic">z</tspan><tspan dy="-8" class="sup">-1</tspan></text>
+                <text x="175" y="160"><tspan class="math-italic">z</tspan><tspan dy="-8" class="sup">-1</tspan></text>
+                <text x="110" y="115" class="math-italic">a<tspan dy="5" class="sup">1</tspan></text>
+                <text x="110" y="185" class="math-italic">a<tspan dy="5" class="sup">2</tspan></text>
+                <text x="215" y="115" class="math-italic">b<tspan dy="5" class="sup">1</tspan></text>
+                <text x="215" y="185" class="math-italic">b<tspan dy="5" class="sup">2</tspan></text>
+                <text x="410" y="110"><tspan class="math-italic">z</tspan><tspan dy="-8" class="sup">-1</tspan></text>
+                <text x="335" y="165" class="math-italic">a<tspan dy="5" class="sup">3</tspan></text>
+
+                <path d="M40,50 L90,50" marker-end="url(#arrow-g)" />
+                <path d="M90,50 L160,50" marker-end="url(#arrow-g)" />
+                <path d="M160,50 L230,50" marker-end="url(#arrow-g)" />
+                <path d="M230,50 L300,50" marker-end="url(#arrow-g)" />
+                <path d="M300,50 L380,50" marker-end="url(#arrow-g)" />
+                <path d="M380,50 L450,50" marker-end="url(#arrow-g)" />
+
+                <path d="M160,50 L160,120" marker-end="url(#arrow-g)" />
+                <path d="M160,120 L160,190" marker-end="url(#arrow-g)" />
+
+                <path d="M160,120 L90,120" marker-end="url(#arrow-g)" />
+                <path d="M90,120 L90,50" marker-end="url(#arrow-g)" />
+                <path d="M160,190 L90,190" marker-end="url(#arrow-g)" />
+                <path d="M90,190 L90,120" />
+
+                <path d="M160,120 L230,120" marker-end="url(#arrow-g)" />
+                <path d="M230,120 L230,50" marker-end="url(#arrow-g)" />
+                <path d="M160,190 L230,190" marker-end="url(#arrow-g)" />
+                <path d="M230,190 L230,120" />
+
+                <path d="M380,50 L380,120" marker-end="url(#arrow-g)" />
+                <path d="M380,120 L300,120" marker-end="url(#arrow-g)" />
+                <path d="M300,120 L300,50" marker-end="url(#arrow-g)" />
+
+                <circle cx="40" cy="50" r="3.5" /> <circle cx="90" cy="50" r="3.5" />
+                <circle cx="160" cy="50" r="3.5" /> <circle cx="230" cy="50" r="3.5" />
+                <circle cx="160" cy="120" r="3.5" /> <circle cx="160" cy="190" r="3.5" />
+                <circle cx="300" cy="50" r="3.5" /> <circle cx="380" cy="50" r="3.5" /> <circle cx="380" cy="120" r="3.5" />
+                <circle cx="450" cy="50" r="3.5" />
+            </svg>
+
+            <button class="btn" onclick="toggleAnswer('ans-g', this, ['wn-label-g'])">显示答案</button>
+
+            <div id="ans-g" class="answer-container">
+                <div class="answer-box">
+                    <strong>解析：</strong><br>
+                    $$ H(z) = \left( \frac{b_0 + b_1 z^{-1} + b_2 z^{-2}}{1 - a_1 z^{-1} - a_2 z^{-2}} \right) \cdot \frac{1}{1 - a_3 z^{-1}} $$
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================
+             图 (h): IIR 并行结构
+             ========================= -->
+        <div class="card">
+            <div class="card-title">图 (h): IIR 并行结构</div>
+
+            <svg width="480" height="350" viewBox="0 0 480 350">
+                <defs>
+                    <marker id="arrow-h" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000" />
+                    </marker>
+                </defs>
+
+                <text x="30" y="35" class="math-italic">x(n)</text>
+                <text x="440" y="35" class="math-italic">y(n)</text>
+                
+                <text id="node-w1-h" x="250" y="45" class="math-italic highlight-text">w<tspan class="sup">1</tspan>[n]</text>
+                <text id="node-w2-h" x="250" y="245" class="math-italic highlight-text">w<tspan class="sup">2</tspan>[n]</text>
+
+                <text x="310" y="45" class="math-italic">b<tspan dy="5" class="sup">0</tspan></text>
+                <text x="260" y="95"><tspan class="math-italic">z</tspan><tspan dy="-8" class="sup">-1</tspan></text>
+                <text x="260" y="165"><tspan class="math-italic">z</tspan><tspan dy="-8" class="sup">-1</tspan></text>
+                <text x="180" y="115" class="math-italic">a<tspan dy="5" class="sup">1</tspan></text>
+                <text x="180" y="185" class="math-italic">a<tspan dy="5" class="sup">2</tspan></text>
+                <text x="340" y="115" class="math-italic">b<tspan dy="5" class="sup">1</tspan></text>
+                <text x="340" y="185" class="math-italic">b<tspan dy="5" class="sup">2</tspan></text>
+                <text x="260" y="275"><tspan class="math-italic">z</tspan><tspan dy="-8" class="sup">-1</tspan></text>
+                <text x="180" y="315" class="math-italic">a<tspan dy="5" class="sup">3</tspan></text>
+                <text x="340" y="265" class="math-italic">b<tspan dy="5" class="sup">3</tspan></text>
+                <text x="340" y="335" class="math-italic">b<tspan dy="5" class="sup">4</tspan></text>
+
+                <path d="M40,50 L90,50" marker-end="url(#arrow-h)" />
+                <path d="M90,50 L90,250" />
+                <path d="M90,250 L140,250" marker-end="url(#arrow-h)" />
+                <path d="M90,50 L140,50" marker-end="url(#arrow-h)" />
+
+                <path d="M140,50 L240,50" marker-end="url(#arrow-h)" />
+                <path d="M240,50 L310,50" marker-end="url(#arrow-h)" />
+                <path d="M310,50 L380,50" marker-end="url(#arrow-h)" />
+                <path d="M240,50 L240,120" marker-end="url(#arrow-h)" />
+                <path d="M240,120 L240,190" marker-end="url(#arrow-h)" />
+                <path d="M240,120 L140,120" marker-end="url(#arrow-h)" />
+                <path d="M140,120 L140,50" marker-end="url(#arrow-h)" />
+                <path d="M240,190 L140,190" marker-end="url(#arrow-h)" />
+                <path d="M140,190 L140,120" />
+                <path d="M240,120 L380,120" marker-end="url(#arrow-h)" />
+                <path d="M380,120 L380,50" marker-end="url(#arrow-h)" />
+                <path d="M240,190 L380,190" marker-end="url(#arrow-h)" />
+                <path d="M380,190 L380,120" />
+
+                <path d="M140,250 L240,250" marker-end="url(#arrow-h)" />
+                <path d="M240,250 L310,250" marker-end="url(#arrow-h)" />
+                <path d="M310,250 L380,250" marker-end="url(#arrow-h)" />
+                <path d="M240,250 L240,320" marker-end="url(#arrow-h)" />
+                <path d="M240,320 L140,320" marker-end="url(#arrow-h)" />
+                <path d="M140,320 L140,250" marker-end="url(#arrow-h)" />
+                <path d="M240,320 L380,320" marker-end="url(#arrow-h)" />
+                <path d="M380,320 L380,250" marker-end="url(#arrow-h)" />
+
+                <path d="M380,50 L430,50" marker-end="url(#arrow-h)" />
+                <path d="M380,250 L410,250" />
+                <path d="M410,250 L410,50" marker-end="url(#arrow-h)" />
+
+                <circle cx="40" cy="50" r="3.5" /> <circle cx="90" cy="50" r="3.5" />
+                <circle cx="140" cy="50" r="3.5" /> <circle cx="240" cy="50" r="3.5" />
+                <circle cx="240" cy="120" r="3.5" /> <circle cx="240" cy="190" r="3.5" />
+                <circle cx="380" cy="50" r="3.5" /> <circle cx="380" cy="120" r="3.5" />
+                <circle cx="140" cy="250" r="3.5" /> <circle cx="240" cy="250" r="3.5" />
+                <circle cx="240" cy="320" r="3.5" /> <circle cx="380" cy="250" r="3.5" />
+                <circle cx="430" cy="50" r="3.5" />
+            </svg>
+
+            <button class="btn" onclick="toggleAnswer('ans-h', this, ['node-w1-h', 'node-w2-h'])">显示答案</button>
+
+            <div id="ans-h" class="answer-container">
+                <div class="answer-box">
+                    <strong>解析：</strong><br>
+                    $$ H(z) = \frac{b_0 + b_1 z^{-1} + b_2 z^{-2}}{1 - a_1 z^{-1} - a_2 z^{-2}} + \frac{b_3 + b_4 z^{-1}}{1 - a_3 z^{-1}} $$
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================
+             图 (i): 梯形/连分式结构
+             ========================= -->
+        <div class="card">
+            <div class="card-title">图 (i): 梯形连分式结构</div>
+            
+            <svg width="350" height="200" viewBox="0 0 350 200">
+                <defs>
+                    <marker id="arrow-i" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000" />
+                    </marker>
+                </defs>
+
+                <text x="20" y="35" class="math-italic">x(n)</text>
+                <text x="330" y="35" class="math-italic">y(n)</text>
+                <text x="90" y="30">2</text>
+                <text x="135" y="70">0.24</text>
+                <text x="230" y="85">0.25</text>
+                <text x="230" y="175">0.2</text>
+                <text x="205" y="65"><tspan class="math-italic">z</tspan><tspan class="sup" dy="-8">-1</tspan></text>
+                <text x="205" y="115"><tspan class="math-italic">z</tspan><tspan class="sup" dy="-8">-1</tspan></text>
+
+                <path d="M30,40 L70,40" marker-end="url(#arrow-i)" />
+                <path d="M70,40 L110,40" /> 
+                <path d="M110,40 L150,40" /> 
+                <path d="M150,40 L190,40" /> 
+                <path d="M190,40 L230,40" marker-end="url(#arrow-i)" />
+                <path d="M230,40 L270,40" />
+                <path d="M270,40 L310,40" marker-end="url(#arrow-i)" />
+
+                <path d="M110,40 L110,90" marker-end="url(#arrow-i)" />
+                <path d="M110,90 L150,90" marker-end="url(#arrow-i)" />
+                <path d="M150,90 L190,90" />
+                <path d="M190,90 L190,40" marker-end="url(#arrow-i)" />
+                <path d="M190,140 L190,90" marker-end="url(#arrow-i)" />
+                <path d="M270,40 L270,90" marker-end="url(#arrow-i)" /> 
+                <path d="M270,90 L270,140" marker-end="url(#arrow-i)" />
+                <path d="M270,90 L190,90" marker-end="url(#arrow-i)" />
+                <path d="M270,140 L190,140" marker-end="url(#arrow-i)" />
+
+                <circle cx="30" cy="40" r="3.5" /> <circle cx="110" cy="40" r="3.5" />
+                <circle cx="190" cy="40" r="3.5" /> <circle cx="270" cy="40" r="3.5" />
+                <circle cx="310" cy="40" r="3.5" /> <circle cx="110" cy="90" r="3.5" />
+                <circle cx="190" cy="90" r="3.5" /> <circle cx="270" cy="90" r="3.5" />
+                <circle cx="190" cy="140" r="3.5" /> <circle cx="270" cy="140" r="3.5" />
+            </svg>
+
+            <button class="btn" onclick="toggleAnswer('ans-i', this)">显示答案</button>
+
+            <div id="ans-i" class="answer-container">
+                <div class="answer-box">
+                    <strong>解析：</strong><br>
+                    $$ H(z) = 2 + \frac{0.24z^{-1}}{1 + \frac{0.25z^{-1}}{1 + 0.2z^{-1}}} = 2 + \frac{0.24z^{-1}}{1 - 0.25z^{-1} - 0.2z^{-2}} $$
+                    (注：连分式分母中符号取决于反馈环路的定义，这里根据典型连分式展开结构给出通用形式)
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================
+             图 (j): 级联全极点结构
+             ========================= -->
+        <div class="card">
+            <div class="card-title">图 (j): 级联全极点结构</div>
+
+            <svg width="400" height="150" viewBox="0 0 400 150">
+                <defs>
+                    <marker id="arrow-j" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000" />
+                    </marker>
+                </defs>
+
+                <text x="20" y="35" class="math-italic">x(n)</text>
+                <text x="380" y="35" class="math-italic">y(n)</text>
+                <!-- 中间变量 w[n] -->
+                <text id="wn-label-j" x="180" y="30" class="highlight-text math-italic">w[n]</text>
+                
+                <text x="80" y="115">0.5</text>
+                <text x="250" y="115">-0.75</text>
+                <text x="145" y="70"><tspan class="math-italic">z</tspan><tspan class="sup" dy="-8">-1</tspan></text>
+                <text x="315" y="70"><tspan class="math-italic">z</tspan><tspan class="sup" dy="-8">-1</tspan></text>
+
+                <path d="M30,40 L80,40" marker-end="url(#arrow-j)" />
+                <path d="M80,40 L130,40" marker-end="url(#arrow-j)" />
+                <path d="M130,40 L200,40" marker-end="url(#arrow-j)" />
+                <path d="M200,40 L250,40" marker-end="url(#arrow-j)" />
+                <path d="M250,40 L300,40" marker-end="url(#arrow-j)" />
+                <path d="M300,40 L370,40" marker-end="url(#arrow-j)" />
+
+                <path d="M130,40 L130,75" marker-end="url(#arrow-j)" />
+                <path d="M130,75 L130,100" />
+                <path d="M130,100 L100,100" marker-end="url(#arrow-j)" />
+                <path d="M100,100 L80,100" />
+                <path d="M80,100 L80,70" marker-end="url(#arrow-j)" />
+                <path d="M80,70 L80,40" />
+
+                <path d="M300,40 L300,75" marker-end="url(#arrow-j)" />
+                <path d="M300,75 L300,100" />
+                <path d="M300,100 L270,100" marker-end="url(#arrow-j)" />
+                <path d="M270,100 L250,100" />
+                <path d="M250,100 L250,70" marker-end="url(#arrow-j)" />
+                <path d="M250,70 L250,40" />
+
+                <circle cx="30" cy="40" r="3.5" /> <circle cx="80" cy="40" r="3.5" />
+                <circle cx="130" cy="40" r="3.5" /> <circle cx="200" cy="40" r="3.5" />
+                <circle cx="250" cy="40" r="3.5" /> <circle cx="300" cy="40" r="3.5" />
+                <circle cx="370" cy="40" r="3.5" />
+                <circle cx="130" cy="100" r="3.5" /> <circle cx="80" cy="100" r="3.5" />
+                <circle cx="300" cy="100" r="3.5" /> <circle cx="250" cy="100" r="3.5" />
+            </svg>
+
+            <button class="btn" onclick="toggleAnswer('ans-j', this, ['wn-label-j'])">显示答案</button>
+
+            <div id="ans-j" class="answer-container">
+                <div class="answer-box">
+                    <strong>解析：</strong><br>
+                    设第一级输出（即第二级输入）为 <span style="color:#d63031; font-weight:bold;">$w[n]$</span>。<br>
+                    总系统函数为：
+                    $$ H(z) = \frac{1}{(1 - 0.5z^{-1})(1 + 0.75z^{-1})} $$
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /**
+         * 切换答案显示，并控制高亮变量的透明度
+         */
+        function toggleAnswer(containerId, btnElement, highlightIds = null) {
+            var container = document.getElementById(containerId);
+            
+            if (container.style.display === 'block') {
+                container.style.opacity = '0';
+                if (highlightIds) {
+                    highlightIds.forEach(function(id) {
+                        var el = document.getElementById(id);
+                        if(el) el.style.opacity = '0';
+                    });
+                }
+                setTimeout(function(){ 
+                    container.style.display = 'none'; 
+                    btnElement.textContent = "显示答案";
+                }, 500);
+            } else {
+                container.style.display = 'block';
+                if (highlightIds) {
+                    highlightIds.forEach(function(id) {
+                        var el = document.getElementById(id);
+                        if(el) el.style.opacity = '1';
+                    });
+                }
+                setTimeout(function(){ 
+                    container.style.opacity = '1'; 
+                    btnElement.textContent = "隐藏答案";
+                }, 10);
+            }
+        }
+    </script>
+
+</body>
+</html>

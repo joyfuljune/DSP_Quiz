@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>滤波器类型对比：FIR 与 IIR </title>
+    
+    <!-- MathJax 配置 -->
+    <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$']] },
+      svg: { fontCache: 'global' },
+      startup: { typeset: true }
+    };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --fir-color: #16a085;
+            --fir-bg: #e8f8f5;
+            --iir-color: #c0392b;
+            --iir-bg: #fdedec;
+            --text-main: #2c3e50;
+            --border-color: #bdc3c7;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f7;
+        }
+
+        header {
+            background: #2c3e50;
+            color: #fff;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 { margin: 0; font-size: 1.8rem; letter-spacing: 1px; }
+        .subtitle { font-size: 1rem; opacity: 0.8; margin-top: 8px; }
+
+        /* 主容器 */
+        .main-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        /* 左右布局 */
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            width: 100%;
+            border-bottom: 1px solid #eee;
+        }
+
+        .column {
+            flex: 1;
+            min-width: 450px;
+            padding: 25px;
+            box-sizing: border-box;
+            border-right: 1px solid #eee;
+        }
+        .column:last-child { border-right: none; }
+
+        .col-fir { background-color: var(--fir-bg); }
+        .col-iir { background-color: var(--iir-bg); }
+        
+        h2 {
+            border-bottom: 4px solid;
+            padding-bottom: 10px;
+            margin-top: 0;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+        .col-fir h2 { border-color: var(--fir-color); color: var(--fir-color); }
+        .col-iir h2 { border-color: var(--iir-color); color: var(--iir-color); }
+
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #e0e0e0;
+        }
+
+        .card-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: block;
+            border-left: 5px solid #555;
+            padding-left: 10px;
+        }
+
+        /* SVG 样式 */
+        svg { width: 100%; height: auto; display: block; margin: 0 auto; user-select: none; }
+        .node { fill: #000; }
+        .arrow { fill: none; stroke: #2c3e50; stroke-width: 2; stroke-linecap: round; }
+        .label { font-family: 'Times New Roman', serif; font-style: italic; font-size: 18px; font-weight: bold; }
+        .guide-text { font-size: 13px; fill: #555; font-family: "Microsoft YaHei"; }
+        .highlight-box { fill: rgba(192, 57, 43, 0.05); stroke: var(--iir-color); stroke-width: 2; stroke-dasharray: 6,4; rx: 8; }
+
+        /* 总结表格区域 */
+        .summary-section {
+            padding: 30px;
+            background: #fff;
+            border-top: 2px solid #ddd;
+        }
+        
+        .summary-title {
+            text-align: center;
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        table.comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+        
+        table.comparison-table th, table.comparison-table td {
+            padding: 15px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        
+        table.comparison-table th {
+            background-color: #f8f9fa;
+            font-size: 1.1rem;
+            width: 15%;
+            text-align: center;
+        }
+        
+        /* 表格颜色区分 */
+        .td-fir { color: #0e6655; background-color: #e8f8f5; width: 42.5%; }
+        .td-iir { color: #922b21; background-color: #fdedec; width: 42.5%; }
+
+        /* Canvas */
+        canvas {
+            width: 100%;
+            display: block;
+            background: #fff;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+        }
+        .cartoon-canvas { height: 180px; }
+        .technical-canvas { height: 140px; background: #000; border-color: #555; }
+
+        /* 底部控制栏 */
+        .control-bar {
+            text-align: center;
+            padding: 20px;
+            background: #ecf0f1;
+            border-top: 1px solid #bdc3c7;
+            position: sticky;
+            bottom: 0;
+            z-index: 100;
+        }
+
+        #playBtn {
+            padding: 12px 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background-color: #2980b9;
+            box-shadow: 0 4px 6px rgba(41, 128, 185, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            gap: 10px;
+        }
+        #playBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 8px rgba(41, 128, 185, 0.4); }
+        #playBtn.paused { background-color: #e67e22; }
+
+        .math-box { font-size: 1rem; overflow-x: auto; padding: 5px; }
+
+        @media (max-width: 800px) {
+            .container { flex-direction: column; }
+            .column { border-right: none; border-bottom: 2px solid var(--border-color); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+
+    <header>
+        <h1>DSP 知识点对比：FIR 与 IIR 滤波器</h1>
+        <p class="subtitle">原理、结构、现象与特性的深度解析</p>
+    </header>
+
+    <div class="container">
+        
+        <!-- 左侧 FIR -->
+        <div class="column col-fir">
+            <h2>FIR (有限冲激响应)</h2>
+            
+            <div class="card">
+                <span class="card-title">数学定义</span>
+                <div class="math-box">
+                    $$ y[n] = \sum_{k=0}^{M} b_k x[n-k] $$
+                </div>
+                <p style="font-size:0.9rem; color:#555;">输出仅取决于当前的输入和过去的输入。</p>
+            </div>
+
+            <div class="card">
+                <span class="card-title">流图结构 (横截型)</span>
+                <svg viewBox="0 0 380 160">
+                    <defs>
+                        <marker id="arrowHead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                            <path d="M0,0 L0,6 L6,3 z" fill="#2c3e50" />
+                        </marker>
+                    </defs>
+                    
+                    <text x="10" y="45" class="label">x[n]</text>
+                    
+                    <!-- 主横线 (延时链) -->
+                    <line x1="45" y1="40" x2="80" y2="40" class="arrow" marker-end="url(#arrowHead)"/>
+                    <circle cx="80" cy="40" r="4" class="node"/> 
+                    
+                    <line x1="80" y1="40" x2="180" y2="40" class="arrow" marker-end="url(#arrowHead)"/>
+                    <text x="115" y="30" class="guide-text">z⁻¹</text>
+                    <circle cx="180" cy="40" r="4" class="node"/> 
+
+                    <line x1="180" y1="40" x2="280" y2="40" class="arrow" marker-end="url(#arrowHead)"/>
+                    <text x="215" y="30" class="guide-text">z⁻¹</text>
+                    <circle cx="280" cy="40" r="4" class="node"/> 
+
+                    <!-- 垂直支路 -->
+                    <line x1="80" y1="40" x2="80" y2="100" class="arrow" marker-end="url(#arrowHead)"/>
+                    <text x="85" y="80" class="label">b₀</text>
+
+                    <line x1="180" y1="40" x2="180" y2="100" class="arrow" marker-end="url(#arrowHead)"/>
+                    <text x="185" y="80" class="label">b₁</text>
+
+                    <line x1="280" y1="40" x2="280" y2="100" class="arrow" marker-end="url(#arrowHead)"/>
+                    <text x="285" y="80" class="label">b₂</text>
+
+                    <!-- 底部汇总 -->
+                    <circle cx="80" cy="120" r="3" class="node"/>
+                    <circle cx="180" cy="120" r="3" class="node"/>
+                    <circle cx="280" cy="120" r="3" class="node"/>
+                    
+                    <line x1="80" y1="100" x2="80" y2="120" class="arrow"/>
+                    <line x1="180" y1="100" x2="180" y2="120" class="arrow"/>
+                    <line x1="280" y1="100" x2="280" y2="120" class="arrow"/>
+
+                    <line x1="80" y1="120" x2="175" y2="120" class="arrow" marker-end="url(#arrowHead)"/>
+                    <line x1="180" y1="120" x2="275" y2="120" class="arrow" marker-end="url(#arrowHead)"/>
+                    <line x1="280" y1="120" x2="340" y2="120" class="arrow" marker-end="url(#arrowHead)"/>
+                    
+                    <text x="350" y="125" class="label">y[n]</text>
+                </svg>
+            </div>
+
+            <div class="card">
+                <span class="card-title">形象演示：旷野喊话</span>
+                <p style="font-size:0.9rem; color:#666; margin:5px 0 10px;">声音在空旷处传播，能量随距离消散，一去不复返。如同信号流过延时链后彻底消失。</p>
+                <canvas id="cartoonFIR" class="cartoon-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- 右侧 IIR -->
+        <div class="column col-iir">
+            <h2>IIR (无限冲激响应)</h2>
+
+            <div class="card">
+                <span class="card-title">数学定义</span>
+                <div class="math-box">
+                    $$ y[n] = \sum_{k=0}^{M} b_k x[n-k] + \sum_{k=1}^{N} a_k y[n-k] $$
+                </div>
+                <p style="font-size:0.9rem; color:#555;">利用了“过去的输出”进行反馈，是递归系统。</p>
+            </div>
+
+            <div class="card">
+                <span class="card-title">流图结构 (直接II型)</span>
+                <svg viewBox="0 0 380 160">
+                    <!-- 反馈框 -->
+                    <rect x="50" y="20" width="120" height="130" class="highlight-box" />
+                    <text x="60" y="140" class="guide-text" fill="#c0392b" font-weight="bold">反馈回路</text>
+
+                    <text x="10" y="45" class="label">x[n]</text>
+                    
+                    <!-- 输入直接指向加法节点 -->
+                    <line x1="45" y1="40" x2="135" y2="40" class="arrow" marker-end="url(#arrowHead)"/>
+                    
+                    <!-- 顶部节点 -->
+                    <circle cx="140" cy="40" r="4" class="node"/>
+
+                    <!-- 中间延时链 -->
+                    <line x1="140" y1="40" x2="140" y2="120" class="arrow" marker-end="url(#arrowHead)"/>
+                    <text x="145" y="80" class="guide-text">z⁻¹</text>
+                    <circle cx="140" cy="120" r="4" class="node"/> 
+
+                    <!-- 左侧：反馈 (Feedback) -->
+                    <!-- 路径：底部 -> 左 -> 上 -> 顶部 -->
+                    <line x1="140" y1="120" x2="80" y2="120" class="arrow"/>
+                    <line x1="80" y1="120" x2="80" y2="40" class="arrow"/>
+                    <line x1="80" y1="40" x2="132" y2="40" class="arrow" marker-end="url(#arrowHead)"/>
+                    
+                    <!-- 上升箭头 -->
+                    <line x1="80" y1="90" x2="80" y2="70" class="arrow" marker-end="url(#arrowHead)"/>
+                    <text x="55" y="85" class="label" fill="#c0392b">a₁</text>
+
+                    <!-- 右侧：前馈 (Feedforward) -->
+                    <line x1="140" y1="40" x2="240" y2="40" class="arrow" marker-end="url(#arrowHead)"/>
+                    <text x="180" y="30" class="label">b₀</text>
+
+                    <path d="M140,120 L240,120 L240,46" class="arrow" fill="none" marker-end="url(#arrowHead)"/>
+                    <text x="180" y="110" class="label">b₁</text>
+
+                    <!-- 输出 -->
+                    <circle cx="240" cy="40" r="4" class="node"/>
+                    <line x1="240" y1="40" x2="340" y2="40" class="arrow" marker-end="url(#arrowHead)"/>
+                    <text x="350" y="45" class="label">y[n]</text>
+                </svg>
+            </div>
+
+            <div class="card">
+                <span class="card-title">形象演示：山谷回声</span>
+                <p style="font-size:0.9rem; color:#666; margin:5px 0 10px;">声音遇到峭壁反弹，回到原点再次激发，形成无限循环的拖尾。模拟反馈回路的效果。</p>
+                <canvas id="cartoonIIR" class="cartoon-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：核心差异总结表格 -->
+    <div class="summary-section">
+        <div class="summary-title">核心差异总结</div>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>比较维度</th>
+                    <th style="color:var(--fir-color)">FIR</th>
+                    <th style="color:var(--iir-color)">IIR</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>结构特征</strong></td>
+                    <td class="td-fir"><strong>无反馈</strong> (非递归)。信号单向流动，类似“开环”。</td>
+                    <td class="td-iir"><strong>有反馈</strong> (递归)。输出会返回输入端，类似“闭环”。</td>
+                </tr>
+                <tr>
+                    <td><strong>冲激响应</strong></td>
+                    <td class="td-fir"><strong>有限长</strong>。信号经过 N 个延时后必然移出，输出归零。</td>
+                    <td class="td-iir"><strong>无限长</strong>。由于反馈，能量在回路中无限循环衰减。</td>
+                </tr>
+                <tr>
+                    <td><strong>稳定性</strong></td>
+                    <td class="td-fir"><strong>永远稳定</strong>。系统函数极点都在原点，不会发散。</td>
+                    <td class="td-iir"><strong>有条件稳定</strong>。必须保证所有极点在单位圆内，否则震荡发散。</td>
+                </tr>
+                <tr>
+                    <td><strong>相位特性</strong></td>
+                    <td class="td-fir">容易实现严格的<strong>线性相位</strong>（波形不失真），适合图像/通信。</td>
+                    <td class="td-iir">通常为<strong>非线性相位</strong>，对波形有延时畸变。</td>
+                </tr>
+                <tr>
+                    <td><strong>设计效率</strong></td>
+                    <td class="td-fir">需要<strong>较高阶数</strong>才能达到陡峭的截止频率，计算量大。</td>
+                    <td class="td-iir">可用<strong>较低阶数</strong>实现高性能滤波，计算效率高（模拟电路特性）。</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 底部控制与技术波形 -->
+    <div class="container" style="border-bottom:none; border-top:1px solid #ddd;">
+        <div class="column col-fir" style="padding-top:10px;">
+            <div style="font-weight:bold; color:var(--fir-color); margin-bottom:10px;">FIR 脉冲响应 (技术视角)</div>
+            <canvas id="techFIR" class="technical-canvas"></canvas>
+        </div>
+        <div class="column col-iir" style="padding-top:10px;">
+            <div style="font-weight:bold; color:var(--iir-color); margin-bottom:10px;">IIR 脉冲响应 (技术视角)</div>
+            <canvas id="techIIR" class="technical-canvas"></canvas>
+        </div>
+    </div>
+
+    <div class="control-bar">
+        <button id="playBtn" onclick="toggleAnimation()">
+            <span id="btnIcon">▶</span> 
+            <span id="btnText">开始循环演示</span>
+        </button>
+    </div>
+
+</div>
+
+<script>
+    // ==========================================
+    // 全局状态管理
+    // ==========================================
+    let isPlaying = false;
+    let animationId = null;
+    let animFrame = 0;
+    const LOOP_DURATION = 240; // 延长周期，让回声更充分
+
+    // DOM 元素
+    const playBtn = document.getElementById('playBtn');
+    const btnText = document.getElementById('btnText');
+    const btnIcon = document.getElementById('btnIcon');
+
+    // 画布上下文
+    const ctxs = {
+        cartFir: document.getElementById('cartoonFIR').getContext('2d'),
+        cartIir: document.getElementById('cartoonIIR').getContext('2d'),
+        techFir: document.getElementById('techFIR').getContext('2d'),
+        techIir: document.getElementById('techIIR').getContext('2d')
+    };
+
+    // 物理对象
+    let waves = { fir: [], iir: [] };
+    let techData = { fir: [], iir: [] };
+    let filters = {
+        firReg: [0,0,0,0],
+        iirPrev: 0
+    };
+
+    // 初始化
+    function initCanvas() {
+        const list = ['cartoonFIR', 'cartoonIIR', 'techFIR', 'techIIR'];
+        list.forEach(id => {
+            const cvs = document.getElementById(id);
+            cvs.width = cvs.clientWidth;
+            cvs.height = cvs.clientHeight;
+        });
+        resetData();
+        drawAllFrames(); 
+    }
+
+    function resetData() {
+        waves = { fir: [], iir: [] };
+        techData.fir = new Array(80).fill(0);
+        techData.iir = new Array(80).fill(0);
+        filters.firReg = [0,0,0,0];
+        filters.iirPrev = 0;
+    }
+
+    // ==========================================
+    // 动画控制
+    // ==========================================
+    function toggleAnimation() {
+        if (isPlaying) {
+            // 暂停
+            isPlaying = false;
+            cancelAnimationFrame(animationId);
+            btnText.innerText = "继续演示";
+            btnIcon.innerText = "▶";
+            playBtn.classList.remove('paused');
+        } else {
+            // 开始
+            isPlaying = true;
+            btnText.innerText = "暂停演示";
+            btnIcon.innerText = "⏸";
+            playBtn.classList.add('paused');
+            loop();
+        }
+    }
+
+    function loop() {
+        if (!isPlaying) return;
+
+        // 循环重置
+        if (animFrame > LOOP_DURATION) {
+            animFrame = 0;
+            resetData(); 
+        }
+
+        // 发射脉冲 (延迟一点发射，视觉效果更好)
+        if (animFrame === 20) {
+            firePulse();
+        }
+
+        updatePhysics();
+        updateTechGraph();
+        drawAllFrames();
+
+        animFrame++;
+        animationId = requestAnimationFrame(loop);
+    }
+
+    function firePulse() {
+        // 卡通声波
+        waves.fir.push({x: 50, r: 5, dir: 1, opacity: 1.0, width: 5});
+        waves.iir.push({x: 50, r: 5, dir: 1, opacity: 1.0, width: 5, hasEchoed: false});
+    }
+
+    // ==========================================
+    // 物理引擎
+    // ==========================================
+    function updatePhysics() {
+        const wallX = ctxs.cartIir.canvas.width - 50; 
+        const personX = 50; 
+
+        // FIR: 简单消散
+        for(let i=waves.fir.length-1; i>=0; i--) {
+            let w = waves.fir[i];
+            w.r += 3.5; 
+            w.opacity -= 0.012; 
+            if(w.opacity <= 0) waves.fir.splice(i, 1);
+        }
+
+        // IIR: 回声系统
+        for(let i=0; i<waves.iir.length; i++) {
+            let w = waves.iir[i];
+            w.r += 3.5;
+            w.opacity -= 0.003; // 衰减极慢
+
+            // 撞墙 (右侧)
+            if (w.dir === 1 && !w.hasEchoed) {
+                if ((w.x + w.r) >= wallX) {
+                    w.hasEchoed = true;
+                    if (w.opacity > 0.15) {
+                        waves.iir.push({
+                            x: wallX, r: 0, dir: -1, 
+                            opacity: w.opacity * 0.9, // 能量保持较好
+                            width: w.width, hasEchoed: false
+                        });
+                    }
+                }
+            }
+
+            // 撞人 (左侧反馈)
+            if (w.dir === -1 && !w.hasEchoed) {
+                if ((w.x - w.r) <= personX) {
+                    w.hasEchoed = true;
+                    if (w.opacity > 0.15) {
+                        waves.iir.push({
+                            x: personX, r: 0, dir: 1, 
+                            opacity: w.opacity * 0.9, 
+                            width: w.width, hasEchoed: false
+                        });
+                    }
+                }
+            }
+        }
+        waves.iir = waves.iir.filter(w => w.opacity > 0);
+    }
+
+    function updateTechGraph() {
+        let input = (animFrame === 20) ? 1.0 : 0.0;
+
+        // FIR
+        let reg = filters.firReg;
+        for(let i=3; i>0; i--) reg[i] = reg[i-1];
+        reg[0] = input;
+        let yf = reg[0]*1.0 + reg[1]*0.8 + reg[2]*0.5 + reg[3]*0.2;
+        techData.fir.push(yf); techData.fir.shift();
+
+        // IIR (高反馈系数 0.94，产生长拖尾)
+        let yi = input + 0.94 * filters.iirPrev;
+        filters.iirPrev = yi;
+        techData.iir.push(yi); techData.iir.shift();
+    }
+
+    // ==========================================
+    // 绘图引擎
+    // ==========================================
+    function drawAllFrames() {
+        drawCartoon(ctxs.cartFir, waves.fir, '#16a085', false);
+        drawCartoon(ctxs.cartIir, waves.iir, '#c0392b', true);
+        
+        drawTech(ctxs.techFir, techData.fir, '#16a085');
+        drawTech(ctxs.techIir, techData.iir, '#c0392b');
+    }
+
+    function drawCartoon(ctx, waveList, color, hasWall) {
+        const w = ctx.canvas.width;
+        const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+
+        // 背景
+        ctx.strokeStyle = '#bdc3c7';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, h-30); ctx.lineTo(w, h-30); ctx.stroke();
+
+        drawPerson(ctx, 50, h-40, color);
+
+        if (hasWall) {
+            const wallX = w - 50;
+            ctx.fillStyle = '#7f8c8d';
+            ctx.fillRect(wallX, 20, 30, h-50);
+            ctx.fillStyle = '#95a5a6'; // 高光
+            ctx.fillRect(wallX, 20, 6, h-50);
+            // 反射面
+            ctx.strokeStyle = '#c0392b';
+            ctx.beginPath(); ctx.moveTo(wallX, 20); ctx.lineTo(wallX, h-30); ctx.stroke();
+        }
+
+        waveList.forEach(wav => {
+            ctx.beginPath();
+            ctx.lineWidth = 4; // 加粗声波
+            ctx.strokeStyle = `rgba(${hexToRgb(color)}, ${wav.opacity})`;
+            
+            if (wav.dir === 1) {
+                ctx.arc(wav.x, h-40, wav.r, -0.7, 0.7);
+            } else {
+                ctx.arc(wav.x, h-40, wav.r, Math.PI-0.7, Math.PI+0.7);
+            }
+            ctx.stroke();
+        });
+    }
+
+    function drawPerson(ctx, x, y, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x, y-10, 7, 0, Math.PI*2);
+        ctx.moveTo(x, y-3); ctx.lineTo(x, y+14);
+        ctx.moveTo(x, y); ctx.lineTo(x-8, y+8);
+        ctx.moveTo(x, y); ctx.lineTo(x+8, y+8);
+        ctx.moveTo(x, y+14); ctx.lineTo(x-7, y+24);
+        ctx.moveTo(x, y+14); ctx.lineTo(x+7, y+24);
+        ctx.stroke();
+    }
+
+    function drawTech(ctx, data, color) {
+        const w = ctx.canvas.width;
+        const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        const barW = (w / data.length) - 1;
+        
+        data.forEach((val, i) => {
+            if (val > 0.01) { 
+                const barH = val * (h - 20);
+                ctx.fillStyle = color;
+                ctx.fillRect(i * (barW + 1), h - 10 - barH, barW, barH);
+            }
+        });
+        
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, h-10); ctx.lineTo(w, h-10); ctx.stroke();
+    }
+
+    function hexToRgb(hex) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `${r}, ${g}, ${b}`;
+    }
+
+    window.onload = initCanvas;
+    window.onresize = initCanvas;
+
+</script>
+
+</body>
+</html>
