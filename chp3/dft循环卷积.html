@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DFT旋转因子与循环卷积详解 (最终增强版)</title>
+    <title>DFT旋转因子与循环卷积详解</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
     <script>
@@ -132,154 +132,108 @@
     <div id="explanation">点击按钮开始动画</div>
     <div id="result-container"></div>
 
-    <h2>4. 循环卷积计算过程</h2>
-    <p>循环卷积的数学定义为：</p>
-    $$ y[n] = x[n] \circledast_N h[n] = \sum_{m=0}^{N-1} x[m] h[(n-m) \pmod N] $$
-    <div class="note-box">
-        <h4>💡 什么是模运算 (mod N)？</h4>
-        <p>模运算（Modulo Operation）是求余数的过程。在处理序列索引时，它确保索引始终落在 <code>[0, N-1]</code> 的范围内，就像时钟一样。</p>
-        <p>假设我们有一个长度为 N=4 的序列 $h[n] = \{h_0, h_1, h_2, h_3\}$。当我们访问超出范围的索引时：</p>
-        <ul>
-            <li><strong>正向循环</strong>：索引 $h[4]$ 实际上是 $h[4 \pmod 4] = h[0]$。$h[8]$ 实际上是 $h[8 \pmod 4] = h[0]$。</li>
-            <li><strong>反向循环</strong>：索引 $h[-1]$ 实际上是 $h[-1 \pmod 4] = h[3]$。$h[-8]$ 实际上是 $h[-8 \pmod 4] = h[0]$。</li>
-        </ul>
-        <p>这正是“循环”或“周期”特性的数学体现。</p>
-    </div>
+    <h2>4. 循环卷积计算过程详解</h2>
+    <p>循环卷积的数学定义为：$ y[n] = x[n] \circledast_N h[n] = \sum_{m=0}^{N-1} x[m] h[(n-m) \pmod N] $</p>
+    <p>在实际应用和考试中，我们通常有四种方法来计算它。以下以 $x[n] = \{1, 2, 2, 1\}$ 和 $h[n] = \{1, 0, 1, 0\}$ 为例。</p>
 
-    <h3>方法一：时域分步计算图示</h3>
+    <h3>方法一：时域图示法 (定义法)</h3>
+    <p>这是最基本的方法，按照定义进行反转、移位、相乘、求和。</p>
     <ol class="conv-steps-list">
         <li class="conv-step">
             <h4>计算 y[0]: (h序列初始对齐)</h4>
-            <div class="static-row"><div class="static-row-label">$x[m]$:</div><div class="static-row-content"><div class="static-box x-box">1</div><div class="static-box x-box">2</div><div class="static-box x-box">2</div><div class="static-box x-box">1</div></div></div>
-            <div class="static-row"><div class="static-row-label">$h[-m]$:</div><div class="static-row-content"><div class="static-box h-box">1</div><div class="static-box h-box">0</div><div class="static-box h-box">1</div><div class="static-box h-box">0</div></div></div>
             <div class="static-row" style="border-top: 1px solid #ccc; padding-top: 10px;">(1×1)+(2×0)+(2×1)+(1×0) = <strong class="result-text">3</strong></div>
         </li>
         <li class="conv-step">
             <h4>计算 y[1]: (h序列循环右移一位)</h4>
-            <div class="static-row"><div class="static-row-label">$x[m]$:</div><div class="static-row-content"><div class="static-box x-box">1</div><div class="static-box x-box">2</div><div class="static-box x-box">2</div><div class="static-box x-box">1</div></div></div>
-            <div class="static-row"><div class="static-row-label">$h[1-m]$:</div><div class="static-row-content"><div class="static-box h-box">0</div><div class="static-box h-box">1</div><div class="static-box h-box">0</div><div class="static-box h-box">1</div></div></div>
             <div class="static-row" style="border-top: 1px solid #ccc; padding-top: 10px;">(1×0)+(2×1)+(2×0)+(1×1) = <strong class="result-text">3</strong></div>
         </li>
         <li class="conv-step">
-            <h4>计算 y[2]: (h序列再循环右移一位)</h4>
-            <div class="static-row"><div class="static-row-label">$x[m]$:</div><div class="static-row-content"><div class="static-box x-box">1</div><div class="static-box x-box">2</div><div class="static-box x-box">2</div><div class="static-box x-box">1</div></div></div>
-            <div class="static-row"><div class="static-row-label">$h[2-m]$:</div><div class="static-row-content"><div class="static-box h-box">1</div><div class="static-box h-box">0</div><div class="static-box h-box">1</div><div class="static-box h-box">0</div></div></div>
-            <div class="static-row" style="border-top: 1px solid #ccc; padding-top: 10px;">(1×1)+(2×0)+(2×1)+(1×0) = <strong class="result-text">3</strong></div>
-        </li>
-        <li class="conv-step">
-            <h4>计算 y[3]: (h序列再循环右移一位)</h4>
-            <div class="static-row"><div class="static-row-label">$x[m]$:</div><div class="static-row-content"><div class="static-box x-box">1</div><div class="static-box x-box">2</div><div class="static-box x-box">2</div><div class="static-box x-box">1</div></div></div>
-            <div class="static-row"><div class="static-row-label">$h[3-m]$:</div><div class="static-row-content"><div class="static-box h-box">0</div><div class="static-box h-box">1</div><div class="static-box h-box">0</div><div class="static-box h-box">1</div></div></div>
-            <div class="static-row" style="border-top: 1px solid #ccc; padding-top: 10px;">(1×0)+(2×1)+(2×0)+(1×1) = <strong class="result-text">3</strong></div>
+            <h4>计算 y[2] 和 y[3]:</h4>
+            <p>同理循环移位计算，最终得到 <strong class="result-text">3</strong> 和 <strong class="result-text">3</strong>。</p>
         </li>
     </ol>
     <div class="info-box"><strong>最终结果：$y[n] = \{3, 3, 3, 3\}$</strong></div>
     
     <h3>方法二：频域计算 (DFT法)</h3>
-    <p>该方法基于离散卷积定理：<strong>时域的循环卷积等价于频域的乘积</strong>。</p>
+    <p>基于离散卷积定理：<strong>时域的循环卷积等价于频域的乘积</strong>。即 $y[n] = \text{IDFT}( \text{DFT}(x) \cdot \text{DFT}(h) )$。</p>
     
     <div class="calculation-block">
-        <h4>步骤1.1: 计算 $X[k] = \text{DFT}(\{1, 2, 2, 1\})$</h4>
-        <p>$X[k] = \sum_{n=0}^{3} x[n] W_4^{kn}$, 其中 $W_4^0=1, W_4^1=-j, W_4^2=-1, W_4^3=j$</p>
-        <p>$X[0] = 1(1) + 2(1) + 2(1) + 1(1) = 6$</p>
-        <p>$X[1] = 1(W_4^0) + 2(W_4^1) + 2(W_4^2) + 1(W_4^3) = 1(1) + 2(-j) + 2(-1) + 1(j) = -1 - j$</p>
-        <p>$X[2] = 1(W_4^0) + 2(W_4^2) + 2(W_4^4) + 1(W_4^6) = 1(1) + 2(-1) + 2(1) + 1(-1) = 0$</p>
-        <p>$X[3] = 1(W_4^0) + 2(W_4^3) + 2(W_4^6) + 1(W_4^9) = 1(1) + 2(j) + 2(-1) + 1(-j) = -1 + j$</p>
-        <p><strong>结果: $X[k] = \{6, -1-j, 0, -1+j\}$</strong></p>
+        <p>1. <strong>DFT($x$):</strong> 计算得 $X[k] = \{6, -1-j, 0, -1+j\}$</p>
+        <p>2. <strong>DFT($h$):</strong> 计算得 $H[k] = \{2, 0, 2, 0\}$</p>
+        <p>3. <strong>点乘:</strong> $Y[k] = X[k] \cdot H[k] = \{12, 0, 0, 0\}$</p>
+        <p>4. <strong>IDFT:</strong> 由于只有直流分量 $Y[0]=12$，IDFT后平均分摊到每个点：$12/4 = 3$。</p>
+        <p><strong>结果: $y[n] = \{3, 3, 3, 3\}$</strong></p>
     </div>
+
+    <h3>方法三：循环矩阵法 (Circulant Matrix)</h3>
+    <p>循环卷积可以转化为一个特殊的矩阵乘法 $y = H_{circ} \cdot x$。其中矩阵 $H_{circ}$ 是通过将序列 $h[n]$ 作为第一列，后续每一列都是前一列的<strong>向下循环移位</strong>生成的。</p>
     
-    <div class="calculation-block">
-        <h4>步骤1.2: 计算 $H[k] = \text{DFT}(\{1, 0, 1, 0\})$</h4>
-        <p>$H[k] = \sum_{n=0}^{3} h[n] W_4^{kn}$</p>
-        <p>$H[0] = 1(1) + 0(1) + 1(1) + 0(1) = 2$</p>
-        <p>$H[1] = 1(W_4^0) + 0(W_4^1) + 1(W_4^2) + 0(W_4^3) = 1(1) + 1(-1) = 0$</p>
-        <p>$H[2] = 1(W_4^0) + 0(W_4^2) + 1(W_4^4) + 0(W_4^6) = 1(1) + 1(1) = 2$</p>
-        <p>$H[3] = 1(W_4^0) + 0(W_4^3) + 1(W_4^6) + 0(W_4^9) = 1(1) + 1(-1) = 0$</p>
-        <p><strong>结果: $H[k] = \{2, 0, 2, 0\}$</strong></p>
+    <div style="display: flex; justify-content: center; align-items: center; gap: 20px; background: #f8f9fa; padding: 20px; border-radius: 8px; font-family: 'Times New Roman', serif; font-size: 1.2em; overflow-x: auto;">
+        <!-- 结果向量 y -->
+        <div>
+            $\begin{bmatrix} y[0] \\ y[1] \\ y[2] \\ y[3] \end{bmatrix}$
+        </div>
+        <div>=</div>
+        <!-- 循环矩阵 H -->
+        <div>
+            $\begin{bmatrix} 
+            h[0] & h[3] & h[2] & h[1] \\ 
+            h[1] & h[0] & h[3] & h[2] \\ 
+            h[2] & h[1] & h[0] & h[3] \\ 
+            h[3] & h[2] & h[1] & h[0] 
+            \end{bmatrix}$
+        </div>
+        <div>$\cdot$</div>
+        <!-- 输入向量 x -->
+        <div>
+            $\begin{bmatrix} x[0] \\ x[1] \\ x[2] \\ x[3] \end{bmatrix}$
+        </div>
     </div>
 
     <div class="calculation-block">
-        <h4>步骤2: 在频域进行元素级乘积 $Y[k] = X[k] \cdot H[k]$</h4>
-        <p>$Y[0] = 6 \times 2 = 12$</p>
-        <p>$Y[1] = (-1-j) \times 0 = 0$</p>
-        <p>$Y[2] = 0 \times 2 = 0$</p>
-        <p>$Y[3] = (-1+j) \times 0 = 0$</p>
-        <p><strong>结果: $Y[k] = \{12, 0, 0, 0\}$</strong></p>
+        <h4>代入数值计算：</h4>
+        <p>注意矩阵的第一行是 $h[n]$ 的反转（时间反转），即 $\{1, 0, 1, 0\}$ 的反转是 $\{1, 0, 1, 0\}$ (因为 $h[1]$ 和 $h[3]$ 交换)。</p>
+        $$ 
+        \begin{bmatrix} 3 \\ 3 \\ 3 \\ 3 \end{bmatrix} = 
+        \begin{bmatrix} 
+        1 & 0 & 1 & 0 \\ 
+        0 & 1 & 0 & 1 \\ 
+        1 & 0 & 1 & 0 \\ 
+        0 & 1 & 0 & 1 
+        \end{bmatrix} 
+        \begin{bmatrix} 1 \\ 2 \\ 2 \\ 1 \end{bmatrix} 
+        $$
+        <p>例如第一行计算：$1\cdot1 + 0\cdot2 + 1\cdot2 + 0\cdot1 = 1 + 2 = 3$。</p>
     </div>
 
+    <h3>方法四：线性卷积 + 周期延拓 (最适合笔算)</h3>
+    <p>这是手动计算最快的方法。循环卷积等于线性卷积的结果，按照长度 N 进行分段并叠加。</p>
     <div class="calculation-block">
-        <h4>步骤3: 对乘积结果进行逆DFT (IDFT)</h4>
-        <p>计算 $y[n] = \text{IDFT}(Y[k]) = \frac{1}{4}\sum_{k=0}^{3} Y[k] W_4^{-kn}$</p>
-        <p>由于只有$Y[0]$不为零，公式简化为 $y[n] = \frac{1}{4}(Y[0]W_4^{-0n}) = \frac{1}{4}(12 \cdot 1) = 3$</p>
-        <p>这个结果对所有n (0, 1, 2, 3) 都成立，所以最终得到 <strong>$y[n] = \{3, 3, 3, 3\}$</strong>。</p>
+        <ol>
+            <li><strong>计算线性卷积：</strong> 忽略循环性质，直接计算 $x[n] * h[n]$。<br>
+                由下文动画或表格计算可知，线性卷积结果为 $y_{lin} = \{1, 2, 3, 3, 2, 1, 0\}$ (长度为 7)。
+            </li>
+            <li><strong>分段：</strong> 将结果按照长度 $N=4$ 进行切割。
+                <ul>
+                    <li>第一段 (索引 0-3): $\{1, 2, 3, 3\}$</li>
+                    <li>第二段 (索引 4-6): $\{2, 1, 0, \text{补}0\}$</li>
+                </ul>
+            </li>
+            <li><strong>叠加 (混叠)：</strong> 将超出 N 的部分“卷”回来加到开头。
+                <table style="margin: 10px auto; border-collapse: collapse; text-align: center; width: 80%;">
+                    <tr style="border-bottom: 1px solid #ccc;"><td>索引</td><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+                    <tr><td>主段</td><td>1</td><td>2</td><td>3</td><td>3</td></tr>
+                    <tr><td>尾段(+)</td><td>2</td><td>1</td><td>0</td><td>0</td></tr>
+                    <tr style="border-top: 2px solid #333; font-weight: bold; color: #16a085;"><td>结果</td><td>3</td><td>3</td><td>3</td><td>3</td></tr>
+                </table>
+            </li>
+        </ol>
+        <div class="info-box">
+            这个方法直观地展示了<strong>“时域混叠” (Time Domain Aliasing)</strong> 的概念。当线性卷积长度超过 DFT 点数 N 时，多出来的尾部就会叠加到头部，形成循环卷积。
+        </div>
     </div>
 
-    <h3>方法三：矩阵形式的DFT</h3>
-    <p>DFT的求和运算可以等效地写成矩阵与向量的乘法形式，这在理论分析和算法实现（如FFT）中都非常重要。</p>
-    $$ \begin{bmatrix} X[0] \\ X[1] \\ \vdots \\ X[N-1] \end{bmatrix} = \begin{bmatrix} W_N^{0} & W_N^{0} & \cdots & W_N^{0} \\ W_N^{0} & W_N^{1} & \cdots & W_N^{N-1} \\ \vdots & \vdots & \ddots & \vdots \\ W_N^{0} & W_N^{N-1} & \cdots & W_N^{(N-1)^2} \end{bmatrix} \begin{bmatrix} x[0] \\ x[1] \\ \vdots \\ x[N-1] \end{bmatrix} $$
-    <p>这个核心的方阵被称为<strong>DFT矩阵</strong>。下面展示了一些常见N值的DFT矩阵及其具体数值。</p>
-    
-    <div class="matrix-grid">
-        <div class="matrix-container">
-            <h4>N=2</h4>
-            <strong>符号矩阵</strong>
-            <table class="matrix-table">
-                <tr><td>$W_2^0$</td><td>$W_2^0$</td></tr>
-                <tr><td>$W_2^0$</td><td>$W_2^1$</td></tr>
-            </table>
-            <strong>数值矩阵</strong>
-            <table class="matrix-table">
-                <tr><td>$1$</td><td>$1$</td></tr>
-                <tr><td>$1$</td><td>$-1$</td></tr>
-            </table>
-        </div>
-        <div class="matrix-container">
-            <h4>N=3</h4>
-            <strong>符号矩阵</strong>
-            <table class="matrix-table">
-                <tr><td>$W_3^0$</td><td>$W_3^0$</td><td>$W_3^0$</td></tr>
-                <tr><td>$W_3^0$</td><td>$W_3^1$</td><td>$W_3^2$</td></tr>
-                <tr><td>$W_3^0$</td><td>$W_3^2$</td><td>$W_3^4$</td></tr>
-            </table>
-            <strong>数值矩阵</strong>
-            <table class="matrix-table">
-                <tr><td>$1$</td><td>$1$</td><td>$1$</td></tr>
-                <tr><td>$1$</td><td>$e^{-j2\pi/3}$</td><td>$e^{-j4\pi/3}$</td></tr>
-                <tr><td>$1$</td><td>$e^{-j4\pi/3}$</td><td>$e^{-j8\pi/3}$</td></tr>
-            </table>
-        </div>
-        <div class="matrix-container">
-            <h4>N=4</h4>
-            <strong>符号矩阵</strong>
-            <table class="matrix-table">
-                <tr><td>$W_4^0$</td><td>$W_4^0$</td><td>$W_4^0$</td><td>$W_4^0$</td></tr>
-                <tr><td>$W_4^0$</td><td>$W_4^1$</td><td>$W_4^2$</td><td>$W_4^3$</td></tr>
-                <tr><td>$W_4^0$</td><td>$W_4^2$</td><td>$W_4^4$</td><td>$W_4^6$</td></tr>
-                <tr><td>$W_4^0$</td><td>$W_4^3$</td><td>$W_4^6$</td><td>$W_4^9$</td></tr>
-            </table>
-            <strong>数值矩阵</strong>
-            <table class="matrix-table">
-                <tr><td>$1$</td><td>$1$</td><td>$1$</td><td>$1$</td></tr>
-                <tr><td>$1$</td><td>$-j$</td><td>$-1$</td><td>$j$</td></tr>
-                <tr><td>$1$</td><td>$-1$</td><td>$1$</td><td>$-1$</td></tr>
-                <tr><td>$1$</td><td>$j$</td><td>$-1$</td><td>$-j$</td></tr>
-            </table>
-        </div>
-    </div>
-    <div class="matrix-container" style="margin-top: 30px;">
-        <h4>N=8 的DFT矩阵 (符号)</h4>
-        <table class="matrix-table" style="font-size: 0.9em; margin: 10px auto;">
-            <tbody><tr><th>k\n</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th></tr>
-            <tr><th>0</th><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td><td>$W_8^0$</td></tr>
-            <tr><th>1</th><td>$W_8^0$</td><td>$W_8^1$</td><td>$W_8^2$</td><td>$W_8^3$</td><td>$W_8^4$</td><td>$W_8^5$</td><td>$W_8^6$</td><td>$W_8^7$</td></tr>
-            <tr><th>2</th><td>$W_8^0$</td><td>$W_8^2$</td><td>$W_8^4$</td><td>$W_8^6$</td><td>$W_8^8$</td><td>$W_8^{10}$</td><td>$W_8^{12}$</td><td>$W_8^{14}$</td></tr>
-            <tr><th>3</th><td>$W_8^0$</td><td>$W_8^3$</td><td>$W_8^6$</td><td>$W_8^9$</td><td>$W_8^{12}$</td><td>$W_8^{15}$</td><td>$W_8^{18}$</td><td>$W_8^{21}$</td></tr>
-            <tr><th>4</th><td>$W_8^0$</td><td>$W_8^4$</td><td>$W_8^8$</td><td>$W_8^{12}$</td><td>$W_8^{16}$</td><td>$W_8^{20}$</td><td>$W_8^{24}$</td><td>$W_8^{28}$</td></tr>
-            <tr><th>5</th><td>$W_8^0$</td><td>$W_8^5$</td><td>$W_8^{10}$</td><td>$W_8^{15}$</td><td>$W_8^{20}$</td><td>$W_8^{25}$</td><td>$W_8^{30}$</td><td>$W_8^{35}$</td></tr>
-            <tr><th>6</th><td>$W_8^0$</td><td>$W_8^6$</td><td>$W_8^{12}$</td><td>$W_8^{18}$</td><td>$W_8^{24}$</td><td>$W_8^{30}$</td><td>$W_8^{36}$</td><td>$W_8^{42}$</td></tr>
-            <tr><th>7</th><td>$W_8^0$</td><td>$W_8^7$</td><td>$W_8^{14}$</td><td>$W_8^{21}$</td><td>$W_8^{28}$</td><td>$W_8^{35}$</td><td>$W_8^{42}$</td><td>$W_8^{49}$</td></tr>
-        </tbody></table>
-    </div>
+
 
     <h2>5. 线性卷积 (Linear Convolution) 回顾</h2>
     <h3>理论与动画</h3>
@@ -310,7 +264,7 @@
         </tbody>
     </table>
 
-    <h2>6. 对比与结论</h2>
+    <h2>6. 总结与验证</h2>
     <table class="comparison-table">
         <thead><tr><th>卷积类型</th><th>结果序列</th><th>长度</th></tr></thead>
         <tbody>
@@ -319,9 +273,8 @@
         </tbody>
     </table>
     
-    <h3>结果差异的根源：周期延拓混叠</h3>
-    <p>循环卷积的结果与线性卷积不同，是因为DFT隐含地将信号视为无限周期序列。这导致线性卷积结果中超出N个点的部分（“尾部”）会“卷绕”回来，与结果的“头部”相加。这个效应称为<strong>周期延拓混叠 (Periodic Extension Aliasing)</strong>。</p>
-    <p>我们可以通过将线性卷积的结果以周期N=4进行叠加来验证：</p>
+    <h3>时域混叠的可视化</h3>
+    <p>我们在“方法四”中提到，循环卷积是线性卷积的周期延拓叠加。下图再次直观验证了这一结论：线性卷积的尾部“卷绕”回来与头部相加，正是循环卷积的结果。</p>
     <div style="font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace; font-size: 1.1em; background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px auto; max-width: 550px;">
         <div style="display: flex; justify-content: flex-start; margin-bottom: 5px;">
             <div style="width: 160px; color: #555;">线性结果:</div>
@@ -348,8 +301,6 @@
             <div class="static-box" style="width: 40px; height: 40px; background-color:#e8f8f5; border: 2px solid #1abc9c;">3</div>
         </div>
     </div>
-    <p>这完美地解释了两个结果之间的关系。为了用循环卷积计算线性卷积，需要对原始信号进行<strong>补零 (Zero Padding)</strong>，使它们的长度至少为 $N_1+N_2-1$。</p>
-
 </div>
 
 <script>
