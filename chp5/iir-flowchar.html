@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IIR滤波器结构对比展示</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
     <style>
         * {
@@ -72,6 +72,24 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
             gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .cascade-parallel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        
+        .cascade-column {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .parallel-column {
+            display: flex;
+            flex-direction: column;
         }
         
         .structure-card {
@@ -116,21 +134,23 @@
             background-color: #fdfdfd;
             border-radius: 8px;
             overflow: visible;
-            margin-top: auto; /* Pushes SVG to the bottom if content is short */
+            margin-top: auto;
         }
         
         /* SVG Element Styles */
-        .coeff-text { font-weight: bold; font-size: 1.3em; text-anchor: middle; }
-        .delay-text { font-size: 1.1em; text-anchor: start; }
-        .io-text { font-size: 1.3em; font-weight: bold; }
-        .summer-text { font-size: 1.5em; font-weight: bold; }
-        .line-main { stroke: #333; stroke-width: 2.5; fill: none; }
-        .line-coeff { stroke-width: 2.5; fill: none; }
-        .intermediate-text { font-style: italic; font-size: 1.1em; text-anchor: middle; }
+        .coeff-text { font-weight: bold; font-size: 20px; text-anchor: middle; font-family: inherit; font-style: normal; }
+        .delay-text { font-size: 20px; text-anchor: middle; fill: #333; font-family: inherit; font-weight: bold; font-style: normal; }
+        .io-text { font-size: 22px; font-weight: bold; font-family: inherit; fill: #000; font-style: normal; }
         
         @media (max-width: 1280px) {
             .structures-grid {
                 grid-template-columns: 1fr;
+            }
+            .cascade-parallel-grid {
+                grid-template-columns: 1fr;
+            }
+            .cascade-column, .parallel-column {
+                width: 100%;
             }
         }
     </style>
@@ -140,9 +160,9 @@
 <div class="main-container">
     <header class="header">
         <h1>IIR滤波器结构对比</h1>
-        <div class="subtitle">直接I型 · 直接II型 · 级联型 · 并联型</div>
+        <div class="subtitle">直接I型 · 直接II型 · 级联型(4种配对) · 并联型</div>
         <p class="description">
-            同一个传递函数可以通过不同的结构来实现。本页可视化展示了一个二阶IIR滤波器的四种经典实现结构，并解释了级联型和并联型的数学分解过程。
+            同一个传递函数可以通过不同的结构来实现。本页展示了一个二阶IIR滤波器的多种实现结构，包括详细的数学分解步骤。级联型展示了两个零点和两个极点的所有4种配对方式。
         </p>
     </header>
 
@@ -152,7 +172,7 @@
         <div id="hz-formula" class="hz-formula"></div>
     </section>
 
-    <!-- 统一网格布局 -->
+    <!-- 统一网格布局：直接I型和直接II型 -->
     <main class="structures-grid">
 
         <!-- 直接I型 -->
@@ -167,47 +187,112 @@
             <svg id="flow-graph-II" class="flow-graph-svg"></svg>
         </article>
 
-        <!-- 级联型 (整合版) -->
-        <article class="structure-card">
-            <h2>级联型 (Cascade Form)</h2>
-            <div id="cascade-decomposition" class="decomposition-content">
-                <h3>数学分解</h3>
-                <p>将高阶传递函数分解为若干个一阶或二阶节的乘积：$$ H(z) = H_1(z) H_2(z) \dots H_k(z) $$</p>
-                <p><strong>分子:</strong> $$ B(z) = 1 + 1.5z^{-1} + 0.5z^{-2} = (1 + 1z^{-1})(1 + 0.5z^{-1}) $$</p>
-                <p><strong>分母:</strong> $$ A(z) = 1 - 0.7z^{-1} + 0.1z^{-2} = (1 - 0.5z^{-1})(1 - 0.2z^{-1}) $$</p>
-                <p>将零点和极点配对，得到两个一阶节的串联：</p>
-                $$ H(z) = \underbrace{\left( \frac{1 + z^{-1}}{1 - 0.5z^{-1}} \right)}_{H_1(z)} \cdot \underbrace{\left( \frac{1 + 0.5z^{-1}}{1 - 0.2z^{-1}} \right)}_{H_2(z)} $$
-            </div>
-            <svg id="flow-graph-cascade" class="flow-graph-svg"></svg>
-        </article>
-        
-        <!-- 并联型 (整合版) -->
-        <article class="structure-card">
-            <h2>并联型 (Parallel Form)</h2>
-            <div id="parallel-decomposition" class="decomposition-content">
-                <h3>数学分解</h3>
-                <p>通过部分分式展开，将传递函数分解为若干项的和。由于分子分母阶次相同，先提取常数项 C₀:</p>
-                <p><strong>常数项:</strong> $$ C_0 = \frac{b_2}{a_2} = \frac{0.5}{0.1} = 5 $$</p>
-                <p><strong>余项部分分式展开:</strong> $$ H(z) - C_0 = \frac{-4 + 5z^{-1}}{1 - 0.7z^{-1} + 0.1z^{-2}} = \frac{10}{1 - 0.5z^{-1}} + \frac{-14}{1 - 0.2z^{-1}} $$</p>
-                <p><strong>最终形式:</strong></p>
-                $$ H(z) = 5 + \frac{10}{1 - 0.5z^{-1}} + \frac{-14}{1 - 0.2z^{-1}} $$
-            </div>
-            <svg id="flow-graph-parallel" class="flow-graph-svg"></svg>
-        </article>
-
     </main>
+
+    <!-- 级联型和并联型：2列布局 -->
+    <section class="cascade-parallel-grid">
+        
+        <!-- 左侧：级联型所有配对 -->
+        <div class="cascade-column">
+            
+            <article class="structure-card">
+                <h2>级联型 (Cascade Form) - 数学分解</h2>
+                <div class="decomposition-content">
+                    <h3>分解步骤</h3>
+                    <p><strong>1. 分解分子（零点）：</strong></p>
+                    $$ B(z) = 1 + 1.5z^{-1} + 0.5z^{-2} = (1 + z^{-1})(1 + 0.5z^{-1}) $$
+                    <p><strong>2. 分解分母（极点）：</strong></p>
+                    $$ A(z) = 1 - 0.7z^{-1} + 0.1z^{-2} = (1 - 0.5z^{-1})(1 - 0.2z^{-1}) $$
+                    <p><strong>3. 零极点配对：</strong></p>
+                    <p>两个零点 {-1, -0.5} 和两个极点 {0.5, 0.2} 可以有 2×2 = 4 种配对方式：</p>
+                    $$ H(z) = H_1(z) \cdot H_2(z) $$
+                </div>
+            </article>
+
+            <!-- 配对1 -->
+            <article class="structure-card">
+                <h2>配对方式1</h2>
+                <div class="decomposition-content">
+                    $$ H(z) = \underbrace{\frac{1 + z^{-1}}{1 - 0.5z^{-1}}}_{H_1(z)} \cdot \underbrace{\frac{1 + 0.5z^{-1}}{1 - 0.2z^{-1}}}_{H_2(z)} $$
+                </div>
+                <svg id="flow-graph-cascade1" class="flow-graph-svg"></svg>
+            </article>
+
+            <!-- 配对2 -->
+            <article class="structure-card">
+                <h2>配对方式2</h2>
+                <div class="decomposition-content">
+                    $$ H(z) = \underbrace{\frac{1 + z^{-1}}{1 - 0.2z^{-1}}}_{H_1(z)} \cdot \underbrace{\frac{1 + 0.5z^{-1}}{1 - 0.5z^{-1}}}_{H_2(z)} $$
+                </div>
+                <svg id="flow-graph-cascade2" class="flow-graph-svg"></svg>
+            </article>
+
+            <!-- 配对3 -->
+            <article class="structure-card">
+                <h2>配对方式3</h2>
+                <div class="decomposition-content">
+                    $$ H(z) = \underbrace{\frac{1 + 0.5z^{-1}}{1 - 0.5z^{-1}}}_{H_1(z)} \cdot \underbrace{\frac{1 + z^{-1}}{1 - 0.2z^{-1}}}_{H_2(z)} $$
+                </div>
+                <svg id="flow-graph-cascade3" class="flow-graph-svg"></svg>
+            </article>
+
+            <!-- 配对4 -->
+            <article class="structure-card">
+                <h2>配对方式4</h2>
+                <div class="decomposition-content">
+                    $$ H(z) = \underbrace{\frac{1 + 0.5z^{-1}}{1 - 0.2z^{-1}}}_{H_1(z)} \cdot \underbrace{\frac{1 + z^{-1}}{1 - 0.5z^{-1}}}_{H_2(z)} $$
+                </div>
+                <svg id="flow-graph-cascade4" class="flow-graph-svg"></svg>
+            </article>
+
+        </div>
+
+        <!-- 右侧：并联型 -->
+        <div class="parallel-column">
+            
+            <article class="structure-card">
+                <h2>并联型 (Parallel Form)</h2>
+                <div class="decomposition-content">
+                    <h3>部分分式展开步骤</h3>
+                    <p><strong>原始传递函数：</strong></p>
+                    $$ H(z) = \frac{1 + 1.5z^{-1} + 0.5z^{-2}}{1 - 0.7z^{-1} + 0.1z^{-2}} $$
+                    
+                    <p><strong>1. 提取常数项（分子分母同阶）：</strong></p>
+                    $$ C_0 = \lim_{z \to \infty} H(z) = \frac{b_2}{a_2} = \frac{0.5}{0.1} = 5 $$
+                    
+                    <p><strong>2. 计算余项：</strong></p>
+                    $$ H(z) - C_0 = \frac{1 + 1.5z^{-1} + 0.5z^{-2}}{1 - 0.7z^{-1} + 0.1z^{-2}} - 5 $$
+                    $$ = \frac{1 + 1.5z^{-1} + 0.5z^{-2} - 5(1 - 0.7z^{-1} + 0.1z^{-2})}{1 - 0.7z^{-1} + 0.1z^{-2}} $$
+                    $$ = \frac{-4 + 5z^{-1}}{1 - 0.7z^{-1} + 0.1z^{-2}} $$
+                    
+                    <p><strong>3. 对余项进行部分分式展开：</strong></p>
+                    <p>分母因式分解：$$ 1 - 0.7z^{-1} + 0.1z^{-2} = (1 - 0.5z^{-1})(1 - 0.2z^{-1}) $$</p>
+                    $$ \frac{-4 + 5z^{-1}}{(1 - 0.5z^{-1})(1 - 0.2z^{-1})} = \frac{A}{1 - 0.5z^{-1}} + \frac{B}{1 - 0.2z^{-1}} $$
+                    
+                    <p><strong>4. 求系数A和B：</strong></p>
+                    <p>令 $$ z^{-1} = 2 $$（极点 0.5）：$$ A = \frac{-4 + 5(2)}{1 - 0.2(2)} = \frac{6}{0.6} = 10 $$</p>
+                    <p>令 $$ z^{-1} = 5 $$（极点 0.2）：$$ B = \frac{-4 + 5(5)}{1 - 0.5(5)} = \frac{21}{-1.5} = -14 $$</p>
+                    
+                    <p><strong>5. 最终并联形式：</strong></p>
+                    $$ H(z) = 5 + \frac{10}{1 - 0.5z^{-1}} + \frac{-14}{1 - 0.2z^{-1}} $$
+                </div>
+                <svg id="flow-graph-parallel" class="flow-graph-svg"></svg>
+            </article>
+
+        </div>
+
+    </section>
 </div>
 
 <script>
-// JavaScript部分与原版完全相同，无需修改
+const SVG_NS = "http://www.w3.org/2000/svg";
+
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. 使用简单的二阶数值示例
+    // 系数定义
     const COEFFS = {
-        b: [1, 1.5, 0.5],    // b0, b1, b2
-        a: [1, -0.7, 0.1]    // 1, a1, a2
+        b: [1, 1.5, 0.5],
+        a: [1, -0.7, 0.1]
     };
-    const N = 2; // 分子阶次
-    const M = 2; // 分母阶次
 
     const interpolateColor = (color1, color2, factor) => {
         const result = color1.slice();
@@ -217,8 +302,54 @@ document.addEventListener('DOMContentLoaded', () => {
         return `rgb(${result[0]}, ${result[1]}, ${result[2]})`;
     };
     
-    const bColors = { start: [0, 123, 255], end: [108, 0, 255] }; 
-    const aColors = { start: [255, 193, 7], end: [220, 53, 69] };
+    const bColors = { start: [0, 120, 255], end: [0, 60, 150] }; 
+    const aColors = { start: [255, 140, 0], end: [200, 0, 0] };
+
+    function getBColor(i, totalN) {
+        const factor = totalN > 0 ? i / totalN : 0;
+        return interpolateColor(bColors.start, bColors.end, factor);
+    }
+
+    function getAColor(i, totalM) {
+        const factor = totalM > 1 ? (i - 1) / (totalM - 1) : 0;
+        return interpolateColor(aColors.start, aColors.end, factor);
+    }
+
+    // SVG辅助函数
+    function createEl(type, attrs) {
+        const e = document.createElementNS(SVG_NS, type);
+        for (const k in attrs) e.setAttribute(k, attrs[k]);
+        return e;
+    }
+
+    function drawArrow(svg, x1, y1, x2, y2, color="#333", width=2.5) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        if (len < 1) return;
+        
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        const arrowSize = 12;
+        const arrowX = x2;
+        const arrowY = y2;
+        
+        svg.appendChild(createEl('line', { x1, y1, x2, y2, stroke: color, "stroke-width": width }));
+        svg.appendChild(createEl('path', {
+            d: `M 0 0 L ${-arrowSize} ${-arrowSize/2.5} L ${-arrowSize} ${arrowSize/2.5} z`,
+            fill: color,
+            transform: `translate(${arrowX}, ${arrowY}) rotate(${angle})`
+        }));
+    }
+
+    function drawNode(svg, cx, cy, r=6) {
+        svg.appendChild(createEl('circle', { cx, cy, r, fill: '#222', stroke: '#222', 'stroke-width': 1 }));
+    }
+
+    function drawDelayLabel(svg, x, y, text='z⁻¹') {
+        const txt = createEl('text', { x, y: y+6, class: 'delay-text' });
+        txt.textContent = text;
+        svg.appendChild(txt);
+    }
 
     // 显示传递函数
     const displayHz = () => {
@@ -237,93 +368,87 @@ document.addEventListener('DOMContentLoaded', () => {
         const svg = document.getElementById('flow-graph-I');
         svg.innerHTML = '';
         
-        const width = 700;
-        const height = 220;
-        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        const N = 2, M = 2;
+        const V_SPACING = 90, TOP_MARGIN = 60, WIDTH = 800;
+        const HEIGHT = TOP_MARGIN + Math.max(N, M) * V_SPACING + 50;
+        svg.setAttribute('viewBox', `0 0 ${WIDTH} ${HEIGHT}`);
 
-        const H_SPACING = 160, V_SPACING = 60, NODE_RADIUS = 10, IN_OUT_OFFSET = 80;
-        const x_delay_x = IN_OUT_OFFSET + 80;
-        const y_delay_x = width - IN_OUT_OFFSET - 80;
-        const summer1_x = x_delay_x + H_SPACING / 2;
-        const summer2_x = y_delay_x - H_SPACING / 2;
-        const startY = 50;
-        
-        const S = (el, attrs) => {
-            const e = document.createElementNS('http://www.w3.org/2000/svg', el);
-            for (const k in attrs) e.setAttribute(k, attrs[k]);
-            svg.appendChild(e);
-            return e;
-        };
-        
-        const P = (x1, y1, x2, y2, color) => {
-            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-            const midX = (x1 + x2) / 2, midY = (y1 + y2) / 2, size = 10;
-            S('path', { 
-                d: `M 0 0 L ${-size} ${-size/2} L ${-size} ${size/2} z`, 
-                fill: color, 
-                transform: `translate(${midX}, ${midY}) rotate(${angle})` 
-            });
-        };
+        const x_in = 60, x_delay_L = 220, x_sum_L = 320, x_sum_R = 460, x_delay_R = 560, x_out = 720;
 
-        S('line', { x1: IN_OUT_OFFSET, y1: startY, x2: x_delay_x, y2: startY, class: 'line-main' });
-        P(IN_OUT_OFFSET, startY, x_delay_x, startY, '#333');
-        S('text', { x: IN_OUT_OFFSET - 25, y: startY + 5, class: 'io-text' }).textContent = 'x[n]';
-        
-        for (let i = 0; i < N; i++) {
-            const y1 = startY + i * V_SPACING, y2 = startY + (i + 1) * V_SPACING;
-            S('line', { x1: x_delay_x, y1: y1, x2: x_delay_x, y2: y2, class: 'line-main' });
-            P(x_delay_x, y1, x_delay_x, y2, '#333');
-            S('circle', { cx: x_delay_x, cy: y1, r: NODE_RADIUS, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-            S('text', { x: x_delay_x + 15, y: y1 + V_SPACING / 2 + 5, class: 'delay-text' }).textContent = 'z⁻¹';
+        // 输入
+        drawArrow(svg, x_in, TOP_MARGIN, x_delay_L, TOP_MARGIN);
+        svg.appendChild(createEl('text', { x: x_in, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'x[n]';
+
+        // 左侧延迟链（x）
+        for (let i=0; i<N; i++) {
+            const y1 = TOP_MARGIN + i*V_SPACING, y2 = TOP_MARGIN + (i+1)*V_SPACING;
+            drawArrow(svg, x_delay_L, y1, x_delay_L, y2);
+            drawDelayLabel(svg, x_delay_L + 20, y1 + V_SPACING/2);
         }
-        S('circle', { cx: x_delay_x, cy: startY + N * V_SPACING, r: NODE_RADIUS, fill: 'white', stroke: '#333', 'stroke-width': 2 });
+        
+        // 左侧求和节点
+        drawNode(svg, x_sum_L, TOP_MARGIN);
 
-        S('circle', { cx: summer1_x, cy: startY, r: NODE_RADIUS, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-        S('text', { x: summer1_x - 1, y: startY + 7, class: 'summer-text' }).textContent = '+';
-
-        for (let i = 0; i <= N; i++) {
-            const y = startY + i * V_SPACING;
-            const color = interpolateColor(bColors.start, bColors.end, N > 0 ? i / N : 0);
-            S('line', { x1: x_delay_x, y1: y, x2: summer1_x, y2: y, class: 'line-coeff', stroke: color });
-            P(x_delay_x, y, summer1_x, y, color);
-            S('text', { x: x_delay_x + (summer1_x - x_delay_x) / 2, y: y - 10, class: 'coeff-text', fill: color }).textContent = COEFFS.b[i];
-            if (i > 0) {
-                S('line', { x1: summer1_x, y1: y, x2: summer1_x, y2: startY, class: 'line-coeff', stroke: color });
-                P(summer1_x, y, summer1_x, startY, color);
+        // 前馈路径（b系数）
+        for (let i=0; i<=N; i++) {
+            const y = TOP_MARGIN + i*V_SPACING;
+            const color = getBColor(i, N);
+            drawNode(svg, x_delay_L, y);
+            
+            if (i === 0) {
+                drawArrow(svg, x_delay_L, y, x_sum_L, y, color, 2.5);
+            } else {
+                svg.appendChild(createEl('polyline', { 
+                    points: `${x_delay_L},${y} ${x_sum_L},${y} ${x_sum_L},${TOP_MARGIN+8}`, 
+                    fill: 'none', 
+                    stroke: color, 
+                    "stroke-width": 2.5 
+                }));
+                drawArrow(svg, x_delay_L, y, (x_delay_L+x_sum_L)/2, y, color, 2.5); 
             }
+            const val = COEFFS.b[i];
+            const txt = createEl('text', {x: (x_delay_L+x_sum_L)/2, y: y-12, class:'coeff-text', fill: color});
+            txt.textContent = val;
+            svg.appendChild(txt);
         }
 
-        S('line', { x1: summer1_x, y1: startY, x2: summer2_x, y2: startY, class: 'line-main' });
-        P(summer1_x, startY, summer2_x, startY, '#333');
-        S('text', { x: (summer1_x + summer2_x) / 2, y: startY - 15, class: 'io-text' }).textContent = 'w[n]';
+        // 中间连接 - 删除w[n]标签
+        drawArrow(svg, x_sum_L, TOP_MARGIN, x_sum_R, TOP_MARGIN);
+
+        // 右侧求和节点
+        drawNode(svg, x_sum_R, TOP_MARGIN);
         
-        S('circle', { cx: summer2_x, cy: startY, r: NODE_RADIUS, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-        S('text', { x: summer2_x - 1, y: startY + 7, class: 'summer-text' }).textContent = '+';
-        S('line', { x1: summer2_x, y1: startY, x2: y_delay_x, y2: startY, class: 'line-main' });
-        P(summer2_x, startY, y_delay_x, startY, '#333');
+        // 输出
+        drawArrow(svg, x_sum_R, TOP_MARGIN, x_out, TOP_MARGIN); 
+        drawArrow(svg, x_sum_R, TOP_MARGIN, x_delay_R, TOP_MARGIN); 
+        svg.appendChild(createEl('text', { x: x_out-10, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'y[n]';
 
-        for (let i = 0; i < M; i++) {
-            const y1 = startY + i * V_SPACING, y2 = startY + (i + 1) * V_SPACING;
-            S('line', { x1: y_delay_x, y1: y1, x2: y_delay_x, y2: y2, class: 'line-main' });
-            P(y_delay_x, y1, y_delay_x, y2, '#333');
-            S('circle', { cx: y_delay_x, cy: y1, r: NODE_RADIUS, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-            S('text', { x: y_delay_x + 15, y: y1 + V_SPACING / 2 + 5, class: 'delay-text' }).textContent = 'z⁻¹';
+        // 右侧延迟链（y）
+        for (let i=0; i<M; i++) {
+            const y1 = TOP_MARGIN + i*V_SPACING, y2 = TOP_MARGIN + (i+1)*V_SPACING;
+            drawArrow(svg, x_delay_R, y1, x_delay_R, y2);
+            drawDelayLabel(svg, x_delay_R + 20, y1 + V_SPACING/2);
         }
-        S('circle', { cx: y_delay_x, cy: startY + M * V_SPACING, r: NODE_RADIUS, fill: 'white', stroke: '#333', 'stroke-width': 2 });
 
-        for (let i = 1; i <= M; i++) {
-            const y = startY + i * V_SPACING;
-            const color = interpolateColor(aColors.start, aColors.end, M > 1 ? (i-1)/(M-1) : 0);
-            S('line', { x1: y_delay_x, y1: y, x2: summer2_x, y2: y, class: 'line-coeff', stroke: color });
-            P(y_delay_x, y, summer2_x, y, color);
-            S('text', { x: y_delay_x - (y_delay_x - summer2_x) / 2, y: y - 10, class: 'coeff-text', fill: color }).textContent = -COEFFS.a[i];
-            S('line', { x1: summer2_x, y1: y, x2: summer2_x, y2: startY, class: 'line-coeff', stroke: color });
-            P(summer2_x, y, summer2_x, startY, color);
+        // 反馈路径（-a系数）
+        for (let i=1; i<=M; i++) {
+            const y = TOP_MARGIN + i*V_SPACING;
+            const color = getAColor(i, M);
+            drawNode(svg, x_delay_R, y);
+            
+            svg.appendChild(createEl('polyline', { 
+                points: `${x_delay_R},${y} ${x_sum_R},${y} ${x_sum_R},${TOP_MARGIN+8}`, 
+                fill: 'none', 
+                stroke: color, 
+                "stroke-width": 2.5 
+            }));
+            drawArrow(svg, x_delay_R, y, (x_delay_R+x_sum_R)/2, y, color, 2.5);
+            
+            const val = -COEFFS.a[i];
+            const txt = createEl('text', {x: (x_delay_R+x_sum_R)/2, y: y-12, class:'coeff-text', fill: color});
+            txt.textContent = val;
+            svg.appendChild(txt);
         }
-        
-        S('line', { x1: y_delay_x, y1: startY, x2: width - IN_OUT_OFFSET, y2: startY, class: 'line-main' });
-        P(y_delay_x, startY, width - IN_OUT_OFFSET, startY, '#333');
-        S('text', { x: width - IN_OUT_OFFSET + 25, y: startY + 5, class: 'io-text' }).textContent = 'y[n]';
     };
 
     // 绘制直接II型
@@ -331,253 +456,248 @@ document.addEventListener('DOMContentLoaded', () => {
         const svg = document.getElementById('flow-graph-II');
         svg.innerHTML = '';
         
-        const width = 700;
-        const height = 220;
-        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        const N = 2, M = 2;
+        const V_SPACING = 90, TOP_MARGIN = 60, WIDTH = 800;
+        const maxOrder = Math.max(N, M);
+        const HEIGHT = TOP_MARGIN + maxOrder * V_SPACING + 50;
+        svg.setAttribute('viewBox', `0 0 ${WIDTH} ${HEIGHT}`);
 
-        const V_SPACING = 60, NODE_RADIUS = 10, IN_OUT_OFFSET = 80;
-        const centerX = width / 2;
-        const summer_offset = 130;
-        const startY = 50;
+        const centerX = WIDTH / 2;
+        const wingSpan = 160; 
+        const leftSumX = centerX - wingSpan;
+        const rightSumX = centerX + wingSpan;
 
-        const S = (el, attrs) => {
-            const e = document.createElementNS('http://www.w3.org/2000/svg', el);
-            for (const k in attrs) e.setAttribute(k, attrs[k]);
-            svg.appendChild(e);
-            return e;
-        };
+        // 输入
+        drawArrow(svg, 60, TOP_MARGIN, leftSumX, TOP_MARGIN);
+        svg.appendChild(createEl('text', { x: 60, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'x[n]';
+
+        // 左侧求和节点
+        drawNode(svg, leftSumX, TOP_MARGIN);
         
-        const P = (x1, y1, x2, y2, color) => {
-            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-            const midX = (x1 + x2) / 2, midY = (y1 + y2) / 2, size = 10;
-            S('path', { d: `M 0 0 L ${-size} ${-size/2} L ${-size} ${size/2} z`, fill: color, transform: `translate(${midX}, ${midY}) rotate(${angle})` });
-        };
+        // 中间连接 - 删除w[n]标签
+        drawArrow(svg, leftSumX, TOP_MARGIN, centerX, TOP_MARGIN);
 
-        const L = Math.max(N, M);
-        
-        for (let i = 0; i < L; i++) {
-            const y1 = startY + i * V_SPACING, y2 = startY + (i + 1) * V_SPACING;
-            S('line', { x1: centerX, y1: y1, x2: centerX, y2: y2, class: 'line-main' });
-            P(centerX, y1, centerX, y2, '#333');
-            S('circle', { cx: centerX, cy: y1, r: NODE_RADIUS, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-            S('text', { x: centerX + 15, y: y1 + V_SPACING / 2 + 5, class: 'delay-text' }).textContent = 'z⁻¹';
-        }
-        if (L > 0) S('circle', { cx: centerX, cy: startY + L * V_SPACING, r: NODE_RADIUS, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-        S('text', { x: centerX, y: startY - 15, class: 'io-text', 'text-anchor': 'middle' }).textContent = 'w[n]';
-
-        const summer_feedback_x = centerX - summer_offset;
-        S('line', { x1: IN_OUT_OFFSET, y1: startY, x2: summer_feedback_x, y2: startY, class: 'line-main' });
-        P(IN_OUT_OFFSET, startY, summer_feedback_x, startY, '#333');
-        S('text', { x: IN_OUT_OFFSET - 25, y: startY + 5, class: 'io-text' }).textContent = 'x[n]';
-        S('circle', { cx: summer_feedback_x, cy: startY, r: NODE_RADIUS, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-        S('text', { x: summer_feedback_x - 1, y: startY + 7, class: 'summer-text' }).textContent = '+';
-        S('line', { x1: summer_feedback_x, y1: startY, x2: centerX, y2: startY, class: 'line-main' });
-        P(summer_feedback_x, startY, centerX, startY, '#333');
-
-        for (let i = 1; i <= M; i++) {
-            const y = startY + i * V_SPACING;
-            const color = interpolateColor(aColors.start, aColors.end, M > 1 ? (i - 1) / (M - 1) : 0);
-            const coeff_x = centerX - summer_offset/2;
-            S('line', { x1: centerX, y1: y, x2: coeff_x, y2: y, class: 'line-coeff', stroke: color });
-            P(centerX, y, coeff_x, y, color);
-            S('line', { x1: coeff_x, y1: y, x2: summer_feedback_x, y2: y, class: 'line-coeff', stroke: color });
-            P(coeff_x, y, summer_feedback_x, y, color);
-            S('line', { x1: summer_feedback_x, y1: y, x2: summer_feedback_x, y2: startY, class: 'line-coeff', stroke: color });
-            P(summer_feedback_x, y, summer_feedback_x, startY, color);
-            S('text', { x: coeff_x, y: y - 10, class: 'coeff-text', fill: color }).textContent = -COEFFS.a[i];
+        // 中间延迟链
+        for (let i=0; i<maxOrder; i++) {
+            const y1 = TOP_MARGIN + i*V_SPACING, y2 = TOP_MARGIN + (i+1)*V_SPACING;
+            drawArrow(svg, centerX, y1, centerX, y2);
+            drawDelayLabel(svg, centerX + 20, y1 + V_SPACING/2);
         }
 
-        const summer_feedforward_x = centerX + summer_offset;
-        S('line', { x1: summer_feedforward_x, y1: startY, x2: width - IN_OUT_OFFSET, y2: startY, class: 'line-main' });
-        P(summer_feedforward_x, startY, width - IN_OUT_OFFSET, startY, '#333');
-        S('text', { x: width - IN_OUT_OFFSET + 25, y: startY + 5, class: 'io-text' }).textContent = 'y[n]';
-        S('circle', { cx: summer_feedforward_x, cy: startY, r: NODE_RADIUS, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-        S('text', { x: summer_feedforward_x - 1, y: startY + 7, class: 'summer-text' }).textContent = '+';
+        // 右侧求和节点
+        drawNode(svg, rightSumX, TOP_MARGIN);
+        
+        // 输出
+        drawArrow(svg, rightSumX, TOP_MARGIN, WIDTH-60, TOP_MARGIN);
+        svg.appendChild(createEl('text', { x: WIDTH-80, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'y[n]';
 
-        for (let i = 0; i <= N; i++) {
-            const y = startY + i * V_SPACING;
-            const color = interpolateColor(bColors.start, bColors.end, N > 0 ? i / N : 0);
-            const coeff_x = centerX + summer_offset/2;
+        // 左翼反馈路径
+        for (let i=1; i<=M; i++) {
+            const y = TOP_MARGIN + i*V_SPACING;
+            const color = getAColor(i, M);
+            drawNode(svg, centerX, y);
+            
+            svg.appendChild(createEl('polyline', { 
+                points: `${centerX},${y} ${leftSumX},${y} ${leftSumX},${TOP_MARGIN+8}`, 
+                fill: 'none', 
+                stroke: color, 
+                "stroke-width": 2.5 
+            }));
+            drawArrow(svg, centerX, y, (centerX+leftSumX)/2, y, color, 2.5);
+            
+            const val = -COEFFS.a[i];
+            const txt = createEl('text', {x: centerX - wingSpan/2, y: y-12, class:'coeff-text', fill: color});
+            txt.textContent = val;
+            svg.appendChild(txt);
+        }
 
+        // 右翼前馈路径
+        for (let i=0; i<=N; i++) {
+            const y = TOP_MARGIN + i*V_SPACING;
+            const color = getBColor(i, N);
+            drawNode(svg, centerX, y);
+            
             if (i === 0) {
-                S('line', { x1: centerX, y1: y, x2: summer_feedforward_x, y2: y, class: 'line-coeff', stroke: color });
-                P(centerX, y, summer_feedforward_x, y, color);
-                S('text', { x: coeff_x, y: y - 10, class: 'coeff-text', fill: color }).textContent = COEFFS.b[i];
+                drawArrow(svg, centerX, y, rightSumX, y, color, 2.5);
             } else {
-                S('line', { x1: centerX, y1: y, x2: coeff_x, y2: y, class: 'line-coeff', stroke: color });
-                P(centerX, y, coeff_x, y, color);
-                S('line', { x1: coeff_x, y1: y, x2: summer_feedforward_x, y2: y, class: 'line-coeff', stroke: color });
-                P(coeff_x, y, summer_feedforward_x, y, color);
-                S('line', { x1: summer_feedforward_x, y1: y, x2: summer_feedforward_x, y2: startY, class: 'line-coeff', stroke: color });
-                P(summer_feedforward_x, y, summer_feedforward_x, startY, color);
-                S('text', { x: coeff_x, y: y - 10, class: 'coeff-text', fill: color }).textContent = COEFFS.b[i];
+                svg.appendChild(createEl('polyline', { 
+                    points: `${centerX},${y} ${rightSumX},${y} ${rightSumX},${TOP_MARGIN+8}`, 
+                    fill: 'none', 
+                    stroke: color, 
+                    "stroke-width": 2.5 
+                }));
+                drawArrow(svg, centerX, y, (centerX+rightSumX)/2, y, color, 2.5);
             }
+            
+            const val = COEFFS.b[i];
+            const txt = createEl('text', {x: centerX + wingSpan/2, y: y-12, class:'coeff-text', fill: color});
+            txt.textContent = val;
+            svg.appendChild(txt);
         }
     };
 
-    // 绘制级联型流图
-    const drawCascadeForm = () => {
-        const svg = document.getElementById('flow-graph-cascade');
+    // 绘制一阶节（级联型用）
+    const drawFirstOrderSection = (svg, x_offset, y_offset, b0, b1, a1) => {
+        const V_SPACING = 60, summer_offset = 70;
+        const centerX = x_offset + summer_offset;
+        const leftSumX = x_offset;
+        const rightSumX = x_offset + 2 * summer_offset;
+
+        // 左侧求和节点
+        drawNode(svg, leftSumX, y_offset);
+        drawArrow(svg, leftSumX, y_offset, centerX, y_offset);
+
+        // 延迟单元
+        drawArrow(svg, centerX, y_offset, centerX, y_offset + V_SPACING);
+        drawNode(svg, centerX, y_offset);
+        drawDelayLabel(svg, centerX + 15, y_offset + V_SPACING/2);
+
+        // 反馈路径
+        const color_a = aColors.start;
+        const aColor = `rgb(${color_a.join()})`;
+        svg.appendChild(createEl('polyline', { 
+            points: `${centerX},${y_offset + V_SPACING} ${leftSumX},${y_offset + V_SPACING} ${leftSumX},${y_offset+8}`, 
+            fill: 'none', 
+            stroke: aColor, 
+            "stroke-width": 2.5 
+        }));
+        drawArrow(svg, centerX, y_offset + V_SPACING, (centerX+leftSumX)/2, y_offset + V_SPACING, aColor, 2.5);
+        const txt_a = createEl('text', {x: (centerX+leftSumX)/2, y: y_offset + V_SPACING - 12, class:'coeff-text', fill: aColor});
+        txt_a.textContent = -a1;
+        svg.appendChild(txt_a);
+
+        // 右侧求和节点
+        drawNode(svg, rightSumX, y_offset);
+
+        // 前馈路径 b0
+        const color_b0 = bColors.start;
+        const b0Color = `rgb(${color_b0.join()})`;
+        drawArrow(svg, centerX, y_offset, rightSumX, y_offset, b0Color, 2.5);
+        const txt_b0 = createEl('text', {x: (centerX+rightSumX)/2, y: y_offset - 12, class:'coeff-text', fill: b0Color});
+        txt_b0.textContent = b0;
+        svg.appendChild(txt_b0);
+
+        // 前馈路径 b1
+        const color_b1 = bColors.end;
+        const b1Color = `rgb(${color_b1.join()})`;
+        svg.appendChild(createEl('polyline', { 
+            points: `${centerX},${y_offset + V_SPACING} ${rightSumX},${y_offset + V_SPACING} ${rightSumX},${y_offset+8}`, 
+            fill: 'none', 
+            stroke: b1Color, 
+            "stroke-width": 2.5 
+        }));
+        drawArrow(svg, centerX, y_offset + V_SPACING, (centerX+rightSumX)/2, y_offset + V_SPACING, b1Color, 2.5);
+        const txt_b1 = createEl('text', {x: (centerX+rightSumX)/2, y: y_offset + V_SPACING - 12, class:'coeff-text', fill: b1Color});
+        txt_b1.textContent = b1;
+        svg.appendChild(txt_b1);
+
+        return { inX: leftSumX, outX: rightSumX, y: y_offset };
+    };
+
+    // 绘制级联型（通用）
+    const drawCascadeForm = (svgId, configs) => {
+        const svg = document.getElementById(svgId);
         svg.innerHTML = '';
         
-        const width = 800;
-        const height = 250;
-        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-        
-        const S = (el, attrs) => {
-            const e = document.createElementNS('http://www.w3.org/2000/svg', el);
-            for (const k in attrs) e.setAttribute(k, attrs[k]);
-            svg.appendChild(e); return e;
-        };
-        const P = (x1, y1, x2, y2, color) => {
-            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-            const midX = (x1 + x2) / 2, midY = (y1 + y2) / 2, size = 8;
-            S('path', { d: `M 0 0 L ${-size} ${-size/2} L ${-size} ${size/2} z`, fill: color, transform: `translate(${midX}, ${midY}) rotate(${angle})` });
-        };
+        const WIDTH = 800, HEIGHT = 200;
+        svg.setAttribute('viewBox', `0 0 ${WIDTH} ${HEIGHT}`);
 
-        const drawFirstOrderSection = (x_offset, y_offset, coeffs) => {
-            const summer_offset = 70, v_spacing = 60;
-            const centerX = x_offset + summer_offset;
-            const summer_L = x_offset;
-            const summer_R = x_offset + 2 * summer_offset;
-            
-            S('rect', {x: x_offset-20, y: y_offset-40, width: 2*summer_offset+40, height: v_spacing+80, fill: 'rgba(102,126,234,0.05)', stroke: 'rgba(102,126,234,0.5)', 'stroke-dasharray':'5,5', rx:8});
-            S('text', {x: centerX, y: y_offset-20, 'text-anchor': 'middle', 'font-weight': 'bold'}).textContent = coeffs.name;
+        const inputX = 60, outputX = WIDTH - 60;
+        const section1X = 150, section2X = 450;
+        const sectionY = 80;
 
-            S('circle', { cx: summer_L, cy: y_offset, r: 8, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-            S('text', { x: summer_L - 1, y: y_offset + 6, class: 'summer-text' }).textContent = '+';
-            S('line', { x1: summer_L, y1: y_offset, x2: centerX, y2: y_offset, class: 'line-main' }); P(summer_L, y_offset, centerX, y_offset, '#333');
-            
-            S('line', { x1: centerX, y1: y_offset, x2: centerX, y2: y_offset + v_spacing, class: 'line-main' }); P(centerX, y_offset, centerX, y_offset + v_spacing, '#333');
-            S('circle', { cx: centerX, cy: y_offset, r: 8, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-            S('text', { x: centerX + 10, y: y_offset + v_spacing/2 + 5, class: 'delay-text' }).textContent = 'z⁻¹';
-            
-            const color_a = `rgb(${aColors.start.join()})`;
-            S('line', { x1: centerX, y1: y_offset + v_spacing, x2: summer_L, y2: y_offset + v_spacing, class: 'line-coeff', stroke: color_a }); P(centerX, y_offset + v_spacing, summer_L, y_offset + v_spacing, color_a);
-            S('line', { x1: summer_L, y1: y_offset + v_spacing, x2: summer_L, y2: y_offset, class: 'line-coeff', stroke: color_a }); P(summer_L, y_offset + v_spacing, summer_L, y_offset, color_a);
-            S('text', { x: centerX - summer_offset/2, y: y_offset + v_spacing - 8, class: 'coeff-text', fill: color_a }).textContent = -coeffs.a[1];
+        // 输入
+        svg.appendChild(createEl('text', { x: inputX - 30, y: sectionY + 5, class: 'io-text' })).textContent = 'x[n]';
 
-            S('circle', { cx: summer_R, cy: y_offset, r: 8, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-            S('text', { x: summer_R - 1, y: y_offset + 6, class: 'summer-text' }).textContent = '+';
-            
-            const color_b0 = `rgb(${bColors.start.join()})`;
-            S('line', { x1: centerX, y1: y_offset, x2: summer_R, y2: y_offset, class: 'line-coeff', stroke: color_b0 }); P(centerX, y_offset, summer_R, y_offset, color_b0);
-            S('text', { x: centerX + summer_offset/2, y: y_offset - 8, class: 'coeff-text', fill: color_b0 }).textContent = coeffs.b[0];
+        // 第一节
+        const sec1 = drawFirstOrderSection(svg, section1X, sectionY, configs.h1.b[0], configs.h1.b[1], configs.h1.a[1]);
+        drawArrow(svg, inputX, sectionY, sec1.inX, sectionY);
 
-            const color_b1 = `rgb(${bColors.end.join()})`;
-            S('line', { x1: centerX, y1: y_offset + v_spacing, x2: summer_R, y2: y_offset + v_spacing, class: 'line-coeff', stroke: color_b1 }); P(centerX, y_offset + v_spacing, summer_R, y_offset + v_spacing, color_b1);
-            S('line', { x1: summer_R, y1: y_offset + v_spacing, x2: summer_R, y2: y_offset, class: 'line-coeff', stroke: color_b1 }); P(summer_R, y_offset + v_spacing, summer_R, y_offset, color_b1);
-            S('text', { x: centerX + summer_offset/2, y: y_offset + v_spacing - 8, class: 'coeff-text', fill: color_b1 }).textContent = coeffs.b[1];
-        };
+        // 第二节
+        const sec2 = drawFirstOrderSection(svg, section2X, sectionY, configs.h2.b[0], configs.h2.b[1], configs.h2.a[1]);
+        drawArrow(svg, sec1.outX, sectionY, sec2.inX, sectionY);
 
-        const section1_x = 120, section_y = 100;
-        const section2_x = 450;
-        
-        drawFirstOrderSection(section1_x, section_y, {name:'H₁(z)', b:[1,1], a:[1,-0.5]});
-        drawFirstOrderSection(section2_x, section_y, {name:'H₂(z)', b:[1,0.5], a:[1,-0.2]});
-        
-        S('text', { x: 30, y: section_y + 5, class: 'io-text' }).textContent = 'x[n]';
-        S('line', { x1: 50, y1: section_y, x2: section1_x, y2: section_y, class: 'line-main' }); P(50, section_y, section1_x, section_y, '#333');
-        
-        const h1_out_x = section1_x + 140;
-        const h2_in_x = section2_x;
-        S('line', { x1: h1_out_x, y1: section_y, x2: h2_in_x, y2: section_y, class: 'line-main' }); P(h1_out_x, section_y, h2_in_x, section_y, '#333');
-        S('text', {x: (h1_out_x+h2_in_x)/2, y: section_y-10, class:'intermediate-text'}).textContent = 'w₁[n]';
-
-        const h2_out_x = section2_x + 140;
-        S('line', { x1: h2_out_x, y1: section_y, x2: h2_out_x + 50, y2: section_y, class: 'line-main' }); P(h2_out_x, section_y, h2_out_x+50, section_y, '#333');
-        S('text', { x: h2_out_x + 70, y: section_y + 5, class: 'io-text' }).textContent = 'y[n]';
+        // 输出
+        drawArrow(svg, sec2.outX, sectionY, outputX, sectionY);
+        svg.appendChild(createEl('text', { x: outputX + 10, y: sectionY + 5, class: 'io-text' })).textContent = 'y[n]';
     };
 
-    // 绘制并联型流图
+    // 绘制并联型
     const drawParallelForm = () => {
         const svg = document.getElementById('flow-graph-parallel');
         svg.innerHTML = '';
         
-        const width = 800;
-        const height = 400;
-        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-        
-        const S = (el, attrs) => {
-            const e = document.createElementNS('http://www.w3.org/2000/svg', el);
-            for (const k in attrs) e.setAttribute(k, attrs[k]);
-            svg.appendChild(e); return e;
-        };
-        const P = (x1, y1, x2, y2, color) => {
-            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-            const midX = (x1 + x2) / 2, midY = (y1 + y2) / 2, size = 8;
-            S('path', { d: `M 0 0 L ${-size} ${-size/2} L ${-size} ${size/2} z`, fill: color, transform: `translate(${midX}, ${midY}) rotate(${angle})` });
-        };
+        const WIDTH = 800, HEIGHT = 400;
+        svg.setAttribute('viewBox', `0 0 ${WIDTH} ${HEIGHT}`);
 
-        const drawFirstOrderParallelBranch = (x_offset, y_offset, coeffs) => {
-            const summer_offset = 70, v_spacing = 60;
-            const centerX = x_offset + summer_offset;
-            const summer_L = x_offset;
-            const coeff_R_x = x_offset + 2 * summer_offset;
-
-            S('circle', { cx: summer_L, cy: y_offset, r: 8, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-            S('text', { x: summer_L - 1, y: y_offset + 6, class: 'summer-text' }).textContent = '+';
-            S('line', { x1: summer_L, y1: y_offset, x2: centerX, y2: y_offset, class: 'line-main' }); P(summer_L, y_offset, centerX, y_offset, '#333');
-            
-            S('line', { x1: centerX, y1: y_offset, x2: centerX, y2: y_offset + v_spacing, class: 'line-main' }); P(centerX, y_offset, centerX, y_offset + v_spacing, '#333');
-            S('circle', { cx: centerX, cy: y_offset, r: 8, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-            S('text', { x: centerX + 10, y: y_offset + v_spacing/2 + 5, class: 'delay-text' }).textContent = 'z⁻¹';
-            
-            const color_a = `rgb(${aColors.start.join()})`;
-            S('line', { x1: centerX, y1: y_offset + v_spacing, x2: summer_L, y2: y_offset + v_spacing, class: 'line-coeff', stroke: color_a }); P(centerX, y_offset + v_spacing, summer_L, y_offset + v_spacing, color_a);
-            S('line', { x1: summer_L, y1: y_offset + v_spacing, x2: summer_L, y2: y_offset, class: 'line-coeff', stroke: color_a }); P(summer_L, y_offset + v_spacing, summer_L, y_offset, color_a);
-            S('text', { x: centerX - summer_offset/2, y: y_offset + v_spacing - 8, class: 'coeff-text', fill: color_a }).textContent = -coeffs.a[1];
-
-            const color_b0 = `rgb(${bColors.start.join()})`;
-            S('line', { x1: centerX, y1: y_offset, x2: coeff_R_x, y2: y_offset, class: 'line-coeff', stroke: color_b0 }); P(centerX, y_offset, coeff_R_x, y_offset, color_b0);
-            S('text', { x: centerX + summer_offset/2, y: y_offset - 8, class: 'coeff-text', fill: color_b0 }).textContent = coeffs.b[0];
-
-            return { in: {x: summer_L, y: y_offset}, out: {x: coeff_R_x, y: y_offset} };
-        };
-        
-        const inputX = 80, splitX = 150, branchX = 250, joinX = 550, outputX = 650;
+        const inputX = 80, splitX = 150, outputX = 650, joinX = 550;
+        const branchX = 250;
         const mainY = 200, y_spacing = 130;
         const y_c0 = mainY - y_spacing;
         const y_h1 = mainY;
         const y_h2 = mainY + y_spacing;
 
-        S('text', { x: inputX - 30, y: mainY + 5, class: 'io-text' }).textContent = 'x[n]';
-        S('line', { x1: inputX, y1: mainY, x2: splitX, y2: mainY, class: 'line-main' }); P(inputX, mainY, splitX, mainY, '#333');
-        S('circle', { cx: splitX, cy: mainY, r: 6, fill: '#333'});
-        S('line', {x1: splitX, y1: y_c0, x2:splitX, y2: y_h2, class: 'line-main'});
+        // 输入
+        svg.appendChild(createEl('text', { x: inputX - 30, y: mainY + 5, class: 'io-text' })).textContent = 'x[n]';
+        drawArrow(svg, inputX, mainY, splitX, mainY);
+        drawNode(svg, splitX, mainY);
 
-        // Branch 1: C0
-        const color_c0 = 'purple';
-        S('line', {x1: splitX, y1: y_c0, x2: branchX, y2: y_c0, class: 'line-main'}); P(splitX, y_c0, branchX, y_c0, '#333');
-        S('line', {x1: branchX, y1: y_c0, x2: joinX, y2: y_c0, class: 'line-coeff', stroke: color_c0}); P(branchX, y_c0, joinX, y_c0, color_c0);
-        S('text', {x: (branchX+joinX)/2, y: y_c0-8, class:'coeff-text', fill:color_c0}).textContent = '5';
-        
-        // Branch 2: H1(z)
-        const branch1_nodes = drawFirstOrderParallelBranch(branchX, y_h1, {b:[10], a:[1,-0.5]});
-        S('line', {x1: splitX, y1: y_h1, x2: branch1_nodes.in.x, y2: y_h1, class: 'line-main'}); P(splitX, y_h1, branch1_nodes.in.x, y_h1, '#333');
-        S('line', {x1: branch1_nodes.out.x, y1: y_h1, x2: joinX, y2: y_h1, class: 'line-main'}); P(branch1_nodes.out.x, y_h1, joinX, y_h1, '#333');
+        // 分支线
+        svg.appendChild(createEl('line', {x1: splitX, y1: y_c0, x2: splitX, y2: y_h2, stroke: '#333', 'stroke-width': 2.5}));
 
-        // Branch 3: H2(z)
-        const branch2_nodes = drawFirstOrderParallelBranch(branchX, y_h2, {b:[-14], a:[1,-0.2]});
-        S('line', {x1: splitX, y1: y_h2, x2: branch2_nodes.in.x, y2: y_h2, class: 'line-main'}); P(splitX, y_h2, branch2_nodes.in.x, y_h2, '#333');
-        S('line', {x1: branch2_nodes.out.x, y1: y_h2, x2: joinX, y2: y_h2, class: 'line-main'}); P(branch2_nodes.out.x, y_h2, joinX, y_h2, '#333');
-        
+        // 分支1: 常数C0=5
+        drawArrow(svg, splitX, y_c0, branchX, y_c0);
+        const c0Color = 'purple';
+        drawArrow(svg, branchX, y_c0, joinX, y_c0, c0Color, 2.5);
+        const txt_c0 = createEl('text', {x: (branchX+joinX)/2, y: y_c0 - 12, class:'coeff-text', fill: c0Color});
+        txt_c0.textContent = '5';
+        svg.appendChild(txt_c0);
+
+        // 分支2: H1(z) = 10/(1-0.5z^-1)
+        const sec1 = drawFirstOrderSection(svg, branchX, y_h1, 10, 0, 0.5);
+        drawArrow(svg, splitX, y_h1, sec1.inX, y_h1);
+        drawArrow(svg, sec1.outX, y_h1, joinX, y_h1);
+
+        // 分支3: H2(z) = -14/(1-0.2z^-1)
+        const sec2 = drawFirstOrderSection(svg, branchX, y_h2, -14, 0, 0.2);
+        drawArrow(svg, splitX, y_h2, sec2.inX, y_h2);
+        drawArrow(svg, sec2.outX, y_h2, joinX, y_h2);
+
         // 合并
-        S('line', {x1:joinX, y1: y_c0, x2: joinX, y2: mainY, class: 'line-main'}); P(joinX, y_c0, joinX, mainY, '#333');
-        S('line', {x1:joinX, y1: y_h2, x2: joinX, y2: mainY, class: 'line-main'}); P(joinX, y_h2, joinX, mainY, '#333');
-        S('circle', { cx: joinX, cy: mainY, r: 10, fill: 'white', stroke: '#333', 'stroke-width': 2 });
-        S('text', { x: joinX - 1, y: mainY + 7, class: 'summer-text' }).textContent = '+';
-        
+        svg.appendChild(createEl('line', {x1: joinX, y1: y_c0, x2: joinX, y2: y_h2, stroke: '#333', 'stroke-width': 2.5}));
+        drawNode(svg, joinX, mainY);
+
         // 输出
-        S('line', { x1: joinX, y1: mainY, x2: outputX, y2: mainY, class: 'line-main' }); P(joinX, mainY, outputX, mainY, '#333');
-        S('text', { x: outputX + 30, y: mainY + 5, class: 'io-text' }).textContent = 'y[n]';
+        drawArrow(svg, joinX, mainY, outputX, mainY);
+        svg.appendChild(createEl('text', { x: outputX + 30, y: mainY + 5, class: 'io-text' })).textContent = 'y[n]';
     };
 
-    // 初始化显示所有内容
+    // 初始化
     displayHz();
     drawDirectFormI();
     drawDirectFormII();
-    drawCascadeForm();
+
+    // 级联型4种配对
+    drawCascadeForm('flow-graph-cascade1', {
+        h1: {b: [1, 1], a: [1, -0.5]},
+        h2: {b: [1, 0.5], a: [1, -0.2]}
+    });
+
+    drawCascadeForm('flow-graph-cascade2', {
+        h1: {b: [1, 1], a: [1, -0.2]},
+        h2: {b: [1, 0.5], a: [1, -0.5]}
+    });
+
+    drawCascadeForm('flow-graph-cascade3', {
+        h1: {b: [1, 0.5], a: [1, -0.5]},
+        h2: {b: [1, 1], a: [1, -0.2]}
+    });
+
+    drawCascadeForm('flow-graph-cascade4', {
+        h1: {b: [1, 0.5], a: [1, -0.2]},
+        h2: {b: [1, 1], a: [1, -0.5]}
+    });
+
     drawParallelForm();
 });
 </script>
