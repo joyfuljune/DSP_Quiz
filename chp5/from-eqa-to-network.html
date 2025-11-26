@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IIR滤波器结构对比</title>
+    <title>IIR滤波器信号流图对比</title>
     
     <!-- KaTeX CSS & JS -->
-    <!-- 使用 defer 属性确保在文档解析后再执行，不阻塞页面渲染 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
@@ -164,9 +163,8 @@
         svg { width: 100%; height: 100%; display: block; }
 
         .io-text { font-size: 22px; font-weight: bold; font-family: inherit; fill: #000; font-style: normal; }
-        .summer-text { font-size: 28px; font-weight: bold; text-anchor: middle; dominant-baseline: middle; font-family: inherit; font-style: normal; fill: #000; }
-        .delay-text { font-size: 18px; text-anchor: start; fill: #555; font-family: inherit; font-weight: bold; font-style: normal; }
-        .coeff-text { font-weight: bold; font-size: 20px; text-anchor: middle; font-family: inherit; text-shadow: 0px 0px 4px white; font-style: normal; }
+        .delay-text { font-size: 20px; text-anchor: middle; fill: #333; font-family: inherit; font-weight: bold; font-style: normal; }
+        .coeff-text { font-weight: bold; font-size: 20px; text-anchor: middle; font-family: inherit; font-style: normal; }
         
         .katex { font-size: 1.6em !important; }
 
@@ -238,7 +236,7 @@
 </div>
 
 <script>
-// --- 颜色定义 ---
+// --- 颜色定义（使用更明显的区分）---
 const interpolateColor = (color1, color2, factor) => {
     const result = color1.slice();
     for (let i = 0; i < 3; i++) {
@@ -247,8 +245,9 @@ const interpolateColor = (color1, color2, factor) => {
     return `rgb(${result[0]}, ${result[1]}, ${result[2]})`;
 };
 
-const bColors = { start: [0, 123, 255], end: [30, 60, 180] }; 
-const aColors = { start: [255, 150, 0], end: [220, 20, 60] };
+// 使用蓝色系（输入x）和橙红色系（输出y）
+const bColors = { start: [0, 120, 255], end: [0, 60, 150] }; 
+const aColors = { start: [255, 140, 0], end: [200, 0, 0] }; 
 
 function getBColor(i, totalN) {
     const factor = totalN > 0 ? i / totalN : 0;
@@ -256,6 +255,7 @@ function getBColor(i, totalN) {
 }
 
 function getAColor(i, totalM) {
+    if (i === 0) return 'rgb(220, 20, 60)'; // a[0]使用深红色
     const factor = totalM > 1 ? (i - 1) / (totalM - 1) : 0;
     return interpolateColor(aColors.start, aColors.end, factor);
 }
@@ -265,7 +265,7 @@ let state = {
     N: 2,
     M: 2,
     b: [1, 1, 1],
-    a: [1, 1, 1] // a[0] 是 y[n] 的系数
+    a: [1, 1, 1]
 };
 
 // DOM 元素
@@ -279,9 +279,7 @@ const dom = {
 };
 
 /**
- * [MODIFIED] 解析输入框中的值，支持分数
- * @param {string} value - 输入框的字符串
- * @returns {number} - 解析后的数值
+ * 解析输入框中的值，支持分数
  */
 function parseCoeff(value) {
     const str = String(value).trim();
@@ -298,6 +296,20 @@ function parseCoeff(value) {
     return parseFloat(str) || 0;
 }
 
+/**
+ * 格式化显示系数，处理正负号
+ */
+function formatCoeffDisplay(value, isFirst = false) {
+    if (value === 0) return { sign: '', coeff: '0' };
+    
+    if (isFirst) {
+        return { sign: '', coeff: Math.abs(value).toString() };
+    } else {
+        const sign = value >= 0 ? '+' : '-';
+        const coeff = Math.abs(value).toString();
+        return { sign, coeff };
+    }
+}
 
 // --- 逻辑核心 ---
 function generateEquationInputs() {
@@ -316,30 +328,17 @@ function generateEquationInputs() {
     state.M = M;
 
     // --- 左侧：y 项 ---
-    // [MODIFIED] y[n] 的系数 a[0]
-    const ynWrapper = document.createElement('span');
-    ynWrapper.className = 'coeff-wrapper';
-    const a0Input = document.createElement('input');
-    a0Input.type = 'text';
-    a0Input.className = 'coeff-input';
-    a0Input.value = state.a[0];
-    a0Input.style.borderColor = getAColor(0, M);
-    a0Input.style.color = getAColor(0, M);
-    a0Input.oninput = (e) => {
-        state.a[0] = parseCoeff(e.target.value);
-        updateVisuals();
-    };
-    ynWrapper.appendChild(a0Input);
-    ynWrapper.insertAdjacentHTML('beforeend', `<span class="term-label" style="font-weight:bold;">y[n]</span>`);
-    dom.eqContainer.appendChild(ynWrapper);
-
-    // a1 ... aM
-    for (let i = 1; i <= M; i++) {
+    // y[n] 的系数 a[0] (改为正常的第一项，不独立显示)
+    for (let i = 0; i <= M; i++) {
         const wrapper = document.createElement('span');
         wrapper.className = 'coeff-wrapper';
         const color = getAColor(i, M);
         
-        wrapper.innerHTML = `<span class="op-sign">+</span>`;
+        // 处理符号显示
+        const { sign, coeff } = formatCoeffDisplay(state.a[i], i === 0);
+        if (i > 0) {
+            wrapper.innerHTML = `<span class="op-sign">${sign}</span>`;
+        }
         
         const input = document.createElement('input');
         input.type = 'text';
@@ -352,7 +351,7 @@ function generateEquationInputs() {
             updateVisuals();
         };
 
-        const term = `y[n-${i}]`;
+        const term = i === 0 ? `y[n]` : `y[n-${i}]`;
         wrapper.appendChild(input);
         wrapper.insertAdjacentHTML('beforeend', `<span class="term-label">${term}</span>`);
         dom.eqContainer.appendChild(wrapper);
@@ -370,7 +369,11 @@ function generateEquationInputs() {
         wrapper.className = 'coeff-wrapper';
         const color = getBColor(i, N);
         
-        if (i > 0) wrapper.innerHTML = `<span class="op-sign">+</span>`;
+        // 处理符号显示
+        const { sign, coeff } = formatCoeffDisplay(state.b[i], i === 0);
+        if (i > 0) {
+            wrapper.innerHTML = `<span class="op-sign">${sign}</span>`;
+        }
 
         const input = document.createElement('input');
         input.type = 'text';
@@ -400,47 +403,42 @@ function updateVisuals() {
 }
 
 /**
- * [MODIFIED] H(z) 公式渲染，处理 a[0] 归一化
+ * H(z) 公式渲染
  */
 function renderFormula() {
-    // [MODIFIED] a[0] 作为归一化因子，如果为0则视为1，防止除零错误
-    const a0 = state.a[0] || 1;
-
     const formatCoeff = (c) => Math.round(c * 1000) / 1000;
 
-    // 分子 (b)
+    // 分子 (b) - 不除以a[0]，直接使用原始系数
     const bTerms = state.b.map((c, i) => {
-        const val = c / a0;
-        if (val === 0) return null;
-        const sign = val > 0 ? (i > 0 ? '+' : '') : ''; 
+        if (c === 0) return null;
+        const sign = c > 0 ? (i > 0 ? '+' : '') : ''; 
         const z = i === 0 ? '' : (i === 1 ? 'z^{-1}' : `z^{-${i}}`);
-        return `${sign}${formatCoeff(val)}${z}`;
+        return `${sign}${formatCoeff(c)}${z}`;
     }).filter(t => t !== null).join(' ');
     
-    // 分母 (a)
-    const aTerms = state.a.slice(1).map((c, i) => {
-        const val = c / a0;
-        if (val === 0) return null;
-        // 注意：差分方程移项后系数变号
-        const sign = -val > 0 ? '+' : ''; 
-        const z = `z^{-${i+1}}`;
-        return `${sign}${formatCoeff(-val)}${z}`;
+    // 分母 (a) - 不除以a[0]，直接使用原始系数
+    const aTerms = state.a.map((c, i) => {
+        if (c === 0) return null;
+        const sign = c > 0 ? (i > 0 ? '+' : '') : ''; 
+        const z = i === 0 ? '' : (i === 1 ? 'z^{-1}' : `z^{-${i}}`);
+        return `${sign}${formatCoeff(c)}${z}`;
     }).filter(t => t !== null).join(' ');
 
     const num = bTerms || '0';
-    const den = aTerms ? `1 ${aTerms}` : '1';
+    const den = aTerms || '1';
 
     dom.hzDisplay.innerHTML = `$$ H(z) = \\frac{Y(z)}{X(z)} = \\frac{${num}}{${den}} $$`;
     
-    // [MODIFIED] 确保 KaTeX 渲染函数存在时才调用
+    // 延迟渲染以确保KaTeX加载完成
     if (window.renderMathInElement) {
-        renderMathInElement(dom.hzDisplay, {
-            delimiters: [{left: "$$", right: "$$", display: true}],
-            throwOnError: false
-        });
+        setTimeout(() => {
+            renderMathInElement(dom.hzDisplay, {
+                delimiters: [{left: "$$", right: "$$", display: true}],
+                throwOnError: false
+            });
+        }, 100);
     }
 }
-
 
 // --- SVG 绘制助手 ---
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -449,36 +447,46 @@ function createEl(type, attrs) {
     for (const k in attrs) e.setAttribute(k, attrs[k]);
     return e;
 }
-function drawArrow(svg, x1, y1, x2, y2, color="#333", width=3) {
-    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-    const midX = (x1 + x2) / 2;
-    const midY = (y1 + y2) / 2;
+
+/**
+ * 绘制箭头
+ */
+function drawArrow(svg, x1, y1, x2, y2, color="#333", width=2.5) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    if (len < 1) return;
+    
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    const arrowSize = 12;
+    
+    // 箭头位置在终点
+    const arrowX = x2;
+    const arrowY = y2;
+    
     svg.appendChild(createEl('line', { x1, y1, x2, y2, stroke: color, "stroke-width": width }));
-    const size = 10 + width;
     svg.appendChild(createEl('path', {
-        d: `M 0 0 L ${-size} ${-size/2} L ${-size} ${size/2} z`,
+        d: `M 0 0 L ${-arrowSize} ${-arrowSize/2.5} L ${-arrowSize} ${arrowSize/2.5} z`,
         fill: color,
-        transform: `translate(${midX}, ${midY}) rotate(${angle})`
+        transform: `translate(${arrowX}, ${arrowY}) rotate(${angle})`
     }));
 }
 
 /**
- * [NEW] 绘制实心点
+ * 绘制节点（实心圆点）
  */
-function drawSolidDot(svg, cx, cy) {
-    svg.appendChild(createEl('circle', { cx, cy, r: 5, fill: '#333' }));
+function drawNode(svg, cx, cy, r=6) {
+    svg.appendChild(createEl('circle', { cx, cy, r, fill: '#222', stroke: '#222', 'stroke-width': 1 }));
 }
 
 /**
- * [MODIFIED] 绘制加法器，使用自己的空心圆
+ * 绘制延迟标签（在箭头上）
  */
-function drawSummer(svg, cx, cy) {
-    svg.appendChild(createEl('circle', { cx, cy, r: 12, fill: 'white', stroke: '#333', 'stroke-width': 3 }));
-    const txt = createEl('text', { x: cx, y: cy + 1, class: 'summer-text' });
-    txt.textContent = '+';
+function drawDelayLabel(svg, x, y, text='z⁻¹') {
+    const txt = createEl('text', { x, y: y+6, class: 'delay-text' });
+    txt.textContent = text;
     svg.appendChild(txt);
 }
-
 
 // --- 结构图绘制 ---
 function drawDirectFormI() {
@@ -493,67 +501,105 @@ function drawDirectFormI() {
 
     const x_in = 60, x_delay_L = 220, x_sum_L = 320, x_sum_R = 460, x_delay_R = 560, x_out = 720;
 
+    // 输入
     drawArrow(svg, x_in, TOP_MARGIN, x_delay_L, TOP_MARGIN);
     svg.appendChild(createEl('text', { x: x_in, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'x[n]';
 
-    // 左侧 (x)
+    // 左侧延迟链（x）
     for (let i=0; i<state.N; i++) {
         const y1 = TOP_MARGIN + i*V_SPACING, y2 = TOP_MARGIN + (i+1)*V_SPACING;
         drawArrow(svg, x_delay_L, y1, x_delay_L, y2);
-        drawSolidDot(svg, x_delay_L, y1 + V_SPACING/2); // [MODIFIED]
-        svg.appendChild(createEl('text', {x: x_delay_L+18, y: y1+V_SPACING/2+8, class:'delay-text'})).textContent = 'z⁻¹';
+        drawDelayLabel(svg, x_delay_L + 20, y1 + V_SPACING/2);
     }
     
-    drawSummer(svg, x_sum_L, TOP_MARGIN);
+    // 左侧求和节点
+    drawNode(svg, x_sum_L, TOP_MARGIN);
 
+    // 前馈路径（b系数）
     for (let i=0; i<=state.N; i++) {
         const y = TOP_MARGIN + i*V_SPACING;
         const color = getBColor(i, state.N);
-        drawSolidDot(svg, x_delay_L, y); // [MODIFIED]
+        drawNode(svg, x_delay_L, y);
+        
         if (i === 0) {
-            drawArrow(svg, x_delay_L, y, x_sum_L, y, color, 3);
+            drawArrow(svg, x_delay_L, y, x_sum_L, y, color, 2.5);
         } else {
-            svg.appendChild(createEl('polyline', { points: `${x_delay_L},${y} ${x_sum_L},${y} ${x_sum_L},${TOP_MARGIN+12}`, fill: 'none', stroke: color, "stroke-width": 3 }));
-            drawArrow(svg, x_delay_L, y, (x_delay_L+x_sum_L)/2, y, color, 3); 
+            svg.appendChild(createEl('polyline', { 
+                points: `${x_delay_L},${y} ${x_sum_L},${y} ${x_sum_L},${TOP_MARGIN+8}`, 
+                fill: 'none', 
+                stroke: color, 
+                "stroke-width": 2.5 
+            }));
+            drawArrow(svg, x_delay_L, y, (x_delay_L+x_sum_L)/2, y, color, 2.5); 
         }
-        const val = Math.round(state.b[i] / a0 * 1000) / 1000;
-        svg.appendChild(createEl('text', {x: (x_delay_L+x_sum_L)/2, y: y-12, class:'coeff-text', fill: color})).textContent = val;
+        // 不除以a[0]，直接使用原始系数
+        const val = Math.round(state.b[i] * 1000) / 1000;
+        const txt = createEl('text', {x: (x_delay_L+x_sum_L)/2, y: y-12, class:'coeff-text', fill: color});
+        txt.textContent = val;
+        svg.appendChild(txt);
     }
 
-    // 中间
+    // 中间信号
     drawArrow(svg, x_sum_L, TOP_MARGIN, x_sum_R, TOP_MARGIN);
-    svg.appendChild(createEl('text', {x:(x_sum_L+x_sum_R)/2, y: TOP_MARGIN-15, class:'io-text', 'text-anchor':'middle'})).textContent = 'w[n]';
 
-    drawSummer(svg, x_sum_R, TOP_MARGIN);
+    // 右侧求和节点
+    drawNode(svg, x_sum_R, TOP_MARGIN);
+    
+    // 输出
     drawArrow(svg, x_sum_R, TOP_MARGIN, x_out, TOP_MARGIN); 
     drawArrow(svg, x_sum_R, TOP_MARGIN, x_delay_R, TOP_MARGIN); 
     svg.appendChild(createEl('text', { x: x_out-10, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'y[n]';
 
-    // 右侧 (y)
+    // 右侧延迟链（y）
     for (let i=0; i<state.M; i++) {
         const y1 = TOP_MARGIN + i*V_SPACING, y2 = TOP_MARGIN + (i+1)*V_SPACING;
         drawArrow(svg, x_delay_R, y1, x_delay_R, y2);
-        drawSolidDot(svg, x_delay_R, y1 + V_SPACING/2); // [MODIFIED]
-        svg.appendChild(createEl('text', {x: x_delay_R+18, y: y1+V_SPACING/2+8, class:'delay-text'})).textContent = 'z⁻¹';
+        drawDelayLabel(svg, x_delay_R + 20, y1 + V_SPACING/2);
     }
 
+    // 显示a[0]系数（在反馈系数组上方）
+    const a0Color = getAColor(0, state.M);
+    // 不除以a[0]，直接使用原始系数
+    const a0Val = Math.round(state.a[0] * 1000) / 1000;
+    if (state.M >= 1) {
+        // 当有反馈路径时，显示在第一个反馈系数上方
+        const a0Y = TOP_MARGIN + V_SPACING - 100;
+        const a0txt = createEl('text', {x: (x_delay_R+x_sum_R)/2, y: a0Y, class:'coeff-text', fill: a0Color});
+        a0txt.textContent = a0Val;
+        svg.appendChild(a0txt);
+    } else {
+        // 当没有反馈路径时，显示在适当位置
+        const a0txt = createEl('text', {x: (x_delay_R+x_sum_R)/2, y: TOP_MARGIN + 35, class:'coeff-text', fill: a0Color});
+        a0txt.textContent = a0Val;
+        svg.appendChild(a0txt);
+    }
+    
+    // 反馈路径（-a系数）
     for (let i=1; i<=state.M; i++) {
         const y = TOP_MARGIN + i*V_SPACING;
         const color = getAColor(i, state.M);
-        drawSolidDot(svg, x_delay_R, y); // [MODIFIED]
-        svg.appendChild(createEl('polyline', { points: `${x_delay_R},${y} ${x_sum_R},${y} ${x_sum_R},${TOP_MARGIN+12}`, fill: 'none', stroke: color, "stroke-width": 3 }));
-        drawArrow(svg, x_delay_R, y, (x_delay_R+x_sum_R)/2, y, color, 3);
+        drawNode(svg, x_delay_R, y);
         
-        // 符号反转并归一化
-        const val = Math.round(-state.a[i] / a0 * 1000) / 1000;
-        svg.appendChild(createEl('text', {x: (x_delay_R+x_sum_R)/2, y: y-12, class:'coeff-text', fill: color})).textContent = val;
+        svg.appendChild(createEl('polyline', { 
+            points: `${x_delay_R},${y} ${x_sum_R},${y} ${x_sum_R},${TOP_MARGIN+8}`, 
+            fill: 'none', 
+            stroke: color, 
+            "stroke-width": 2.5 
+        }));
+        drawArrow(svg, x_delay_R, y, (x_delay_R+x_sum_R)/2, y, color, 2.5);
+        
+        // 不除以a[0]，直接使用原始系数的负值
+        const val = Math.round(-state.a[i] * 1000) / 1000;
+        const txt = createEl('text', {x: (x_delay_R+x_sum_R)/2, y: y-12, class:'coeff-text', fill: color});
+        txt.textContent = val;
+        svg.appendChild(txt);
     }
 }
 
 function drawDirectFormII() {
     const svg = dom.svg2;
     svg.innerHTML = '';
-    const a0 = state.a[0] || 1;
+    const a0 = state.a[0];
     const maxOrder = Math.max(state.N, state.M, 1);
     
     const V_SPACING = 90, TOP_MARGIN = 60, WIDTH = 800;
@@ -565,50 +611,90 @@ function drawDirectFormII() {
     const leftSumX = centerX - wingSpan;
     const rightSumX = centerX + wingSpan;
 
+    // 输入
     drawArrow(svg, 60, TOP_MARGIN, leftSumX, TOP_MARGIN);
     svg.appendChild(createEl('text', { x: 60, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'x[n]';
 
-    drawSummer(svg, leftSumX, TOP_MARGIN);
+    // 左侧求和节点
+    drawNode(svg, leftSumX, TOP_MARGIN);
+    
+    // 中间连接
     drawArrow(svg, leftSumX, TOP_MARGIN, centerX, TOP_MARGIN);
-    svg.appendChild(createEl('text', {x:(leftSumX+centerX)/2, y: TOP_MARGIN-15, class:'io-text', 'text-anchor':'middle'})).textContent = 'w[n]';
 
+    // 中间延迟链
     for (let i=0; i<maxOrder; i++) {
         const y1 = TOP_MARGIN + i*V_SPACING, y2 = TOP_MARGIN + (i+1)*V_SPACING;
         drawArrow(svg, centerX, y1, centerX, y2);
-        drawSolidDot(svg, centerX, y1 + V_SPACING/2); // [MODIFIED]
-        svg.appendChild(createEl('text', {x: centerX+18, y: y1+V_SPACING/2+8, class:'delay-text'})).textContent = 'z⁻¹';
+        drawDelayLabel(svg, centerX + 20, y1 + V_SPACING/2);
     }
-    drawSolidDot(svg, centerX, TOP_MARGIN + maxOrder * V_SPACING); // [MODIFIED]
 
-    drawSummer(svg, rightSumX, TOP_MARGIN);
+    // 右侧求和节点
+    drawNode(svg, rightSumX, TOP_MARGIN);
+    
+    // 输出
     drawArrow(svg, rightSumX, TOP_MARGIN, WIDTH-60, TOP_MARGIN);
     svg.appendChild(createEl('text', { x: WIDTH-80, y: TOP_MARGIN-15, class: 'io-text' })).textContent = 'y[n]';
+    
+    // 显示a[0]系数（在左侧反馈系数组上方）
+    const a0Color = getAColor(0, state.M);
+    const a0Val = Math.round(a0 * 1000) / 1000;
+    if (state.M >= 1) {
+        // 当有反馈路径时，显示在第一个反馈系数上方
+        const a0Y = TOP_MARGIN + V_SPACING - 100;
+        const a0txt = createEl('text', {x: centerX - wingSpan/2, y: a0Y, class:'coeff-text', fill: a0Color});
+        a0txt.textContent = a0Val;
+        svg.appendChild(a0txt);
+    } else {
+        // 当没有反馈路径时，显示在适当位置
+        const a0txt = createEl('text', {x: centerX - wingSpan/2, y: TOP_MARGIN + 35, class:'coeff-text', fill: a0Color});
+        a0txt.textContent = a0Val;
+        svg.appendChild(a0txt);
+    }
 
-    // 左翼 (反馈)
+    // 左翼反馈路径
     for (let i=1; i<=state.M; i++) {
         const y = TOP_MARGIN + i*V_SPACING;
         const color = getAColor(i, state.M);
-        drawSolidDot(svg, centerX, y); // [MODIFIED]
-        svg.appendChild(createEl('polyline', { points: `${centerX},${y} ${leftSumX},${y} ${leftSumX},${TOP_MARGIN+12}`, fill: 'none', stroke: color, "stroke-width": 3 }));
-        drawArrow(svg, centerX, y, (centerX+leftSumX)/2, y, color, 3);
+        drawNode(svg, centerX, y);
         
-        const val = Math.round(-state.a[i] / a0 * 1000) / 1000;
-        svg.appendChild(createEl('text', {x: centerX - wingSpan/2, y: y-12, class:'coeff-text', fill: color})).textContent = val;
+        svg.appendChild(createEl('polyline', { 
+            points: `${centerX},${y} ${leftSumX},${y} ${leftSumX},${TOP_MARGIN+8}`, 
+            fill: 'none', 
+            stroke: color, 
+            "stroke-width": 2.5 
+        }));
+        drawArrow(svg, centerX, y, (centerX+leftSumX)/2, y, color, 2.5);
+        
+        // 反馈系数：不除以a[0]，直接取反
+        const val = Math.round(-state.a[i] * 1000) / 1000;
+        const txt = createEl('text', {x: centerX - wingSpan/2, y: y-12, class:'coeff-text', fill: color});
+        txt.textContent = val;
+        svg.appendChild(txt);
     }
 
-    // 右翼 (前馈)
+    // 右翼前馈路径
     for (let i=0; i<=state.N; i++) {
         const y = TOP_MARGIN + i*V_SPACING;
         const color = getBColor(i, state.N);
-        drawSolidDot(svg, centerX, y); // [MODIFIED]
+        drawNode(svg, centerX, y);
+        
         if (i === 0) {
-            drawArrow(svg, centerX, y, rightSumX, y, color, 3);
+            drawArrow(svg, centerX, y, rightSumX, y, color, 2.5);
         } else {
-            svg.appendChild(createEl('polyline', { points: `${centerX},${y} ${rightSumX},${y} ${rightSumX},${TOP_MARGIN+12}`, fill: 'none', stroke: color, "stroke-width": 3 }));
-            drawArrow(svg, centerX, y, (centerX+rightSumX)/2, y, color, 3);
+            svg.appendChild(createEl('polyline', { 
+                points: `${centerX},${y} ${rightSumX},${y} ${rightSumX},${TOP_MARGIN+8}`, 
+                fill: 'none', 
+                stroke: color, 
+                "stroke-width": 2.5 
+            }));
+            drawArrow(svg, centerX, y, (centerX+rightSumX)/2, y, color, 2.5);
         }
-        const val = Math.round(state.b[i] / a0 * 1000) / 1000;
-        svg.appendChild(createEl('text', {x: centerX + wingSpan/2, y: y-12, class:'coeff-text', fill: color})).textContent = val;
+        
+        // 前馈系数：不除以a[0]
+        const val = Math.round(state.b[i] * 1000) / 1000;
+        const txt = createEl('text', {x: centerX + wingSpan/2, y: y-12, class:'coeff-text', fill: color});
+        txt.textContent = val;
+        svg.appendChild(txt);
     }
 }
 
@@ -616,13 +702,22 @@ function drawDirectFormII() {
 dom.nInput.addEventListener('change', generateEquationInputs);
 dom.mInput.addEventListener('change', generateEquationInputs);
 
-/**
- * [MODIFIED] 使用 DOMContentLoaded 确保页面和脚本完全加载后再执行初始化
- * 这解决了 H(z) 首次加载时无法渲染以及在旧设备上的兼容性问题
- */
-document.addEventListener('DOMContentLoaded', () => {
-    generateEquationInputs();
-});
+// 优化的初始化：确保KaTeX完全加载
+let initAttempts = 0;
+function tryInitialize() {
+    if (window.renderMathInElement || initAttempts > 50) {
+        generateEquationInputs();
+    } else {
+        initAttempts++;
+        setTimeout(tryInitialize, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryInitialize);
+} else {
+    tryInitialize();
+}
 
 </script>
 </body>
