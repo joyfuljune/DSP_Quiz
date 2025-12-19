@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>脉冲响应不变法滤波器设计 (部分分式法)</title>
+    
+    <!-- 配置 MathJax，用于显示数学公式 -->
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+    </script>
+    <!-- 加载 MathJax -->
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+
+    <style>
+        /* 样式设计：简洁、兼容性好 */
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 5px;
+        }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; font-size: 24px; }
+        h2 { color: #2980b9; margin-top: 30px; font-size: 20px; border-left: 4px solid #2980b9; padding-left: 10px; }
+        h3 { color: #16a085; margin-top: 20px; font-size: 18px; }
+        .problem-box {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border: 1px solid #bdc3c7;
+            margin-bottom: 20px;
+        }
+        .solution-step {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #fff;
+            border-bottom: 1px dashed #ccc;
+        }
+        .result-box {
+            background-color: #e8f8f5;
+            padding: 15px;
+            border: 1px solid #1abc9c;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        /* 绘图区域样式 */
+        .controls {
+            background: #e8f6f3;
+            padding: 15px;
+            border: 1px solid #d1f2eb;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            display: inline-block;
+            margin-right: 20px;
+            margin-bottom: 10px;
+        }
+        label { font-weight: bold; margin-right: 5px; }
+        input { width: 60px; padding: 5px; }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background-color: #2980b9; }
+        
+        .charts-wrapper {
+            width: 100%;
+        }
+        .chart-box {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background: #fafafa;
+        }
+        canvas {
+            background-color: #fff;
+            width: 100%;
+            height: 300px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>习题：脉冲响应不变法设计数字滤波器</h1>
+
+    <div class="problem-box">
+        <p><strong>已知：</strong> 模拟滤波器的系统函数 $H_a(s)$ 如下，其中 $a,b$ 为常数且 $a>0$，$H_a(s)$ 因果稳定：</p>
+        <ol>
+            <li>$$ H_a(s) = \frac{s+a}{(s+a)^2 + b^2} $$</li>
+            <li>$$ H_a(s) = \frac{b}{(s+a)^2 + b^2} $$</li>
+        </ol>
+        <p><strong>要求：</strong> 设采样周期为 $T$，不进行拉普拉斯反变换，直接采用<strong>部分分式展开</strong>的映射方法，求数字滤波器 $H(z)$。</p>
+    </div>
+
+    <h2>解题过程：部分分式展开法</h2>
+
+    <div class="solution-step">
+        <h3>基本原理</h3>
+        <p>脉冲响应不变法的映射关系为：</p>
+        <p>若模拟极点为 $p_k$，系数为 $A_k$，即 $H_a(s) = \sum_{k} \frac{A_k}{s-p_k}$</p>
+        <p>则对应的数字滤波器为：$$ H(z) = \sum_{k} \frac{A_k}{1 - e^{p_k T} z^{-1}} $$</p>
+        <p>首先求出分母的根（极点）：$(s+a)^2 + b^2 = 0 \Rightarrow s = -a \pm jb$。</p>
+        <p>令 $p_1 = -a + jb,\ p_2 = -a - jb$。</p>
+    </div>
+
+    <div class="solution-step">
+        <h3>(1) 第一小题求解</h3>
+        <p><strong>1. 部分分式展开</strong></p>
+        <p>$$ H_a(s) = \frac{s+a}{(s-p_1)(s-p_2)} = \frac{A}{s-p_1} + \frac{B}{s-p_2} $$</p>
+        <p>由于 $H_a(s)$ 是共轭极点对应的余弦形式，系数 $A, B$ 通常为 $0.5$。验证：</p>
+        <p>$$ \frac{0.5}{s-(-a+jb)} + \frac{0.5}{s-(-a-jb)} = \frac{0.5(s+a+jb) + 0.5(s+a-jb)}{(s+a)^2+b^2} = \frac{s+a}{(s+a)^2+b^2} $$</p>
+        <p>故 $A = 0.5, B = 0.5$。</p>
+
+        <p><strong>2. 代入映射公式</strong></p>
+        <p>$$ H(z) = \frac{0.5}{1 - e^{p_1 T}z^{-1}} + \frac{0.5}{1 - e^{p_2 T}z^{-1}} $$</p>
+        <p>通分合并：</p>
+        <p>$$ H(z) = 0.5 \times \frac{(1 - e^{p_2 T}z^{-1}) + (1 - e^{p_1 T}z^{-1})}{(1 - e^{p_1 T}z^{-1})(1 - e^{p_2 T}z^{-1})} $$</p>
+        <p>分子 $= 2 - z^{-1}(e^{p_1 T} + e^{p_2 T}) = 2 - z^{-1}e^{-aT}(e^{jbT} + e^{-jbT}) = 2 - 2e^{-aT}\cos(bT)z^{-1}$</p>
+        <p>分母 $= 1 - z^{-1}(e^{p_1 T} + e^{p_2 T}) + z^{-2}e^{(p_1+p_2)T} = 1 - 2e^{-aT}\cos(bT)z^{-1} + e^{-2aT}z^{-2}$</p>
+        
+        <div class="result-box">
+            <strong>结果 (1)：</strong>
+            $$ H(z) = \frac{1 - e^{-aT}\cos(bT)z^{-1}}{1 - 2e^{-aT}\cos(bT)z^{-1} + e^{-2aT}z^{-2}} $$
+        </div>
+    </div>
+
+    <div class="solution-step">
+        <h3>(2) 第二小题求解</h3>
+        <p><strong>1. 部分分式展开</strong></p>
+        <p>$$ H_a(s) = \frac{b}{(s-p_1)(s-p_2)} = \frac{A}{s-p_1} + \frac{B}{s-p_2} $$</p>
+        <p>利用留数法求解系数：</p>
+        <p>$A = H_a(s)(s-p_1)|_{s=p_1} = \frac{b}{p_1-p_2} = \frac{b}{(-a+jb)-(-a-jb)} = \frac{b}{2jb} = \frac{1}{2j}$</p>
+        <p>$B = H_a(s)(s-p_2)|_{s=p_2} = \frac{b}{p_2-p_1} = \frac{b}{-2jb} = -\frac{1}{2j}$</p>
+
+        <p><strong>2. 代入映射公式</strong></p>
+        <p>$$ H(z) = \frac{1}{2j} \left( \frac{1}{1 - e^{p_1 T}z^{-1}} - \frac{1}{1 - e^{p_2 T}z^{-1}} \right) $$</p>
+        <p>通分合并：</p>
+        <p>$$ H(z) = \frac{1}{2j} \frac{(1 - e^{p_2 T}z^{-1}) - (1 - e^{p_1 T}z^{-1})}{\text{分母同上}} $$</p>
+        <p>分子 $= \frac{1}{2j} [ -z^{-1}(e^{p_2 T} - e^{p_1 T}) ] = \frac{z^{-1}}{2j} (e^{p_1 T} - e^{p_2 T}) $</p>
+        <p>利用欧拉公式 $e^{p_1 T} - e^{p_2 T} = e^{-aT}(e^{jbT} - e^{-jbT}) = e^{-aT}(2j\sin(bT))$</p>
+        
+        <div class="result-box">
+            <strong>结果 (2)：</strong>
+            $$ H(z) = \frac{e^{-aT}\sin(bT)z^{-1}}{1 - 2e^{-aT}\cos(bT)z^{-1} + e^{-2aT}z^{-2}} $$
+        </div>
+    </div>
+
+    <h2>图形演示与验证</h2>
+    <div class="controls">
+        <div class="control-group">
+            <label>参数 a:</label>
+            <input type="number" id="input_a" value="1.0" step="0.1">
+        </div>
+        <div class="control-group">
+            <label>参数 b:</label>
+            <input type="number" id="input_b" value="10.0" step="1.0">
+        </div>
+        <div class="control-group">
+            <label>采样周期 T:</label>
+            <input type="number" id="input_T" value="0.1" step="0.01">
+        </div>
+        <button onclick="updatePlots()">重新绘图</button>
+    </div>
+
+    <div class="charts-wrapper">
+        <div class="chart-box">
+            <h3>题(1) 脉冲响应 (模拟 vs 数字)</h3>
+            <canvas id="canvas1"></canvas>
+            <p style="text-align:center; font-size:12px; color:#666;">蓝线: 模拟 $e^{-at}\cos(bt)$ | 红点: 数字滤波器脉冲响应</p>
+        </div>
+        
+        <div class="chart-box">
+            <h3>题(2) 脉冲响应 (模拟 vs 数字)</h3>
+            <canvas id="canvas2"></canvas>
+            <p style="text-align:center; font-size:12px; color:#666;">蓝线: 模拟 $e^{-at}\sin(bt)$ | 红点: 数字滤波器脉冲响应</p>
+        </div>
+
+        <div class="chart-box">
+            <h3>Z平面 零极点分布</h3>
+            <canvas id="canvasPZ"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- 脚本逻辑：使用 ES5 语法以兼容旧电脑 -->
+<script>
+    window.onload = function() {
+        updatePlots();
+    };
+
+    function updatePlots() {
+        var a = parseFloat(document.getElementById('input_a').value);
+        var b = parseFloat(document.getElementById('input_b').value);
+        var T = parseFloat(document.getElementById('input_T').value);
+
+        if (isNaN(a) || isNaN(b) || isNaN(T) || T <= 0) {
+            alert("请输入有效的数字参数，且 T > 0");
+            return;
+        }
+
+        // 绘制图1 (Cosine)
+        drawResponse('canvas1', a, b, T, 1);
+        // 绘制图2 (Sine)
+        drawResponse('canvas2', a, b, T, 2);
+        // 绘制零极点图
+        drawPZ('canvasPZ', a, b, T);
+    }
+
+    // 绘制时域响应
+    function drawResponse(canvasId, a, b, T, type) {
+        var canvas = document.getElementById(canvasId);
+        if (!canvas.getContext) return;
+        var ctx = canvas.getContext('2d');
+        
+        // 适配容器宽度
+        var width = canvas.offsetWidth;
+        var height = canvas.offsetHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        var padding = 40;
+        var plotW = width - 2 * padding;
+        var plotH = height - 2 * padding;
+        var centerY = padding + plotH / 2;
+
+        // 计算时间范围
+        var maxT = 3.0; // 默认显示3秒
+        if (a > 0.5) maxT = 4.0 / a; // 根据衰减调整时间
+        if (maxT > 30 * T) maxT = 30 * T; // 限制显示采样点数量
+        if (maxT < 5 * T) maxT = 10 * T;
+
+        // 计算幅度归一化系数
+        var maxAmp = 0;
+        // 简单采样一些点找最大值
+        for(var t=0; t<=maxT; t+=maxT/50) {
+            var val = Math.exp(-a*t); // 包络最大值
+            if(val > maxAmp) maxAmp = val;
+        }
+        maxAmp = maxAmp * 1.2; // 留出余量
+        if(maxAmp < 0.1) maxAmp = 1.0;
+
+        // 坐标映射
+        function getX(t) { return padding + (t / maxT) * plotW; }
+        function getY(v) { return centerY - (v / maxAmp) * (plotH / 2); }
+
+        // 画坐标轴
+        ctx.beginPath();
+        ctx.strokeStyle = "#999";
+        ctx.lineWidth = 1;
+        ctx.moveTo(padding, centerY); ctx.lineTo(width - padding, centerY); // X轴
+        ctx.moveTo(padding, height - padding); ctx.lineTo(padding, padding); // Y轴
+        ctx.stroke();
+
+        // 1. 画模拟曲线 (细蓝线)
+        ctx.beginPath();
+        ctx.strokeStyle = "#3498db";
+        ctx.lineWidth = 2;
+        var dt = maxT / 200;
+        for (var t = 0; t <= maxT; t += dt) {
+            var val = 0;
+            if (type === 1) val = Math.exp(-a * t) * Math.cos(b * t);
+            else            val = Math.exp(-a * t) * Math.sin(b * t);
+            
+            var px = getX(t);
+            var py = getY(val);
+            if (t === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // 2. 画数字序列 (红色火柴杆)
+        ctx.strokeStyle = "#e74c3c";
+        ctx.fillStyle = "#e74c3c";
+        var N = Math.floor(maxT / T);
+        for (var n = 0; n <= N; n++) {
+            var tn = n * T;
+            var val_n = 0;
+            if (type === 1) val_n = Math.exp(-a * tn) * Math.cos(b * tn);
+            else            val_n = Math.exp(-a * tn) * Math.sin(b * tn);
+
+            var px = getX(tn);
+            var py = getY(val_n);
+            var py0 = getY(0);
+
+            ctx.beginPath();
+            ctx.moveTo(px, py0);
+            ctx.lineTo(px, py);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(px, py, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // 绘制零极点图
+    function drawPZ(canvasId, a, b, T) {
+        var canvas = document.getElementById(canvasId);
+        if (!canvas.getContext) return;
+        var ctx = canvas.getContext('2d');
+        
+        var width = canvas.offsetWidth;
+        var height = canvas.offsetHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        var cx = width / 2;
+        var cy = height / 2;
+        var r_pixel = Math.min(width, height) / 2.5; // 单位圆半径像素
+
+        // 画坐标系
+        ctx.strokeStyle = "#ccc";
+        ctx.beginPath();
+        ctx.moveTo(0, cy); ctx.lineTo(width, cy);
+        ctx.moveTo(cx, 0); ctx.lineTo(cx, height);
+        ctx.stroke();
+
+        // 画单位圆
+        ctx.strokeStyle = "#333";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r_pixel, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 计算极点
+        // p = exp(-aT) * exp(+/- j bT)
+        var mag = Math.exp(-a * T);
+        var ang = b * T;
+        
+        var p1x = mag * Math.cos(ang);
+        var p1y = mag * Math.sin(ang);
+        var p2x = mag * Math.cos(-ang);
+        var p2y = mag * Math.sin(-ang);
+
+        // 绘制极点 (X)
+        function drawCross(x, y) {
+            var sx = cx + x * r_pixel;
+            var sy = cy - y * r_pixel;
+            var len = 6;
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(sx - len, sy - len); ctx.lineTo(sx + len, sy + len);
+            ctx.moveTo(sx + len, sy - len); ctx.lineTo(sx - len, sy + len);
+            ctx.stroke();
+        }
+        drawCross(p1x, p1y);
+        drawCross(p2x, p2y);
+
+        // 绘制零点 (O)
+        // 题(2)的零点在 z=0
+        function drawCircle(x, y, color) {
+            var sx = cx + x * r_pixel;
+            var sy = cy - y * r_pixel;
+            var r = 6;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(sx, sy, r, 0, Math.PI*2);
+            ctx.stroke();
+        }
+        // Case 2 零点
+        drawCircle(0, 0, "blue");
+
+        // Case 1 零点 z = e^{-aT}cos(bT)
+        var z1 = Math.exp(-a*T) * Math.cos(b*T);
+        drawCircle(z1, 0, "navy");
+
+        // 文字标注
+        ctx.fillStyle = "#000";
+        ctx.font = "12px sans-serif";
+        ctx.fillText("Re", width - 20, cy - 5);
+        ctx.fillText("Im", cx + 5, 15);
+        ctx.fillText("极点模长: " + mag.toFixed(3), 10, height - 10);
+    }
+</script>
+
+</body>
+</html>

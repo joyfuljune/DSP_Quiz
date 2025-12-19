@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>DSP 滤波器深度解析</title>
+    
+    <!-- 1. MathJax 配置 (兼容性优化) -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    console.log('MathJax is loaded');
+                    MathJax.startup.defaultReady();
+                }
+            }
+        };
+    </script>
+    <!-- 使用 jsdelivr CDN 加载 MathJax，速度快且稳定 -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body { 
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; 
+            background-color: #f4f4f9; 
+            color: #222; 
+            display: flex; flex-direction: column; align-items: center; 
+            padding: 20px; margin: 0;
+        }
+
+        h1 { margin: 5px 0; color: #111; }
+        .subtitle { color: #555; margin-bottom: 20px; font-size: 16px; font-weight: bold; }
+
+        /* --- 控制区 --- */
+        .controls { 
+            background: #fff; padding: 10px; border-radius: 50px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px;
+            display: flex; gap: 15px;
+        }
+        .filter-btn {
+            padding: 10px 30px; font-size: 16px; border: 2px solid transparent; 
+            border-radius: 40px; cursor: pointer; font-weight: 800; 
+            background: transparent; color: #444; transition: 0.2s;
+        }
+        .filter-btn:hover { background: #eee; }
+        .filter-btn.active { color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transform: scale(1.05); }
+        
+        /* 颜色类 */
+        .btn-LP.active { background: #3498db; border-color: #3498db; }
+        .btn-HP.active { background: #e74c3c; border-color: #e74c3c; }
+        .btn-BP.active { background: #2ecc71; border-color: #2ecc71; }
+        .btn-BS.active { background: #9b59b6; border-color: #9b59b6; }
+
+        /* --- 粒子动画 --- */
+        .flow-container {
+            position: relative; width: 1000px; height: 120px; 
+            background: #222; border-radius: 8px; overflow: hidden;
+            margin-bottom: 20px; border: 2px solid #444;
+        }
+        .flow-label { 
+            position: absolute; font-size: 14px; font-weight: bold; color: #fff; 
+            padding: 4px 8px; background: rgba(0,0,0,0.6); border-radius: 4px; pointer-events: none;
+        }
+
+        /* --- 核心图表区 (左右布局) --- */
+        .main-row {
+            display: flex; gap: 20px; width: 1000px; margin-bottom: 20px;
+        }
+        .card {
+            flex: 1; background: #fff; padding: 15px; border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #ddd;
+            display: flex; flex-direction: column;
+        }
+        .card h3 { 
+            margin: 0 0 10px 0; font-size: 18px; color: #000; 
+            border-bottom: 3px solid #eee; padding-bottom: 8px;
+        }
+        
+        canvas.plot { width: 100%; height: 200px; background: #fff; border: 1px solid #eee; }
+        
+        /* 公式区域 */
+        .formula-box {
+            margin-top: 10px; background: #f8f9fa; padding: 10px; border-left: 5px solid #666;
+            font-size: 15px; color: #333; min-height: 80px; display: flex; align-items: center; justify-content: center;
+        }
+        .desc-text { margin-top: 10px; font-size: 15px; line-height: 1.5; color: #333; }
+
+        /* --- 音频区 --- */
+        .audio-section {
+            width: 1000px; background: #fff; padding: 15px; border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 20px;
+            border-left: 8px solid #3498db; margin-bottom: 30px;
+        }
+        .play-btn {
+            width: 50px; height: 50px; border-radius: 50%; border: none; background: #2c3e50;
+            color: white; font-size: 20px; cursor: pointer; flex-shrink: 0;
+        }
+        .play-btn:hover { background: #1a252f; transform: scale(1.1); }
+
+        /* --- 底部静态画廊 --- */
+        .gallery-container { width: 1000px; }
+        .gallery-title { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #ccc; display: inline-block; padding-bottom: 5px;}
+        .gallery-grid { display: flex; gap: 15px; justify-content: space-between; }
+        .gallery-item { 
+            flex: 1; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #ccc;
+            text-align: center;
+        }
+        .gallery-item h4 { margin: 5px 0; color: #000; font-size: 16px; }
+        .gallery-item canvas { width: 100%; height: 120px; background: #fff; }
+
+    </style>
+</head>
+<body>
+
+<h1>DSP 综合实验室</h1>
+<div class="subtitle">左右互搏：微观时域 $h[n]$ vs 宏观频域 $H(e^{j\omega})$</div>
+
+<!-- 控制按钮 -->
+<div class="controls">
+    <button class="filter-btn btn-LP active" onclick="setFilter('LP')">低通 (Low Pass)</button>
+    <button class="filter-btn btn-HP" onclick="setFilter('HP')">高通 (High Pass)</button>
+    <button class="filter-btn btn-BP" onclick="setFilter('BP')">带通 (Band Pass)</button>
+    <button class="filter-btn btn-BS" onclick="setFilter('BS')">带阻 (Band Stop)</button>
+</div>
+
+<!-- 粒子动画 -->
+<div class="flow-container">
+    <canvas id="cvsFlow" width="1000" height="120"></canvas>
+    <div class="flow-label" style="top:5px; left:5px;">↑ 高频 (High Freq)</div>
+    <div class="flow-label" style="bottom:5px; left:5px;">↓ 低频 (Low Freq)</div>
+    <div class="flow-label" style="top:5px; right:5px;">输出信号 &rarr;</div>
+    <div id="filterOverlay" style="position:absolute; left:500px; top:0; width:2px; height:100%; background:rgba(255,255,255,0.4);"></div>
+</div>
+
+<!-- 左右核心对比区 -->
+<div class="main-row">
+    <!-- 左：时域 -->
+    <div class="card">
+        <h3>1. 微观动作：时域 $h[n]$</h3>
+        <canvas id="cvsTime" class="plot" width="450" height="200"></canvas>
+        <div class="desc-text" id="descTime"></div>
+        <div class="formula-box" id="mathTime">
+            <!-- MathJax 公式插入区 -->
+        </div>
+    </div>
+
+    <!-- 右：频域 -->
+    <div class="card">
+        <h3>2. 宏观规则：频域 $H(e^{j\omega})$</h3>
+        <canvas id="cvsFreq" class="plot" width="450" height="200"></canvas>
+        <div class="desc-text" id="descFreq"></div>
+        <div class="formula-box" id="mathFreq">
+             <!-- MathJax 公式插入区 -->
+        </div>
+    </div>
+</div>
+
+<!-- 音频 -->
+<div class="audio-section" id="audioSection">
+    <button class="play-btn" onclick="toggleAudio()" id="btnPlay">▶</button>
+    <div>
+        <h4 style="margin:0 0 5px 0; font-size:16px;">听觉实验：小星星变奏曲</h4>
+        <span id="audioDesc" style="color:#555; font-size:14px;">点击按钮播放，感受不同滤波器的音色变化。</span>
+    </div>
+</div>
+
+<!-- 底部静态画廊 -->
+<div class="gallery-container">
+    <div style="text-align:center;"><div class="gallery-title">四大门派：幅频响应对比 $H(e^{j\omega})$</div></div>
+    <div class="gallery-grid">
+        <div class="gallery-item">
+            <h4>低通 (LP)</h4>
+            <canvas id="galLP" width="230" height="120"></canvas>
+        </div>
+        <div class="gallery-item">
+            <h4>高通 (HP)</h4>
+            <canvas id="galHP" width="230" height="120"></canvas>
+        </div>
+        <div class="gallery-item">
+            <h4>带通 (BP)</h4>
+            <canvas id="galBP" width="230" height="120"></canvas>
+        </div>
+        <div class="gallery-item">
+            <h4>带阻 (BS)</h4>
+            <canvas id="galBS" width="230" height="120"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 配置中心 ---
+    const CONFIG = {
+        'LP': { 
+            color: '#3498db', type: 'lowpass', freq: 400, Q: 1,
+            descTime: "<b>棉被效应 (平滑)</b>：系数主要是正数，且形状宽大圆润。正数求和 = 求平均，抹平了高频抖动。",
+            descFreq: "只允许左侧（低频）通过，右侧（高频）被阻挡。",
+            mathTime: "$$h[n] = \\frac{\\omega_c}{\\pi} \\text{sinc}\\left(\\frac{\\omega_c n}{\\pi}\\right)$$",
+            mathFreq: "$$|H(e^{j\\omega})| = \\begin{cases} 1, & |\\omega| < \\omega_c \\\\ 0, & \\text{其他} \\end{cases}$$"
+        },
+        'HP': { 
+            color: '#e74c3c', type: 'highpass', freq: 800, Q: 1,
+            descTime: "<b>纱窗效应 (差分)</b>：系数正负剧烈交替。正负相减 = 求差值，凸显了高频变化。",
+            descFreq: "左侧（低频）被阻挡，只允许右侧（高频）通过。",
+            mathTime: "$$h[n] = (-1)^n \\cdot \\frac{\\omega_c}{\\pi} \\text{sinc}(\\dots)$$", // 简化写法以适应显示
+            mathFreq: "$$|H(e^{j\\omega})| = \\begin{cases} 0, & |\\omega| < \\omega_c \\\\ 1, & \\text{其他} \\end{cases}$$"
+        },
+        'BP': { 
+            color: '#2ecc71', type: 'bandpass', freq: 600, Q: 5,
+            descTime: "<b>音叉效应 (共振)</b>：$h[n]$ 本身就是一个波包。只有与它频率一致的输入信号才能产生最大响应。",
+            descFreq: "只有中间特定频段允许通过。",
+            mathTime: "$$h[n] = 2 h_{LP}[n] \\cos(\\omega_0 n)$$",
+            mathFreq: "$$|H(e^{j\\omega})| = 1 \\text{ 当 } \\omega \\approx \\omega_0$$"
+        },
+        'BS': { 
+            color: '#9b59b6', type: 'notch', freq: 600, Q: 10,
+            descTime: "<b>消音器 (减法)</b>：中间的脉冲代表“直通”，减去带通部分的波浪，剩下的就是去除了特定频率的信号。",
+            descFreq: "中间挖了一个坑（陷波），其他频率全过。",
+            mathTime: "$$h[n] = \\delta[n] - h_{BP}[n]$$",
+            mathFreq: "$$|H(e^{j\\omega})| = 1 - |H_{BP}(e^{j\\omega})|$$"
+        }
+    };
+
+    let currentFilter = 'LP';
+    
+    // Canvas Contexts
+    const cvsFlow = document.getElementById('cvsFlow').getContext('2d');
+    const cvsTime = document.getElementById('cvsTime').getContext('2d');
+    const cvsFreq = document.getElementById('cvsFreq').getContext('2d');
+
+    // Audio Globals
+    let audioCtx = null;
+    let mainGain = null;
+    let biquadFilter = null;
+    let isPlaying = false;
+    let sequencerTimer = null;
+
+    // --- 1. 核心切换逻辑 ---
+    function setFilter(type) {
+        currentFilter = type;
+        const c = CONFIG[type];
+        
+        // UI Highlight
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.btn-${type}`).classList.add('active');
+        document.getElementById('audioSection').style.borderLeftColor = c.color;
+        
+        // Update Text
+        document.getElementById('descTime').innerHTML = c.descTime;
+        document.getElementById('descFreq').innerHTML = c.descFreq;
+        document.getElementById('mathTime').innerHTML = c.mathTime;
+        document.getElementById('mathFreq').innerHTML = c.mathFreq;
+
+        // Trigger MathJax Render
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise([document.getElementById('mathTime'), document.getElementById('mathFreq')]);
+        }
+
+        // Update Audio
+        if(isPlaying) {
+             document.getElementById('audioDesc').innerText = "正在播放: " + type + " - " + c.descTime.split('：')[0];
+             if(biquadFilter && audioCtx) {
+                biquadFilter.type = c.type;
+                biquadFilter.frequency.setValueAtTime(c.freq, audioCtx.currentTime);
+                biquadFilter.Q.setValueAtTime(c.Q, audioCtx.currentTime);
+             }
+        }
+
+        drawCharts();
+    }
+
+    // --- 2. 绘图逻辑 (大字号、高对比度) ---
+    function sinc(x) { return x === 0 ? 1 : Math.sin(x) / x; }
+
+    function drawCharts() {
+        const color = CONFIG[currentFilter].color;
+        
+        // --- 画 h[n] ---
+        const wT = cvsTime.canvas.width;
+        const hT = cvsTime.canvas.height;
+        cvsTime.clearRect(0, 0, wT, hT);
+        
+        // 坐标轴
+        drawAxis(cvsTime, wT, hT, "n (时间)", "h[n]");
+        
+        const midY = hT / 2;
+        const N = 50; 
+        const step = (wT - 60) / N;
+
+        for(let n=0; n<N; n++) {
+            const k = n - N/2;
+            let val = 0;
+            // 数学模拟
+            if(currentFilter === 'LP') val = 0.4 * sinc(0.25 * Math.PI * k);
+            else if(currentFilter === 'HP') val = 0.4 * Math.pow(-1, k) * sinc(0.6 * Math.PI * k);
+            else if(currentFilter === 'BP') val = 0.4 * Math.cos(0.5*Math.PI*k) * sinc(0.2*Math.PI*k);
+            else if(currentFilter === 'BS') val = (k===0?0.8:0) - 0.3 * Math.cos(0.5*Math.PI*k) * sinc(0.2*Math.PI*k);
+            
+            val *= (0.54 - 0.46 * Math.cos(2*Math.PI*n/(N-1))); // Hamming Window
+
+            const px = 40 + n * step;
+            const py = midY - val * (hT/2 - 30) * 2;
+            const pColor = val >= 0 ? '#3498db' : '#e74c3c'; // 蓝正 红负
+            
+            cvsTime.beginPath();
+            cvsTime.lineWidth = 2;
+            cvsTime.strokeStyle = pColor;
+            cvsTime.moveTo(px, midY); cvsTime.lineTo(px, py); cvsTime.stroke();
+            
+            cvsTime.beginPath();
+            cvsTime.fillStyle = pColor;
+            cvsTime.arc(px, py, 3, 0, Math.PI*2); cvsTime.fill();
+        }
+
+        // --- 画 H(w) ---
+        drawFreqResponse(cvsFreq, currentFilter, true);
+    }
+
+    // 通用坐标轴绘制 (黑色粗体)
+    function drawAxis(ctx, w, h, xLabel, yLabel) {
+        const padL = 40, padB = 30;
+        ctx.strokeStyle = '#000'; // 纯黑
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(padL, 10); ctx.lineTo(padL, h - padB); ctx.lineTo(w - 10, h - padB);
+        ctx.stroke();
+        
+        ctx.fillStyle = '#000'; // 纯黑
+        ctx.font = "bold 14px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(xLabel, w/2, h - 5);
+        ctx.save();
+        ctx.translate(15, h/2);
+        ctx.rotate(-Math.PI/2);
+        ctx.fillText(yLabel, 0, 0);
+        ctx.restore();
+    }
+
+    // 绘制幅频响应曲线
+    function drawFreqResponse(ctx, type, isMain) {
+        const w = ctx.canvas.width;
+        const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        const padL = isMain ? 40 : 25;
+        const padB = isMain ? 30 : 20;
+        const chartW = w - padL - 10;
+        const chartH = h - padB - 10;
+        const axisY = h - padB;
+
+        // 绘制坐标轴
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(padL, 10); ctx.lineTo(padL, axisY); ctx.lineTo(w-5, axisY); ctx.stroke();
+        
+        // 坐标文字
+        ctx.fillStyle = '#000'; 
+        ctx.font = isMain ? "bold 14px Arial" : "bold 11px Arial";
+        ctx.textAlign = "right"; ctx.fillText("1.0", padL-5, 20);
+        ctx.fillText("0", padL-5, axisY);
+        ctx.textAlign = "center"; 
+        ctx.fillText("0", padL, axisY + (isMain?15:12));
+        ctx.fillText("π", w-15, axisY + (isMain?15:12));
+        if(isMain) ctx.fillText("频率 ω", w/2, axisY + 15);
+
+        // 绘制折线
+        ctx.beginPath();
+        ctx.lineWidth = isMain ? 4 : 3;
+        ctx.strokeStyle = CONFIG[type].color;
+        ctx.lineJoin = 'round';
+
+        let pts = [];
+        const startX = padL; const endX = w - 10;
+        
+        if (type === 'LP') {
+            const cut = startX + chartW * 0.4;
+            pts = [[startX, 20], [cut, 20], [cut, axisY], [endX, axisY]];
+        } else if (type === 'HP') {
+            const cut = startX + chartW * 0.6;
+            pts = [[startX, axisY], [cut, axisY], [cut, 20], [endX, 20]];
+        } else if (type === 'BP') {
+            const c1 = startX + chartW * 0.3, c2 = startX + chartW * 0.7;
+            pts = [[startX, axisY], [c1, axisY], [c1, 20], [c2, 20], [c2, axisY], [endX, axisY]];
+        } else if (type === 'BS') {
+            const c1 = startX + chartW * 0.35, c2 = startX + chartW * 0.65;
+            pts = [[startX, 20], [c1, 20], [c1, axisY], [c2, axisY], [c2, 20], [endX, 20]];
+        }
+
+        if(pts.length > 0) {
+            ctx.moveTo(pts[0][0], pts[0][1]);
+            for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        }
+        ctx.stroke();
+    }
+
+    // --- 3. 底部画廊 ---
+    function drawGallery() {
+        ['LP', 'HP', 'BP', 'BS'].forEach(t => {
+            const ctx = document.getElementById('gal' + t).getContext('2d');
+            drawFreqResponse(ctx, t, false);
+        });
+    }
+
+    // --- 4. 粒子动画 (加亮颜色) ---
+    let particles = [];
+    function initParticles() {
+        for(let i=0; i<80; i++) particles.push({
+            x: Math.random()*1000, y: Math.random()*120, speed: 2+Math.random()*2, dead:false
+        });
+        animateParticles();
+    }
+    function animateParticles() {
+        const W=1000, H=120;
+        cvsFlow.fillStyle = '#222'; cvsFlow.fillRect(0,0,W,H);
+        cvsFlow.strokeStyle = '#555'; cvsFlow.setLineDash([4,4]);
+        cvsFlow.beginPath(); cvsFlow.moveTo(W/2,0); cvsFlow.lineTo(W/2,H); cvsFlow.stroke(); cvsFlow.setLineDash([]);
+
+        particles.forEach(p => {
+            p.x += p.speed;
+            if(p.x > W) { p.x=0; p.y=Math.random()*H; p.dead=false; }
+            
+            // 滤波判断
+            if(!p.dead && p.x >= W/2 && p.x < W/2+p.speed) {
+                const f = 1 - p.y/H; // 1=High, 0=Low
+                let pass = false;
+                if(currentFilter === 'LP') pass = f < 0.5;
+                else if(currentFilter === 'HP') pass = f > 0.5;
+                else if(currentFilter === 'BP') pass = f > 0.3 && f < 0.7;
+                else if(currentFilter === 'BS') pass = !(f > 0.4 && f < 0.6);
+                if(!pass) p.dead = true;
+            }
+
+            if(!p.dead) {
+                // High=Red(0), Low=Blue(240). 
+                cvsFlow.fillStyle = `hsl(${(p.y/H)*240}, 90%, 60%)`;
+                cvsFlow.beginPath(); cvsFlow.arc(p.x, p.y, 4, 0, Math.PI*2); cvsFlow.fill();
+            } else if(p.x < W/2 + 40) {
+                cvsFlow.fillStyle = '#444';
+                cvsFlow.beginPath(); cvsFlow.arc(p.x, p.y, 2, 0, Math.PI*2); cvsFlow.fill();
+            }
+        });
+        requestAnimationFrame(animateParticles);
+    }
+
+    // --- 5. 音频逻辑 (小星星) ---
+    const melody = [
+        {n:'C4',d:0.4}, {n:'C4',d:0.4}, {n:'G4',d:0.4}, {n:'G4',d:0.4}, {n:'A4',d:0.4}, {n:'A4',d:0.4}, {n:'G4',d:0.8},
+        {n:'F4',d:0.4}, {n:'F4',d:0.4}, {n:'E4',d:0.4}, {n:'E4',d:0.4}, {n:'D4',d:0.4}, {n:'D4',d:0.4}, {n:'C4',d:0.8}
+    ];
+    const freqs = { 'C4':261.6, 'D4':293.7, 'E4':329.6, 'F4':349.2, 'G4':392.0, 'A4':440.0 };
+
+    function toggleAudio() {
+        if(!isPlaying) {
+            if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            
+            mainGain = audioCtx.createGain(); mainGain.gain.value = 0.2;
+            biquadFilter = audioCtx.createBiquadFilter();
+            
+            // Sync filter
+            const c = CONFIG[currentFilter];
+            biquadFilter.type = c.type;
+            biquadFilter.frequency.value = c.freq;
+            biquadFilter.Q.value = c.Q;
+
+            biquadFilter.connect(mainGain); mainGain.connect(audioCtx.destination);
+            
+            isPlaying = true;
+            document.getElementById('btnPlay').innerText = "■";
+            document.getElementById('audioDesc').innerText = "播放中...";
+            playSeq(0);
+        } else {
+            isPlaying = false;
+            if(mainGain) mainGain.disconnect();
+            if(sequencerTimer) clearTimeout(sequencerTimer);
+            document.getElementById('btnPlay').innerText = "▶";
+            document.getElementById('audioDesc').innerText = "已停止";
+        }
+    }
+
+    function playSeq(idx) {
+        if(!isPlaying) return;
+        const note = melody[idx % melody.length];
+        const osc = audioCtx.createOscillator();
+        osc.type = 'sawtooth'; // 锯齿波泛音丰富，滤波效果更明显
+        osc.frequency.value = freqs[note.n];
+        
+        const env = audioCtx.createGain();
+        env.gain.setValueAtTime(0, audioCtx.currentTime);
+        env.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.05);
+        env.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + note.d);
+
+        osc.connect(env); env.connect(biquadFilter);
+        osc.start(); osc.stop(audioCtx.currentTime + note.d);
+
+        sequencerTimer = setTimeout(() => playSeq(idx+1), note.d * 1000);
+    }
+
+    // Init
+    initParticles();
+    setFilter('LP');
+    drawGallery();
+
+</script>
+</body>
+</html>

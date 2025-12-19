@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字滤波器设计 (极点映射法)</title>
+    
+    <!-- MathJax 配置 -->
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global',
+        scale: 1.0 /* 恢复正常比例 */
+      }
+    };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+
+    <style>
+        /* 全局样式：字号恢复正常，布局更精致 */
+        body { 
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif; 
+            line-height: 1.5; 
+            color: #333; 
+            background-color: #f7f9fc; 
+            margin: 0; 
+            padding: 20px; 
+            font-size: 16px; /* 调整为标准字号 */
+        }
+
+        .container { 
+            max-width: 960px; 
+            margin: 0 auto; 
+            background-color: #fff; 
+            padding: 25px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        /* 标题样式 */
+        h1 { 
+            font-size: 22px; 
+            color: #2c3e50; 
+            border-bottom: 2px solid #3498db; 
+            padding-bottom: 10px; 
+            margin-bottom: 20px;
+        }
+        h2 { 
+            font-size: 18px; 
+            color: #fff; 
+            background-color: #3498db; 
+            padding: 8px 15px; 
+            border-radius: 4px; 
+            margin-top: 30px; 
+            margin-bottom: 15px;
+        }
+        h4 { 
+            font-size: 16px; 
+            color: #2980b9; 
+            margin: 10px 0 5px 0; 
+            font-weight: bold;
+        }
+
+        /* 内容容器 */
+        .section-box { 
+            border: 1px solid #e1e4e8; 
+            padding: 15px; 
+            margin-bottom: 20px; 
+            background: #fff;
+            border-radius: 4px;
+        }
+        .step-box {
+            background-color: #f8f9fa;
+            border-left: 3px solid #bdc3c7;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+        }
+        .result-box { 
+            background-color: #e8f8f5; 
+            border: 1px solid #2ecc71; 
+            color: #27ae60;
+            padding: 10px; 
+            border-radius: 4px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        /* 强调 */
+        .highlight { color: #e67e22; font-weight: bold; }
+
+        /* 绘图区布局 */
+        .chart-container { 
+            display: flex; 
+            gap: 15px; 
+            margin-top: 10px; 
+            flex-wrap: wrap;
+        }
+        .chart-wrapper { 
+            flex: 1; 
+            min-width: 300px; 
+            border: 1px solid #eee; 
+            padding: 5px; 
+            background: #fafafa; 
+        }
+        canvas { 
+            width: 100%; 
+            height: 220px; /* 高度适中 */
+            display: block; 
+        }
+
+        /* 控制栏 */
+        .controls { 
+            background: #fff3e0; 
+            border: 1px solid #ffe0b2; 
+            padding: 10px; 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            border-radius: 4px;
+        }
+        input { padding: 4px 8px; width: 60px; font-size: 14px; }
+        button { 
+            padding: 5px 15px; 
+            background: #3498db; 
+            color: white; 
+            border: none; 
+            border-radius: 3px; 
+            cursor: pointer; 
+            font-size: 14px; 
+        }
+        button:hover { background: #2980b9; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>数字滤波器设计 (采样周期 T = 2s)</h1>
+
+    <!-- ================== 题目 1 ================== -->
+    <h2>(1) $H_a(s) = \frac{1}{s^2+s+1}$</h2>
+    
+    <div class="section-box">
+        <h4>方法一：脉冲响应不变法 (IIM) - 极点映射</h4>
+        <div class="step-box">
+            <p><strong>Step 1: 极点分解</strong><br>
+            解 $s^2+s+1=0$ 得极点 $p_1 = -0.5 + j\frac{\sqrt{3}}{2}, \ p_2 = -0.5 - j\frac{\sqrt{3}}{2}$。<br>
+            展开式：$H_a(s) = \frac{A}{s-p_1} + \frac{A^*}{s-p_2}$，其中 $A = \frac{1}{p_1-p_2} = \frac{1}{j\sqrt{3}}$。</p>
+            
+            <p><strong>Step 2: 映射替换</strong><br>
+            利用 $\frac{1}{s-p} \to \frac{1}{1-e^{pT}z^{-1}}$，代入 <span class="highlight">$T=2$</span>：<br>
+            $H(z) = \frac{A}{1 - e^{(-1+j\sqrt{3})}z^{-1}} + \frac{A^*}{1 - e^{(-1-j\sqrt{3})}z^{-1}}$</p>
+            
+            <p><strong>Step 3: 通分合并</strong><br>
+            $$ H(z) = \frac{ A(1-e^{p_2 T}z^{-1}) + A^*(1-e^{p_1 T}z^{-1}) }{ 1 - (e^{p_1 T} + e^{p_2 T})z^{-1} + e^{(p_1+p_2)T}z^{-2} } $$
+            利用 $A+A^*=0$ 且 $A-A^* = \frac{2}{j\sqrt{3}}$，化简后分子为 $\frac{2}{\sqrt{3}}e^{-1}\sin(\sqrt{3})z^{-1}$。</p>
+        </div>
+        <div class="result-box">
+            结果：$$ H(z) \approx \frac{ 0.153 z^{-1} }{ 1 - 0.231 z^{-1} + 0.135 z^{-2} } $$
+        </div>
+    </div>
+
+    <div class="section-box">
+        <h4>方法二：双线性变换法 (BLT)</h4>
+        <div class="step-box">
+            <p>代入 <span class="highlight">$T=2$</span>，即用 $s = \frac{1-z^{-1}}{1+z^{-1}}$ 替换：<br>
+            $$ H(z) = \frac{1}{ \left( \frac{1-z^{-1}}{1+z^{-1}} \right)^2 + \left( \frac{1-z^{-1}}{1+z^{-1}} \right) + 1 } $$</p>
+            <p>分子分母同乘 $(1+z^{-1})^2$ 并整理系数：</p>
+        </div>
+        <div class="result-box">
+            结果：$$ H(z) = \frac{1 + 2z^{-1} + z^{-2}}{3 + z^{-2}} $$
+        </div>
+    </div>
+
+    <!-- 题1 绘图 -->
+    <div class="chart-container">
+        <div class="chart-wrapper">
+            <canvas id="c1_iim"></canvas>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="c1_blt"></canvas>
+        </div>
+    </div>
+
+
+    <!-- ================== 题目 2 ================== -->
+    <h2>(2) $H_a(s) = \frac{b}{2s^2+3s+1}$</h2>
+
+    <div class="section-box">
+        <h4>方法一：脉冲响应不变法 (IIM) - 极点映射</h4>
+        <div class="step-box">
+            <p><strong>Step 1: 极点分解</strong><br>
+            $H_a(s) = \frac{b}{(2s+1)(s+1)} = \frac{b}{2(s+0.5)(s+1)}$。<br>
+            部分分式展开：$H_a(s) = \frac{b}{s+0.5} - \frac{b}{s+1}$。</p>
+            
+            <p><strong>Step 2: 映射替换</strong><br>
+            利用 $\frac{1}{s-p} \to \frac{1}{1-e^{pT}z^{-1}}$，代入 <span class="highlight">$T=2$</span>：<br>
+            $$ H(z) = \frac{b}{1 - e^{-0.5 \times 2}z^{-1}} - \frac{b}{1 - e^{-1 \times 2}z^{-1}} $$</p>
+        </div>
+        <div class="result-box">
+            结果：$$ H(z) = \frac{ b(e^{-1} - e^{-2})z^{-1} }{ 1 - (e^{-1} + e^{-2})z^{-1} + e^{-3}z^{-2} } $$
+        </div>
+    </div>
+
+    <div class="section-box">
+        <h4>方法二：双线性变换法 (BLT)</h4>
+        <div class="step-box">
+            <p>代入 <span class="highlight">$T=2$</span>，即用 $s = \frac{1-z^{-1}}{1+z^{-1}}$ 替换：<br>
+            $$ H(z) = \frac{b}{ 2\left( \frac{1-z^{-1}}{1+z^{-1}} \right)^2 + 3\left( \frac{1-z^{-1}}{1+z^{-1}} \right) + 1 } $$</p>
+            <p>分子分母同乘 $(1+z^{-1})^2$，注意分母二次项系数抵消：</p>
+        </div>
+        <div class="result-box">
+            结果：$$ H(z) = \frac{ b(1 + 2z^{-1} + z^{-2}) }{ 6 - 2z^{-1} } $$
+        </div>
+    </div>
+
+    <!-- 题2 控制与绘图 -->
+    <div class="controls">
+        <label>设定参数 b:</label>
+        <input type="number" id="input_b" value="1.0" step="0.5">
+        <button onclick="updateP2()">更新图表</button>
+        <span style="font-size:12px; color:#e67e22;">(注：图表Y轴刻度固定，可直观观察 b 对幅度的改变)</span>
+    </div>
+
+    <div class="chart-container">
+        <div class="chart-wrapper">
+            <canvas id="c2_iim"></canvas>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="c2_blt"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    window.onload = function() {
+        drawP1();
+        updateP2();
+    };
+
+    // --- 题 1 绘图 ---
+    function drawP1() {
+        var sqrt3 = Math.sqrt(3);
+        var e_1 = Math.exp(-1);
+        var e_2 = Math.exp(-2);
+
+        // IIM: 极点映射合并后的系数
+        // 分子: 2/sqrt3 * e^-1 * sin(sqrt3)
+        // 分母: 1 - 2e^-1cos(sqrt3)z^-1 + e^-2z^-2
+        var k = (2/sqrt3) * e_1 * Math.sin(sqrt3);
+        var a1 = 2 * e_1 * Math.cos(sqrt3);
+        // 注意：函数接受的 a 数组对应 H(z) 分母展开式 1 + a1*z^-1 + ...
+        // 所以公式里的负号要带入
+        plot('c1_iim', [0, k, 0], [1, -a1, e_2], '#2980b9', null, "题(1) IIM 响应");
+
+        // BLT
+        plot('c1_blt', [1/3, 2/3, 1/3], [1, 0, 1/3], '#27ae60', null, "题(1) BLT 响应");
+    }
+
+    // --- 题 2 绘图 ---
+    function updateP2() {
+        var b = parseFloat(document.getElementById('input_b').value) || 0;
+        var e_1 = Math.exp(-1);
+        var e_2 = Math.exp(-2);
+        var e_3 = Math.exp(-3);
+
+        // IIM
+        var num = b * (e_1 - e_2);
+        var den1 = -(e_1 + e_2);
+        plot('c2_iim', [0, num, 0], [1, den1, e_3], '#2980b9', 1.5, "题(2) IIM 响应");
+
+        // BLT
+        var s = b / 6.0;
+        plot('c2_blt', [s, 2*s, s], [1, -1/3, 0], '#27ae60', 1.5, "题(2) BLT 响应");
+    }
+
+    /**
+     * 通用绘图函数
+     */
+    function plot(id, b, a, color, fixedY, titleText) {
+        var cvs = document.getElementById(id);
+        var ctx = cvs.getContext('2d');
+        var w = cvs.width = cvs.offsetWidth;
+        var h = cvs.height = cvs.offsetHeight;
+        
+        // 1. 计算脉冲响应
+        var N=30, x=new Array(N).fill(0), y=new Array(N).fill(0);
+        x[0]=1; // 单位脉冲
+        for(var n=0; n<N; n++) {
+            var val=0;
+            // 前馈 b
+            for(var k=0; k<b.length; k++) if(n>=k) val += b[k]*x[n-k];
+            // 反馈 a (a[0] assumed 1)
+            for(var k=1; k<a.length; k++) if(n>=k) val -= a[k]*y[n-k];
+            y[n] = val;
+        }
+
+        // 2. 确定坐标轴比例
+        var pad=30, plotH=h-2*pad, maxV=0;
+        if(fixedY) {
+            maxV = fixedY; 
+        } else {
+            // 自动缩放
+            for(var i=0; i<N; i++) if(Math.abs(y[i])>maxV) maxV=Math.abs(y[i]);
+            if(maxV<0.01) maxV=1; 
+            maxV*=1.2; // 留白
+        }
+
+        // 3. 绘制
+        ctx.clearRect(0,0,w,h);
+        var zeroY = h/2; // Y轴中点
+        
+        // 坐标轴线
+        ctx.strokeStyle='#ccc'; ctx.lineWidth=1; 
+        ctx.beginPath();
+        ctx.moveTo(pad, zeroY); ctx.lineTo(w-pad, zeroY); // X轴
+        ctx.moveTo(pad, h-pad); ctx.lineTo(pad, pad); // Y轴
+        ctx.stroke();
+
+        // 标题
+        ctx.fillStyle='#555'; ctx.font='bold 14px sans-serif';
+        ctx.fillText(titleText, pad, 20);
+
+        // 波形 (火柴杆)
+        ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=2;
+        var step = (w-2*pad)/(N-1);
+        
+        for(var n=0; n<N; n++) {
+            var px = pad + n*step;
+            var py = zeroY - (y[n]/maxV)*(plotH/2);
+            
+            // 边界截断，防止画出画布
+            if(py < pad) py = pad; 
+            if(py > h-pad) py = h-pad;
+
+            ctx.beginPath(); ctx.moveTo(px, zeroY); ctx.lineTo(px, py); ctx.stroke();
+            ctx.beginPath(); ctx.arc(px, py, 3, 0, 6.28); ctx.fill();
+        }
+
+        // 标注
+        ctx.fillStyle='#666'; ctx.font='12px sans-serif';
+        ctx.fillText("Max: ±"+maxV.toFixed(2), w-80, pad);
+        ctx.fillText("n", w-20, zeroY+15);
+    }
+</script>
+
+</body>
+</html>
