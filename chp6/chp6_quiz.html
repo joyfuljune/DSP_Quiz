@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第六章：IIR数字滤波器设计测验</title>
+    
+    <!-- 加载 MathJax -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a5276 0%, #2c3e50 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .start-screen {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .info-form {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .exam-info {
+            background: #eaf2f8;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .exam-info h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .exam-info ul {
+            margin-left: 20px;
+            color: #34495e;
+            line-height: 1.8;
+        }
+
+        .progress-bar {
+            background: #ecf0f1;
+            height: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            height: 100%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .question-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid #dee2e6;
+            transition: all 0.3s;
+        }
+
+        .question-card.answered {
+            border-color: #3498db;
+            background: #eaf2f8;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .question-number {
+            background: #2980b9;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .question-category {
+            background: #95a5a6;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+        }
+        
+        /* 第六章的分类颜色 */
+        .question-category.method { background: #3498db; }     /* 设计方法 */
+        .question-category.transform { background: #e67e22; }  /* 频率变换 */
+        .question-category.butter { background: #9b59b6; }     /* Butterworth */
+        .question-category.calc { background: #e74c3c; }       /* 计算题 */
+        .question-category.app { background: #1abc9c; }        /* 应用 */
+
+        .question-text {
+            font-size: 1.1em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .option:hover {
+            background: #f8f9fa;
+            border-color: #3498db;
+            transform: translateX(5px);
+        }
+
+        .option.selected {
+            background: #eaf2f8;
+            border-color: #3498db;
+            border-width: 3px;
+        }
+
+        .option.correct {
+            background: #d4edda;
+            border-color: #28a745;
+            border-width: 3px;
+        }
+
+        .option.incorrect {
+            background: #f8d7da;
+            border-color: #dc3545;
+            border-width: 3px;
+        }
+
+        .option-label {
+            background: #2980b9;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .option.correct .option-label { background: #28a745; }
+        .option.incorrect .option-label { background: #dc3545; }
+        .option-text { flex: 1; color: #2c3e50; }
+
+        .explanation {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .explanation.show { display: block; animation: slideDown 0.3s ease; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation h4 {
+            color: #856404;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .explanation p { color: #856404; line-height: 1.6; }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-submit { background: #2980b9; color: white; }
+        .btn-next { background: #3498db; color: white; }
+        .btn-prev { background: #95a5a6; color: white; }
+        .btn-finish { background: #c0392b; color: white; }
+        .btn-start { background: #3498db; color: white; padding: 15px 50px; font-size: 1.2em; }
+
+        .result-panel {
+            background: linear-gradient(135deg, #1a5276 0%, #2c3e50 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            display: none;
+        }
+
+        .result-panel.show { display: block; animation: fadeIn 0.5s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .student-info {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        .student-info p { margin: 5px 0; }
+        .result-score { font-size: 4em; font-weight: bold; margin: 20px 0; }
+        .result-message { font-size: 1.5em; margin-bottom: 20px; }
+        .result-details { background: rgba(255,255,255,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; }
+        .result-details table { width: 100%; border-collapse: collapse; }
+        .result-details td { padding: 10px; font-size: 1.1em; }
+        .review-section { margin-top: 30px; }
+
+        .review-question {
+            background: white;
+            color: #2c3e50;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .review-status {
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .review-status.correct { background: #d4edda; color: #155724; }
+        .review-status.wrong { background: #f8d7da; color: #721c24; }
+        
+        .statistics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            color: #2c3e50;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value { font-size: 2em; font-weight: bold; margin: 10px 0; }
+        .stat-label { color: #7f8c8d; font-size: 0.9em; }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.5em; }
+            .button-group { flex-direction: column; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>第六章：IIR数字滤波器设计</h1>
+        <p class="subtitle">DSP - 双线性变换法、Butterworth滤波器与频率变换</p>
+
+        <!-- 开始界面 -->
+        <div id="startScreen" class="start-screen">
+            <div class="exam-info">
+                <h3>📋 测验说明</h3>
+                <ul>
+                    <li>共20道题目，涵盖IIR滤波器设计的核心知识点</li>
+                    <li>包括双线性变换、脉冲响应不变法、Butterworth设计等</li>
+                    <li>选项顺序每次随机打乱，请仔细阅读</li>
+                    <li>提交后可查看详细解析和正确答案</li>
+                </ul>
+            </div>
+
+            <div class="info-form">
+                <h3 style="color: #2c3e50; margin-bottom: 20px;">请填写你的信息</h3>
+                <div class="form-group">
+                    <label for="studentId">学号 <span style="color: red;">*</span></label>
+                    <input type="text" id="studentId" placeholder="请输入学号" required="">
+                </div>
+                <div class="form-group">
+                    <label for="studentName">姓名 <span style="color: red;">*</span></label>
+                    <input type="text" id="studentName" placeholder="请输入姓名" required="">
+                </div>
+                <button class="btn-start" onclick="startExam()">开始考试</button>
+            </div>
+        </div>
+
+        <!-- 考试界面 -->
+        <div id="examScreen" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar">0/20 已完成</div>
+            </div>
+
+            <div id="questionContainer"></div>
+
+            <div class="button-group">
+                <button class="btn-prev" id="prevBtn" onclick="previousQuestion()">⬅️ 上一题</button>
+                <button class="btn-submit" id="submitBtn" onclick="submitAnswer()">✓ 提交答案</button>
+                <button class="btn-next" id="nextBtn" onclick="nextQuestion()">下一题 ➡️</button>
+                <button class="btn-finish" id="finishBtn" onclick="finishExam()" style="display: none;">🏁 完成考试</button>
+            </div>
+        </div>
+
+        <!-- 结果界面 -->
+        <div class="result-panel" id="resultPanel">
+            <h2>考试完成！</h2>
+            
+            <div class="student-info">
+                <p><strong>学号：</strong><span id="resultStudentId"></span></p>
+                <p><strong>姓名：</strong><span id="resultStudentName"></span></p>
+            </div>
+
+            <div class="result-score" id="resultScore">0/20</div>
+            <div class="result-message" id="resultMessage"></div>
+            
+            <div class="statistics">
+                <div class="stat-card">
+                    <div class="stat-label">正确率</div>
+                    <div class="stat-value" id="accuracyRate">0%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">设计方法</div>
+                    <div class="stat-value" id="methodScore">0/0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">频率变换</div>
+                    <div class="stat-value" id="transformScore">0/0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Butterworth</div>
+                    <div class="stat-value" id="butterScore">0/0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">计算与应用</div>
+                    <div class="stat-value" id="calcScore">0/0</div>
+                </div>
+            </div>
+
+            <button class="btn-submit" onclick="showReview()" style="margin-top: 30px;">📝 查看详细解析</button>
+            <button class="btn-next" onclick="location.reload()" style="margin-top: 10px;">🔄 重新开始</button>
+        </div>
+
+        <div id="reviewSection" style="display: none;">
+            <h2 style="margin: 30px 0 20px 0; color: #2c3e50;">📚 答题回顾与解析</h2>
+            <div id="reviewContainer"></div>
+        </div>
+    </div>
+
+<script>
+    // 随机数生成辅助函数
+    function randInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    function randChoice(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    // 题目库生成器
+    function generateQuestionBank() {
+        return [
+            // --- 设计方法 (method) ---
+            {
+                id: 1,
+                category: 'method',
+                categoryName: '设计方法',
+                question: '双线性变换法中，s域到z域的映射关系为：',
+                options: [
+                    '$s = \\frac{2}{T}\\frac{1-z^{-1}}{1+z^{-1}}$',
+                    '$s = \\frac{1}{T}\\ln z$',
+                    '$s = \\frac{z-1}{T}$',
+                    '$s = \\frac{2}{T}\\frac{1+z^{-1}}{1-z^{-1}}$'
+                ],
+                correct: 0,
+                explanation: '双线性变换的标准公式是 $s = \\frac{2}{T}\\frac{1-z^{-1}}{1+z^{-1}}$，它将s平面的整个左半平面映射到z平面的单位圆内，是一一映射。'
+            },
+            {
+                id: 2,
+                category: 'method',
+                categoryName: '设计方法',
+                question: '在双线性变换法中，频率预畸变公式为：',
+                options: [
+                    '$\\Omega = \\frac{2}{T}\\tan\\left(\\frac{\\omega}{2}\\right)$',
+                    '$\\Omega = \\frac{\\omega}{T}$',
+                    '$\\Omega = \\frac{2}{T}\\sin\\left(\\frac{\\omega}{2}\\right)$',
+                    '$\\Omega = \\frac{1}{T}\\arctan(\\omega)$'
+                ],
+                correct: 0,
+                explanation: '频率预畸变公式 $\\Omega = \\frac{2}{T}\\tan(\\omega/2)$ 用于补偿双线性变换带来的非线性频率压缩效应，确保关键频率点精确映射。'
+            },
+            {
+                id: 3,
+                category: 'method',
+                categoryName: '设计方法',
+                question: '脉冲响应不变法(IIM)的主要缺点是：',
+                options: [
+                    '可能产生频率混叠',
+                    '不能保持系统稳定性',
+                    '计算过于复杂',
+                    '不能用于低通滤波器设计'
+                ],
+                correct: 0,
+                explanation: '脉冲响应不变法将s平面映射到z平面时是多值映射（$s_k = s + j\\frac{2\\pi k}{T}$），当模拟滤波器频率响应在高频处衰减不够快时，会产生频谱混叠。'
+            },
+            {
+                id: 4,
+                category: 'method',
+                categoryName: '设计方法',
+                question: '双线性变换法相比脉冲响应不变法的主要优点是：',
+                options: [
+                    '不会产生频率混叠',
+                    '计算更简单',
+                    '不需要预畸变',
+                    '相位响应更好'
+                ],
+                correct: 0,
+                explanation: '双线性变换将整个s平面压缩映射到z平面，是一一对应的映射关系，因此不会产生频率混叠现象，这是其最大优点。'
+            },
+            {
+                id: 5,
+                category: 'method',
+                categoryName: '设计方法',
+                question: '脉冲响应不变法最适合设计哪种类型的滤波器？',
+                options: [
+                    '低通滤波器',
+                    '高通滤波器',
+                    '带阻滤波器',
+                    '全通滤波器'
+                ],
+                correct: 0,
+                explanation: '脉冲响应不变法容易产生频率混叠，而低通滤波器在高频处衰减较大，混叠影响较小，因此最适合设计低通滤波器。高通和带阻滤波器在高频处增益不衰减，混叠严重。'
+            },
+
+            // --- 频率变换 (transform) ---
+            {
+                id: 6,
+                category: 'transform',
+                categoryName: '频率变换',
+                question: '将低通原型变换为高通滤波器的s域变换公式为：',
+                options: [
+                    '$s \\to \\frac{\\Omega_c}{s}$',
+                    '$s \\to \\frac{s}{\\Omega_c}$',
+                    '$s \\to \\frac{s^2 + \\Omega_0^2}{Bs}$',
+                    '$s \\to \\frac{Bs}{s^2 + \\Omega_0^2}$'
+                ],
+                correct: 0,
+                explanation: '低通到高通的变换公式是 $s \\to \\Omega_c/s$，这个变换将低频映射到高频，高频映射到低频，实现频率响应的"翻转"。'
+            },
+            {
+                id: 7,
+                category: 'transform',
+                categoryName: '频率变换',
+                question: '将低通原型变换为带通滤波器的s域变换公式为：',
+                options: [
+                    '$s \\to \\frac{s^2 + \\Omega_0^2}{Bs}$',
+                    '$s \\to \\frac{Bs}{s^2 + \\Omega_0^2}$',
+                    '$s \\to \\frac{\\Omega_c}{s}$',
+                    '$s \\to \\frac{s}{\\Omega_c}$'
+                ],
+                correct: 0,
+                explanation: '低通到带通的变换公式是 $s \\to \\frac{s^2 + \\Omega_0^2}{Bs}$，其中 $\\Omega_0 = \\sqrt{\\Omega_1\\Omega_2}$ 是几何中心频率，$B = \\Omega_2 - \\Omega_1$ 是带宽。'
+            },
+            {
+                id: 8,
+                category: 'transform',
+                categoryName: '频率变换',
+                question: '将低通原型变换为带阻滤波器的s域变换公式为：',
+                options: [
+                    '$s \\to \\frac{Bs}{s^2 + \\Omega_0^2}$',
+                    '$s \\to \\frac{s^2 + \\Omega_0^2}{Bs}$',
+                    '$s \\to \\frac{\\Omega_c}{s}$',
+                    '$s \\to s \\cdot \\Omega_c$'
+                ],
+                correct: 0,
+                explanation: '低通到带阻的变换公式是 $s \\to \\frac{Bs}{s^2 + \\Omega_0^2}$，这是带通变换的倒数形式，将通带和阻带的位置互换。'
+            },
+            {
+                id: 9,
+                category: 'transform',
+                categoryName: '频率变换',
+                question: '将N阶低通原型转换为带通滤波器后，滤波器阶数变为：',
+                options: [
+                    '$2N$',
+                    '$N$',
+                    '$N^2$',
+                    '$N/2$'
+                ],
+                correct: 0,
+                explanation: '低通到带通的变换公式中包含 $s^2$ 项，使得每个极点变成一对极点，因此阶数翻倍变为 $2N$。带阻变换同样如此。'
+            },
+            {
+                id: 10,
+                category: 'transform',
+                categoryName: '频率变换',
+                question: '数字高通滤波器的零点位置在：',
+                options: [
+                    '$z = 1$（直流处）',
+                    '$z = -1$（Nyquist频率处）',
+                    '单位圆上均匀分布',
+                    '原点处'
+                ],
+                correct: 0,
+                explanation: '高通滤波器需要在直流处完全抑制信号，因此在 $z=1$（对应 $\\omega=0$）处有零点。N阶高通滤波器有N重零点在z=1处。'
+            },
+
+            // --- Butterworth (butter) ---
+            {
+                id: 11,
+                category: 'butter',
+                categoryName: 'Butterworth',
+                question: 'Butterworth滤波器的主要特点是：',
+                options: [
+                    '通带内最大平坦',
+                    '过渡带最窄',
+                    '通带内等波纹',
+                    '阻带内等波纹'
+                ],
+                correct: 0,
+                explanation: 'Butterworth滤波器也称为最大平坦滤波器，其特点是通带内幅频响应最大程度地平坦，没有波纹。相比Chebyshev滤波器，过渡带较宽。'
+            },
+            {
+                id: 12,
+                category: 'butter',
+                categoryName: 'Butterworth',
+                question: 'Chebyshev I型滤波器的特点是：',
+                options: [
+                    '通带内等波纹',
+                    '阻带内等波纹',
+                    '通带和阻带均最大平坦',
+                    '过渡带最宽'
+                ],
+                correct: 0,
+                explanation: 'Chebyshev I型滤波器在通带内呈现等波纹特性，阻带单调下降。相比Butterworth，可以在相同阶数下获得更窄的过渡带。'
+            },
+            {
+                id: 13,
+                category: 'butter',
+                categoryName: 'Butterworth',
+                question: '增加Butterworth滤波器的阶数N，会导致：',
+                options: [
+                    '过渡带变窄',
+                    '过渡带变宽',
+                    '通带波纹增大',
+                    '阻带衰减减小'
+                ],
+                correct: 0,
+                explanation: 'Butterworth滤波器阶数越高，频率响应在截止频率处下降越陡峭，过渡带越窄，选择性越好。但计算复杂度也会增加。'
+            },
+            {
+                id: 14,
+                category: 'butter',
+                categoryName: 'Butterworth',
+                question: 'IIR数字滤波器稳定的充要条件是：',
+                options: [
+                    '所有极点在单位圆内',
+                    '所有极点在单位圆上',
+                    '所有零点在单位圆内',
+                    '所有极点在左半s平面'
+                ],
+                correct: 0,
+                explanation: '数字系统稳定的充要条件是所有极点都位于z平面单位圆内部，即极点模值小于1。这保证了系统的冲激响应收敛。'
+            },
+            {
+                id: 15,
+                category: 'butter',
+                categoryName: 'Butterworth',
+                question: '双线性变换将s平面的虚轴映射到z平面的：',
+                options: [
+                    '单位圆',
+                    '虚轴',
+                    '实轴',
+                    '左半平面'
+                ],
+                correct: 0,
+                explanation: '双线性变换将s平面的虚轴（$j\\Omega$轴）一一映射到z平面的单位圆上，将整个s平面的左半平面映射到单位圆内。'
+            },
+
+            // --- 计算与应用 (calc) ---
+            (function() {
+                const f1 = randChoice([100, 200, 500, 1000]);
+                const f2 = f1 * 2;
+                const f0 = Math.sqrt(f1 * f2);
+                const fArith = (f1 + f2) / 2;
+                return {
+                    id: 16,
+                    category: 'calc',
+                    categoryName: '计算与应用',
+                    question: `带通滤波器的通带边界频率为 $f_1 = ${f1}$ Hz 和 $f_2 = ${f2}$ Hz，则几何中心频率 $f_0$ 为：`,
+                    options: [
+                        `$${f0.toFixed(1)}$ Hz`,
+                        `$${fArith.toFixed(1)}$ Hz`,
+                        `$${(f2-f1).toFixed(1)}$ Hz`,
+                        `$${(f1*f2/1000).toFixed(1)}$ kHz`
+                    ],
+                    correct: 0,
+                    explanation: `几何中心频率 $f_0 = \\sqrt{f_1 \\times f_2} = \\sqrt{${f1} \\times ${f2}} = ${f0.toFixed(1)}$ Hz。注意是几何平均而非算术平均 ${fArith} Hz。`
+                };
+            })(),
+            (function() {
+                const fs = randChoice([1000, 2000, 4000, 8000]);
+                const fc = fs / 8;
+                const omegaPi = (2 * fc / fs);
+                return {
+                    id: 17,
+                    category: 'calc',
+                    categoryName: '计算与应用',
+                    question: `采样频率 $f_s = ${fs}$ Hz，截止频率 $f_c = ${fc}$ Hz，对应的数字角频率 $\\omega$ 为：`,
+                    options: [
+                        `$${omegaPi}\\pi$ rad`,
+                        `$${fc}$ rad`,
+                        `$${(fc/fs).toFixed(3)}\\pi$ rad`,
+                        `$${(4*fc/fs)}\\pi$ rad`
+                    ],
+                    correct: 0,
+                    explanation: `数字角频率 $\\omega = \\frac{2\\pi f_c}{f_s} = \\frac{2\\pi \\times ${fc}}{${fs}} = ${omegaPi}\\pi$ rad。`
+                };
+            })(),
+            (function() {
+                const fs = randChoice([1000, 2000, 4000]);
+                const fc = fs / 5;
+                const Wn = (fc / (fs/2)).toFixed(1);
+                return {
+                    id: 18,
+                    category: 'calc',
+                    categoryName: '计算与应用',
+                    question: `采样频率 $f_s = ${fs}$ Hz，截止频率 $f_c = ${fc}$ Hz，MATLAB中butter函数的归一化频率 Wn 为：`,
+                    options: [
+                        `$${Wn}$`,
+                        `$${fc}$`,
+                        `$${(fc/fs).toFixed(2)}$`,
+                        `$${(2*fc/fs).toFixed(2)}\\pi$`
+                    ],
+                    correct: 0,
+                    explanation: `MATLAB中归一化频率 $Wn = f_c / (f_s/2) = ${fc} / ${fs/2} = ${Wn}$，范围是(0,1)，对应频率范围(0, $f_s/2$)。`
+                };
+            })(),
+            {
+                id: 19,
+                category: 'calc',
+                categoryName: '计算与应用',
+                question: '数字带阻滤波器的零点位于：',
+                options: [
+                    '单位圆上，对应陷波频率',
+                    '$z = 1$ 处',
+                    '$z = -1$ 处',
+                    '单位圆内部'
+                ],
+                correct: 0,
+                explanation: '带阻滤波器的零点位于单位圆上，角度对应要抑制的频率 $\\omega_0$，即 $z = e^{\\pm j\\omega_0}$。这使得在该频率处增益为零。'
+            },
+            (function() {
+                const freq = randChoice([50, 60]);
+                return {
+                    id: 20,
+                    category: 'calc',
+                    categoryName: '计算与应用',
+                    question: `设计陷波滤波器消除${freq}Hz工频干扰，应选择的滤波器类型是：`,
+                    options: [
+                        '带阻滤波器',
+                        '低通滤波器',
+                        '高通滤波器',
+                        '带通滤波器'
+                    ],
+                    correct: 0,
+                    explanation: `陷波滤波器是窄带带阻滤波器，专门用于消除特定频率的干扰信号。${freq}Hz是电网工频（中国为50Hz，美国为60Hz），使用带阻滤波器可以精确消除。`
+                };
+            })()
+        ];
+    }
+
+    let originalQuestions = [];
+    let questions = [];
+    let currentQuestion = 0;
+    let userAnswers = new Array(20).fill(null);
+    let submitted = false;
+    let studentInfo = { id: '', name: '' };
+
+    // Fisher-Yates 洗牌算法
+    function shuffleArray(array) {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
+    }
+
+    // 初始化题目：打乱题目顺序 + 打乱选项顺序
+    function shuffleQuestions() {
+        originalQuestions = generateQuestionBank();
+        questions = shuffleArray(originalQuestions).map(q => {
+            const optionsWithIndex = q.options.map((option, index) => ({
+                text: option,
+                originalIndex: index
+            }));
+            const shuffledOptions = shuffleArray(optionsWithIndex);
+            const newCorrectIndex = shuffledOptions.findIndex(
+                opt => opt.originalIndex === q.correct
+            );
+            return {
+                ...q,
+                options: shuffledOptions.map(opt => opt.text),
+                correct: newCorrectIndex
+            };
+        });
+    }
+
+    function startExam() {
+        const studentId = document.getElementById('studentId').value.trim();
+        const studentName = document.getElementById('studentName').value.trim();
+        if (!studentId || !studentName) {
+            alert('请填写完整的学号和姓名！');
+            return;
+        }
+        studentInfo.id = studentId;
+        studentInfo.name = studentName;
+        shuffleQuestions();
+        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('examScreen').style.display = 'block';
+        init();
+    }
+
+    function init() {
+        displayQuestion();
+        updateButtons();
+        updateProgress();
+    }
+
+    function displayQuestion() {
+        const q = questions[currentQuestion];
+        const container = document.getElementById('questionContainer');
+        let html = `
+            <div class="question-card ${userAnswers[currentQuestion] !== null ? 'answered' : ''}">
+                <div class="question-header">
+                    <span class="question-number">第 ${currentQuestion + 1} 题</span>
+                    <span class="question-category ${q.category}">${q.categoryName}</span>
+                </div>
+                <div class="question-text">${q.question}</div>
+                <div class="options">`;
+
+        q.options.forEach((option, index) => {
+            const selected = userAnswers[currentQuestion] === index ? 'selected' : '';
+            const label = String.fromCharCode(65 + index);
+            html += `
+                <div class="option ${selected}" onclick="selectOption(${index})">
+                    <div class="option-label">${label}</div>
+                    <div class="option-text">${option}</div>
+                </div>`;
+        });
+        html += `</div><div class="explanation" id="explanation"></div></div>`;
+        container.innerHTML = html;
+        if (window.MathJax) {
+            MathJax.typesetPromise([container]).catch((err) => console.log(err));
+        }
+    }
+
+    function selectOption(index) {
+        if (submitted) return;
+        userAnswers[currentQuestion] = index;
+        displayQuestion();
+        updateProgress();
+    }
+
+    function submitAnswer() {
+        if (userAnswers[currentQuestion] === null) {
+            alert('请先选择一个答案！');
+            return;
+        }
+        const q = questions[currentQuestion];
+        const userAnswer = userAnswers[currentQuestion];
+        const isCorrect = userAnswer === q.correct;
+        const options = document.querySelectorAll('.option');
+        options.forEach((option, index) => {
+            if (index === q.correct) {
+                option.classList.add('correct');
+            } else if (index === userAnswer && !isCorrect) {
+                option.classList.add('incorrect');
+            }
+            option.style.pointerEvents = 'none';
+        });
+        const explanation = document.getElementById('explanation');
+        const icon = isCorrect ? '✓' : '✗';
+        const style = isCorrect ? 'color: #28a745;' : 'color: #dc3545;';
+        explanation.innerHTML = `
+            <h4><span style="${style}">${icon}</span> ${isCorrect ? '回答正确！' : '回答错误！'}</h4>
+            <p><strong>正确答案：</strong>${String.fromCharCode(65 + q.correct)}</p>
+            <p><strong>解析：</strong>${q.explanation}</p>`;
+        explanation.classList.add('show');
+        if (window.MathJax) {
+            MathJax.typesetPromise([explanation]).catch((err) => console.log(err));
+        }
+        document.getElementById('submitBtn').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'inline-block';
+        if (currentQuestion === questions.length - 1) {
+            document.getElementById('finishBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'none';
+        }
+    }
+
+    function nextQuestion() {
+        if (currentQuestion < questions.length - 1) {
+            currentQuestion++;
+            displayQuestion();
+            updateButtons();
+            window.scrollTo(0, 0);
+        }
+    }
+
+    function previousQuestion() {
+        if (currentQuestion > 0) {
+            currentQuestion--;
+            displayQuestion();
+            updateButtons();
+            window.scrollTo(0, 0);
+        }
+    }
+
+    function updateButtons() {
+        document.getElementById('prevBtn').disabled = currentQuestion === 0;
+        document.getElementById('submitBtn').style.display = 'inline-block';
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('finishBtn').style.display = 'none';
+        
+        if (document.querySelector('.explanation.show')) {
+            document.getElementById('submitBtn').style.display = 'none';
+            if (currentQuestion === questions.length - 1) {
+                document.getElementById('finishBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('nextBtn').style.display = 'inline-block';
+            }
+        }
+    }
+
+    function updateProgress() {
+        const answered = userAnswers.filter(a => a !== null).length;
+        const progressBar = document.getElementById('progressBar');
+        const percentage = (answered / questions.length) * 100;
+        progressBar.style.width = percentage + '%';
+        progressBar.textContent = `${answered}/${questions.length} 已完成`;
+    }
+
+    function finishExam() {
+        const unanswered = userAnswers.filter(a => a === null).length;
+        if (unanswered > 0) {
+            if (!confirm(`还有 ${unanswered} 题未作答，确定要提交吗？`)) {
+                return;
+            }
+        }
+        submitted = true;
+        calculateResults();
+        document.getElementById('examScreen').style.display = 'none';
+        document.getElementById('resultPanel').classList.add('show');
+    }
+
+    function calculateResults() {
+        let correctCount = 0;
+        let categoryScores = {
+            method: { correct: 0, total: 0 },
+            transform: { correct: 0, total: 0 },
+            butter: { correct: 0, total: 0 },
+            calc: { correct: 0, total: 0 },
+            app: { correct: 0, total: 0 }
+        };
+        questions.forEach((q, index) => {
+            const isCorrect = userAnswers[index] === q.correct;
+            if (isCorrect) correctCount++;
+            if (categoryScores[q.category]) {
+                categoryScores[q.category].total++;
+                if (isCorrect) categoryScores[q.category].correct++;
+            }
+        });
+
+        const percentage = (correctCount / questions.length * 100).toFixed(1);
+        document.getElementById('resultStudentId').textContent = studentInfo.id;
+        document.getElementById('resultStudentName').textContent = studentInfo.name;
+        document.getElementById('resultScore').textContent = `${correctCount}/${questions.length}`;
+        document.getElementById('accuracyRate').textContent = percentage + '%';
+        
+        let message = '';
+        if (percentage >= 90) message = '🎉 优秀！你对IIR滤波器设计掌握得非常扎实！';
+        else if (percentage >= 80) message = '👍 良好！继续保持，注意细节部分！';
+        else if (percentage >= 70) message = '✓ 及格！基础还可以，建议多做变换公式练习。';
+        else if (percentage >= 60) message = '⚠️ 刚及格，请重点复习双线性变换法！';
+        else message = '❌ 需要努力！请务必复习第六章教学材料！';
+        document.getElementById('resultMessage').textContent = message;
+        
+        document.getElementById('methodScore').textContent = `${categoryScores.method.correct}/${categoryScores.method.total}`;
+        document.getElementById('transformScore').textContent = `${categoryScores.transform.correct}/${categoryScores.transform.total}`;
+        document.getElementById('butterScore').textContent = `${categoryScores.butter.correct}/${categoryScores.butter.total}`;
+        const calcTotal = categoryScores.calc.total + categoryScores.app.total;
+        const calcCorrect = categoryScores.calc.correct + categoryScores.app.correct;
+        document.getElementById('calcScore').textContent = `${calcCorrect}/${calcTotal}`;
+    }
+
+    function showReview() {
+        const reviewSection = document.getElementById('reviewSection');
+        const reviewContainer = document.getElementById('reviewContainer');
+        let html = '';
+        questions.forEach((q, index) => {
+            const userAnswer = userAnswers[index];
+            const isCorrect = userAnswer === q.correct;
+            const statusClass = isCorrect ? 'correct' : 'wrong';
+            const statusText = isCorrect ? '✓ 正确' : '✗ 错误';
+            html += `
+                <div class="review-question">
+                    <div class="review-header">
+                        <div>
+                            <span class="question-number">第 ${index + 1} 题</span>
+                            <span class="question-category ${q.category}">${q.categoryName}</span>
+                        </div>
+                        <span class="review-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="question-text">${q.question}</div>
+                    <div style="margin-top: 15px;">
+                        <p><strong>你的答案：</strong>${userAnswer !== null ? String.fromCharCode(65 + userAnswer) + '. ' + q.options[userAnswer] : '未作答'}</p>
+                        <p style="color: #28a745;"><strong>正确答案：</strong>${String.fromCharCode(65 + q.correct)}. ${q.options[q.correct]}</p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>📖 解析：</strong>${q.explanation}
+                    </div>
+                </div>`;
+        });
+        reviewContainer.innerHTML = html;
+        reviewSection.style.display = 'block';
+        if (window.MathJax) {
+            MathJax.typesetPromise([reviewContainer]).catch((err) => console.log(err));
+        }
+        reviewSection.scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>
