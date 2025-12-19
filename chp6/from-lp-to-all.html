@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字高通、带通和带阻滤波器的设计</title>
+    
+    <!-- MathJax 配置 -->
+    <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: {
+        fontCache: 'global',
+        scale: 1.0
+      }
+    };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+
+    <style>
+        /* ==================== 全局样式 ==================== */
+        * { box-sizing: border-box; }
+        body { 
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif; 
+            line-height: 1.7; 
+            color: #2d3436; 
+            background: #f5f6fa;
+            min-height: 100vh;
+            margin: 0; 
+            padding: 20px; 
+            font-size: 16px;
+        }
+
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background-color: #fff; 
+            padding: 35px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        /* ==================== 科学配色方案 ==================== */
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #16a085;
+            --lowpass: #1a5276;      /* 深蓝 */
+            --highpass: #1e8449;     /* 深绿 */
+            --bandpass: #b9770e;     /* 深金/棕 */
+            --bandstop: #6c3483;     /* 深紫 */
+            --border: #bdc3c7;
+            --bg-light: #ecf0f1;
+            --text-dark: #2c3e50;
+            --text-muted: #7f8c8d;
+        }
+
+        /* ==================== 标题样式 ==================== */
+        h1 { 
+            font-size: 26px; 
+            color: var(--primary); 
+            border-bottom: 2px solid var(--primary); 
+            padding-bottom: 15px; 
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+        }
+        h2 { 
+            font-size: 19px; 
+            color: #fff; 
+            background: var(--primary);
+            padding: 12px 20px; 
+            border-radius: 6px; 
+            margin-top: 40px; 
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        h3 { 
+            font-size: 17px; 
+            color: var(--primary); 
+            margin-top: 25px; 
+            margin-bottom: 12px;
+            border-left: 4px solid var(--accent);
+            padding-left: 12px;
+            font-weight: 600;
+        }
+        h4 { 
+            font-size: 15px; 
+            color: var(--secondary); 
+            margin: 12px 0 8px 0; 
+            font-weight: 600;
+        }
+
+        /* ==================== 通用盒子样式 ==================== */
+        .intro-box {
+            background: #f8f9fa;
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .formula-box {
+            background: #fefefe;
+            border: 1px solid #d4ac0d;
+            border-left: 4px solid #d4ac0d;
+            padding: 18px 22px;
+            margin: 18px 0;
+            border-radius: 4px;
+        }
+        .formula-box .title {
+            font-weight: 600;
+            color: #9a7b0a;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+
+        .result-box { 
+            background: #eafaf1;
+            border: 1px solid #27ae60; 
+            border-left: 4px solid #27ae60;
+            color: #1e8449;
+            padding: 15px 18px; 
+            border-radius: 4px;
+            font-weight: 500;
+            margin-top: 12px;
+        }
+
+        .warning-box {
+            background: #fef9e7;
+            border: 1px solid #f4d03f;
+            border-left: 4px solid #f4d03f;
+            padding: 12px 15px;
+            border-radius: 4px;
+            margin: 12px 0;
+            color: #7d6608;
+        }
+        .warning-box::before {
+            content: "⚠ 注意：";
+            font-weight: 600;
+        }
+
+        .tip-box {
+            background: #f4f6f7;
+            border-left: 4px solid var(--accent);
+            padding: 12px 15px;
+            margin: 12px 0;
+            border-radius: 0 4px 4px 0;
+            color: #1a5276;
+        }
+        .tip-box::before {
+            content: "💡 ";
+        }
+
+        /* ==================== 5步流程整合模块 ==================== */
+        .flow-integrated {
+            background: #fafbfc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 25px 0;
+        }
+        
+        .flow-row {
+            display: flex;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .flow-row:last-child {
+            border-bottom: none;
+        }
+        .flow-row:nth-child(odd) {
+            background: #fff;
+        }
+        .flow-row:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .flow-left {
+            width: 280px;
+            min-width: 280px;
+            padding: 18px 20px;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .flow-row:nth-child(1) .flow-left { background: #1a5276; }
+        .flow-row:nth-child(2) .flow-left { background: #1e8449; }
+        .flow-row:nth-child(3) .flow-left { background: #b9770e; }
+        .flow-row:nth-child(4) .flow-left { background: #6c3483; }
+        .flow-row:nth-child(5) .flow-left { background: #2c3e50; }
+        
+        .flow-number {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .flow-title {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+        
+        .flow-right {
+            flex: 1;
+            padding: 18px 24px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-dark);
+        }
+        .flow-right ul {
+            margin: 8px 0 0 0;
+            padding-left: 20px;
+        }
+        .flow-right li {
+            margin: 4px 0;
+        }
+
+        /* ==================== 表格样式 ==================== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #d5d8dc;
+            padding: 12px 14px;
+            text-align: center;
+        }
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+        tr:nth-child(even) { background-color: #f8f9fa; }
+        tr:hover { background-color: #ebedef; }
+
+        /* ==================== 四种滤波器模块样式 ==================== */
+        .filter-module {
+            border-radius: 8px;
+            padding: 0;
+            margin: 40px 0;
+            overflow: hidden;
+            border: 1px solid;
+        }
+        
+        /* 低通 - 深蓝 */
+        .module-lp {
+            border-color: var(--lowpass);
+        }
+        .module-lp .module-header { background: var(--lowpass); }
+        .module-lp .module-body { background: linear-gradient(180deg, #eaf2f8 0%, #fff 100%); }
+
+        /* 高通 - 深绿 */
+        .module-hp {
+            border-color: var(--highpass);
+        }
+        .module-hp .module-header { background: var(--highpass); }
+        .module-hp .module-body { background: linear-gradient(180deg, #e9f7ef 0%, #fff 100%); }
+
+        /* 带通 - 深金 */
+        .module-bp {
+            border-color: var(--bandpass);
+        }
+        .module-bp .module-header { background: var(--bandpass); }
+        .module-bp .module-body { background: linear-gradient(180deg, #fef5e7 0%, #fff 100%); }
+
+        /* 带阻 - 深紫 */
+        .module-bs {
+            border-color: var(--bandstop);
+        }
+        .module-bs .module-header { background: var(--bandstop); }
+        .module-bs .module-body { background: linear-gradient(180deg, #f5eef8 0%, #fff 100%); }
+
+        .module-header {
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .module-header h3 {
+            margin: 0;
+            padding: 0;
+            border: none;
+            color: white;
+            font-size: 18px;
+        }
+        .module-icon { font-size: 28px; }
+        .module-subtitle {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 4px;
+            font-weight: 400;
+        }
+        
+        .module-body {
+            padding: 24px;
+        }
+
+        .problem-specs {
+            background: rgba(255,255,255,0.8);
+            padding: 16px 18px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+        .problem-specs ul {
+            margin: 8px 0 0 0;
+            padding-left: 20px;
+        }
+
+        /* ==================== 计算步骤 ==================== */
+        .calc-section {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        .calc-header {
+            padding: 12px 18px;
+            background: #f5f6f7;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 600;
+            color: var(--primary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        .calc-header:hover {
+            background: #ebedef;
+        }
+        .calc-header::after {
+            content: "▼";
+            font-size: 11px;
+            color: #7f8c8d;
+            transition: transform 0.3s;
+        }
+        .calc-section.active .calc-header::after {
+            transform: rotate(180deg);
+        }
+        .calc-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .calc-section.active .calc-content {
+            max-height: 2000px;
+        }
+        .calc-body {
+            padding: 18px;
+        }
+        .step-item {
+            background: #f9fafb;
+            border-left: 3px solid var(--accent);
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            border-radius: 0 4px 4px 0;
+        }
+        .step-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ==================== 可视化区域 ==================== */
+        .visualization-panel {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .viz-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .chart-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .chart-box {
+            flex: 1;
+            min-width: 280px;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            padding: 15px;
+        }
+        .chart-box canvas {
+            width: 100%;
+            height: 200px;
+            display: block;
+        }
+        .chart-label {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 10px;
+        }
+
+        /* ==================== 导航 ==================== */
+        .nav-box {
+            background: #f8f9fa;
+            border: 1px solid var(--border);
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .nav-box strong { 
+            margin-right: 8px; 
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        .nav-box a {
+            color: var(--primary);
+            text-decoration: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .nav-box a:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ==================== 代码块 ==================== */
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            line-height: 1.7;
+        }
+        .code-block .comment { color: #7f8c8d; }
+
+        /* ==================== 强调文字 ==================== */
+        .highlight { color: #c0392b; font-weight: 600; }
+        .emp-blue { color: var(--lowpass); font-weight: 600; }
+        .emp-green { color: var(--highpass); font-weight: 600; }
+        .emp-gold { color: var(--bandpass); font-weight: 600; }
+        .emp-purple { color: var(--bandstop); font-weight: 600; }
+
+        /* ==================== 分隔线 ==================== */
+        hr {
+            border: none;
+            height: 1px;
+            background: var(--border);
+            margin: 40px 0;
+        }
+
+        /* ==================== 响应式 ==================== */
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            .flow-row { flex-direction: column; }
+            .flow-left { 
+                width: 100%; 
+                min-width: unset;
+                padding: 14px 18px;
+            }
+            .chart-container { flex-direction: column; }
+            .nav-box { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>数字高通、带通和带阻滤波器的设计</h1>
+
+    <!-- 导航 -->
+    <div class="nav-box">
+        <strong>快速导航：</strong>
+        <a href="#review">知识回顾</a>
+        <a href="#framework">设计框架</a>
+        <a href="#formulas">变换公式</a>
+        <a href="#ex-lp">例1·低通</a>
+        <a href="#ex-hp">例2·高通</a>
+        <a href="#ex-bp">例3·带通</a>
+        <a href="#ex-bs">例4·带阻</a>
+    </div>
+
+    <!-- ==================== 知识回顾 ==================== -->
+    <section id="review">
+    <h2>一、知识回顾与衔接</h2>
+    
+    <div class="intro-box">
+        <p>在前面的学习中，我们已经掌握了两种核心的IIR数字滤波器设计方法：</p>
+        <ul>
+            <li><strong>脉冲响应不变法 (IIM)</strong>：通过部分分式展开，将模拟滤波器的极点映射到数字域</li>
+            <li><strong>双线性变换法 (BLT)</strong>：通过 $s = \frac{2}{T}\frac{1-z^{-1}}{1+z^{-1}}$ 实现s域到z域的映射</li>
+        </ul>
+        <p>这两种方法都是<span class="highlight">基于模拟低通滤波器原型</span>进行设计的。但在实际应用中，我们经常需要设计<span class="emp-green">高通</span>、<span class="emp-gold">带通</span>、<span class="emp-purple">带阻</span>等类型的滤波器。</p>
+        <p><strong>核心问题：</strong>如何从一个模拟低通原型，得到其他类型的数字滤波器？</p>
+    </div>
+    </section>
+
+    <!-- ==================== 设计框架 ==================== -->
+    <section id="framework">
+    <h2>二、总体设计框架（5步法）</h2>
+
+    <div class="flow-integrated">
+        <!-- 步骤1 -->
+        <div class="flow-row">
+            <div class="flow-left">
+                <div class="flow-number">①</div>
+                <div class="flow-title">确定数字滤波器<br>类型和技术指标</div>
+            </div>
+            <div class="flow-right">
+                <strong>明确设计目标：</strong>确定滤波器类型（低通LP / 高通HP / 带通BP / 带阻BS）
+                <ul>
+                    <li><strong>频率指标</strong>：通带截止频率 $\omega_p$、阻带截止频率 $\omega_s$（单位：rad，范围 $0 \sim \pi$）</li>
+                    <li><strong>衰减指标</strong>：通带最大衰减 $\alpha_p$ (dB)、阻带最小衰减 $\alpha_s$ (dB)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 步骤2 -->
+        <div class="flow-row">
+            <div class="flow-left">
+                <div class="flow-number">②</div>
+                <div class="flow-title">将数字频率指标转换<br>为模拟低通原型指标</div>
+            </div>
+            <div class="flow-right">
+                <strong>频率预畸变</strong>（双线性变换的核心步骤）：
+                <p style="margin:10px 0;">$$\Omega = \frac{2}{T}\tan\left(\frac{\omega}{2}\right)$$</p>
+                将数字域频率 $\omega$ 映射到模拟域频率 $\Omega$，避免频率响应失真。然后根据目标滤波器类型，进一步转换为等效的低通原型指标。
+            </div>
+        </div>
+        
+        <!-- 步骤3 -->
+        <div class="flow-row">
+            <div class="flow-left">
+                <div class="flow-number">③</div>
+                <div class="flow-title">设计归一化模拟<br>低通原型滤波器</div>
+            </div>
+            <div class="flow-right">
+                <strong>选择滤波器类型并计算阶数：</strong>
+                <ul>
+                    <li><strong>Butterworth</strong>：最大平坦幅频特性，无波纹，过渡带较宽</li>
+                    <li><strong>Chebyshev I型</strong>：通带等波纹，过渡带较窄</li>
+                    <li><strong>Chebyshev II型</strong>：阻带等波纹，通带平坦</li>
+                    <li><strong>Elliptic (Cauer)</strong>：通带阻带均等波纹，过渡带最窄</li>
+                </ul>
+                得到归一化传递函数 $H_a(s)$，截止频率 $\Omega_c = 1$ rad/s。
+            </div>
+        </div>
+        
+        <!-- 步骤4 -->
+        <div class="flow-row">
+            <div class="flow-left">
+                <div class="flow-number">④</div>
+                <div class="flow-title">通过s域频率变换<br>得到过渡型模拟滤波器</div>
+            </div>
+            <div class="flow-right">
+                <strong>应用频率变换公式</strong>，将低通原型转换为目标类型：
+                <ul>
+                    <li>低通→低通：$s \to s/\Omega_c$</li>
+                    <li>低通→高通：$s \to \Omega_c/s$</li>
+                    <li>低通→带通：$s \to (s^2+\Omega_0^2)/(Bs)$</li>
+                    <li>低通→带阻：$s \to Bs/(s^2+\Omega_0^2)$</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 步骤5 -->
+        <div class="flow-row">
+            <div class="flow-left">
+                <div class="flow-number">⑤</div>
+                <div class="flow-title">应用双线性变换<br>得到数字滤波器</div>
+            </div>
+            <div class="flow-right">
+                <strong>s域到z域的映射：</strong>
+                <p style="margin:10px 0;">$$s = \frac{2}{T}\frac{1-z^{-1}}{1+z^{-1}}$$</p>
+                将模拟滤波器传递函数 $H_a(s)$ 转换为数字滤波器传递函数 $H(z)$，完成设计。
+            </div>
+        </div>
+    </div>
+
+    <div class="tip-box">
+        在实际工程中，步骤②④⑤可以合并——直接使用MATLAB的 <code>butter</code>、<code>cheby1</code>、<code>ellip</code> 等函数一步完成设计，但理解完整流程有助于掌握设计本质和调试问题。
+    </div>
+    </section>
+
+    <!-- ==================== 变换公式 ==================== -->
+    <section id="formulas">
+    <h2>三、频率变换公式汇总</h2>
+
+    <h3>s域频率变换（模拟域）</h3>
+
+    <table>
+        <tr>
+            <th style="width:18%;">变换类型</th>
+            <th style="width:35%;">s域变换公式</th>
+            <th>参数说明</th>
+        </tr>
+        <tr>
+            <td><strong class="emp-blue">低通 → 低通</strong></td>
+            <td>$s \to \dfrac{s}{\Omega_c}$</td>
+            <td>$\Omega_c$：目标低通截止频率</td>
+        </tr>
+        <tr>
+            <td><strong class="emp-green">低通 → 高通</strong></td>
+            <td>$s \to \dfrac{\Omega_c}{s}$</td>
+            <td>$\Omega_c$：高通截止频率</td>
+        </tr>
+        <tr>
+            <td><strong class="emp-gold">低通 → 带通</strong></td>
+            <td>$s \to \dfrac{s^2 + \Omega_0^2}{Bs}$</td>
+            <td>$\Omega_0 = \sqrt{\Omega_1\Omega_2}$（几何中心频率）<br>$B = \Omega_2 - \Omega_1$（通带带宽）</td>
+        </tr>
+        <tr>
+            <td><strong class="emp-purple">低通 → 带阻</strong></td>
+            <td>$s \to \dfrac{Bs}{s^2 + \Omega_0^2}$</td>
+            <td>$\Omega_0 = \sqrt{\Omega_1\Omega_2}$（几何中心频率）<br>$B = \Omega_2 - \Omega_1$（阻带带宽）</td>
+        </tr>
+    </table>
+
+    <h3>关键公式</h3>
+
+    <div class="formula-box">
+        <div class="title">频率预畸变公式</div>
+        $$\Omega = \frac{2}{T}\tan\left(\frac{\omega}{2}\right)$$
+        <p style="font-size:13px; color:#7f8c8d; margin-top:10px;">$\omega$：数字角频率 (rad)，$\Omega$：模拟角频率 (rad/s)，$T$：采样周期 (s)</p>
+    </div>
+
+    <div class="formula-box">
+        <div class="title">Butterworth滤波器阶数公式</div>
+        $$N \geq \frac{\lg\left[\left(10^{0.1\alpha_s}-1\right)/\left(10^{0.1\alpha_p}-1\right)\right]}{2\lg(\Omega_s/\Omega_p)}$$
+        <p style="font-size:13px; color:#7f8c8d; margin-top:10px;">$N$ 取大于等于计算结果的最小整数</p>
+    </div>
+    </section>
+
+    <hr>
+
+    <!-- ==================== 例1：低通滤波器 ==================== -->
+    <section id="ex-lp">
+    <div class="filter-module module-lp">
+        <div class="module-header">
+            <span class="module-icon">■</span>
+            <div>
+                <h3>例1：数字低通滤波器设计</h3>
+                <div class="module-subtitle">Lowpass Filter — 基础设计流程完整演示</div>
+            </div>
+        </div>
+        
+        <div class="module-body">
+            <div class="problem-specs">
+                <strong>设计指标：</strong>
+                <ul>
+                    <li>采样频率 $f_s = 1000$ Hz（$T = 0.001$ s）</li>
+                    <li>通带截止频率 $f_p = 100$ Hz，通带衰减 $\alpha_p \leq 1$ dB</li>
+                    <li>阻带截止频率 $f_{st} = 200$ Hz，阻带衰减 $\alpha_s \geq 15$ dB</li>
+                    <li>采用Butterworth滤波器，双线性变换法</li>
+                </ul>
+            </div>
+
+            <div class="calc-section active">
+                <div class="calc-header" onclick="toggleCalc(this)">
+                    <span>Step 1~2：频率转换与预畸变</span>
+                </div>
+                <div class="calc-content">
+                    <div class="calc-body">
+                        <div class="step-item">
+                            <h4>Step 1：转换为数字角频率</h4>
+                            $$\omega_p = \frac{2\pi \times 100}{1000} = 0.2\pi \ \text{rad}, \quad \omega_s = \frac{2\pi \times 200}{1000} = 0.4\pi \ \text{rad}$$
+                        </div>
+                        <div class="step-item">
+                            <h4>Step 2：频率预畸变</h4>
+                            <p>应用公式 $\Omega = \frac{2}{T}\tan(\omega/2)$：</p>
+                            $$\Omega_p = 2000 \times \tan(0.1\pi) = 2000 \times 0.3249 = \mathbf{649.8} \ \text{rad/s}$$
+                            $$\Omega_s = 2000 \times \tan(0.2\pi) = 2000 \times 0.7265 = \mathbf{1453.1} \ \text{rad/s}$$
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-header" onclick="toggleCalc(this)">
+                    <span>Step 3：计算Butterworth阶数</span>
+                </div>
+                <div class="calc-content">
+                    <div class="calc-body">
+                        <div class="step-item">
+                            $$N \geq \frac{\lg\left[\frac{10^{0.1 \times 15}-1}{10^{0.1 \times 1}-1}\right]}{2\lg(1453.1/649.8)} = \frac{\lg(118.3)}{2\lg(2.236)} = \frac{2.073}{0.699} = 2.97$$
+                            <p>取 <span class="highlight">$N = 3$</span>（向上取整）</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-header" onclick="toggleCalc(this)">
+                    <span>Step 4~5：构建原型与双线性变换</span>
+                </div>
+                <div class="calc-content">
+                    <div class="calc-body">
+                        <div class="step-item">
+                            <h4>Step 4：3阶Butterworth归一化传递函数</h4>
+                            $$H_a(s) = \frac{1}{(s+1)(s^2+s+1)}$$
+                            <p>去归一化：$s \to s/\Omega_c$，取 $\Omega_c = \Omega_p = 649.8$ rad/s</p>
+                        </div>
+                        <div class="step-item">
+                            <h4>Step 5：双线性变换</h4>
+                            <p>代入 $s = 2000 \cdot \frac{1-z^{-1}}{1+z^{-1}}$，经代数运算得：</p>
+                        </div>
+                        <div class="result-box">
+                            <strong>最终结果：</strong>$H(z) = \dfrac{0.0181(1+z^{-1})^3}{1 - 1.760z^{-1} + 1.183z^{-2} - 0.278z^{-3}}$
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="visualization-panel">
+                <div class="viz-title">频率响应与零极点分布</div>
+                <div class="chart-container">
+                    <div class="chart-box">
+                        <canvas id="lpMagCanvas"></canvas>
+                        <div class="chart-label">幅频响应 |H(e<sup>jω</sup>)|</div>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="lpPoleCanvas"></canvas>
+                        <div class="chart-label">零极点分布图</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </section>
+
+    <!-- ==================== 例2：高通滤波器 ==================== -->
+    <section id="ex-hp">
+    <div class="filter-module module-hp">
+        <div class="module-header">
+            <span class="module-icon">■</span>
+            <div>
+                <h3>例2：数字高通滤波器设计</h3>
+                <div class="module-subtitle">Highpass Filter — 低频信号滤除</div>
+            </div>
+        </div>
+        
+        <div class="module-body">
+            <div class="problem-specs">
+                <strong>设计指标：</strong>
+                <ul>
+                    <li>采样频率 $f_s = 8000$ Hz（$T = 0.000125$ s）</li>
+                    <li>通带截止频率 $f_p = 1500$ Hz，通带衰减 $\alpha_p \leq 1$ dB</li>
+                    <li>阻带截止频率 $f_{st} = 500$ Hz，阻带衰减 $\alpha_s \geq 30$ dB</li>
+                </ul>
+                <div class="warning-box">高通滤波器中，阻带频率 < 通带频率，这与低通相反。</div>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-header" onclick="toggleCalc(this)">
+                    <span>Step 1~2：频率转换与预畸变</span>
+                </div>
+                <div class="calc-content">
+                    <div class="calc-body">
+                        <div class="step-item">
+                            <h4>Step 1：数字角频率</h4>
+                            $$\omega_p = 0.375\pi \ \text{rad}, \quad \omega_s = 0.125\pi \ \text{rad}$$
+                        </div>
+                        <div class="step-item">
+                            <h4>Step 2：频率预畸变（c = 2/T = 16000）</h4>
+                            $$\Omega_p = 16000 \times \tan(0.1875\pi) = \mathbf{10691} \ \text{rad/s}$$
+                            $$\Omega_s = 16000 \times \tan(0.0625\pi) = \mathbf{3183} \ \text{rad/s}$$
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-header" onclick="toggleCalc(this)">
+                    <span>Step 3：转换为等效低通原型指标（关键步骤）</span>
+                </div>
+                <div class="calc-content">
+                    <div class="calc-body">
+                        <div class="step-item">
+                            <p><span class="highlight">高通→低通的频率映射：</span></p>
+                            <p>令 $\Omega_c = \Omega_p$，等效低通原型的选择性参数为：</p>
+                            $$\lambda = \frac{\Omega_c}{\Omega_s} = \frac{10691}{3183} = \mathbf{3.36}$$
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-header" onclick="toggleCalc(this)">
+                    <span>Step 4~7：阶数计算与变换</span>
+                </div>
+                <div class="calc-content">
+                    <div class="calc-body">
+                        <div class="step-item">
+                            <h4>阶数计算</h4>
+                            $$N \geq \frac{\lg(999/0.2589)}{2\lg(3.36)} = \frac{3.586}{1.052} = 3.41 \Rightarrow N = 4$$
+                        </div>
+                        <div class="step-item">
+                            <h4>4阶Butterworth归一化</h4>
+                            $$H_{LP}(s) = \frac{1}{(s^2 + 0.7654s + 1)(s^2 + 1.8478s + 1)}$$
+                        </div>
+                        <div class="result-box">
+                            <strong>最终结果：</strong>$H(z) = \dfrac{0.1518(1-z^{-1})^4}{1 - 0.4426z^{-1} + 0.8886z^{-2} - 0.2209z^{-3} + 0.0544z^{-4}}$
+                        </div>
+                        <div class="tip-box">
+                            高通滤波器分子为 $(1-z^{-1})^N$，在 $z=1$（$\omega=0$）处有N重零点，完全抑制直流分量。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="visualization-panel">
+                <div class="viz-title">频率响应与零极点分布</div>
+                <div class="chart-container">
+                    <div class="chart-box">
+                        <canvas id="hpMagCanvas"></canvas>
+                        <div class="chart-label">幅频响应 |H(e<sup>jω</sup>)|</div>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="hpPoleCanvas"></canvas>
+                        <div class="chart-label">零极点分布（零点在z=1）</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </section>
+
+    <!-- ==================== 例3：带通滤波器 ==================== -->
+    <section id="ex-bp">
+    <div class="filter-module module-bp">
+        <div class="module-header">
+            <span class="module-icon">■</span>
+            <div>
+                <h3>例3：数字带通滤波器设计</h3>
+                <div class="module-subtitle">Bandpass Filter — 选频应用</div>
+            </div>
+        </div>
+        
+        <div class="module-body">
+            <div class="problem-specs">
+                <strong>设计指标：</strong>
+                <ul>
+                    <li>采样频率 $f_s = 10000$ Hz</li>
+                    <li>通带范围：$f_{p1} = 1000$ Hz ~ $f_{p2} = 1500$ Hz，$\alpha_p \leq 3$ dB</li>
+                    <li>阻带范围：$f < 500$ Hz 或 $f > 2000$ Hz，$\alpha_s \geq 20$ dB</li>
+                </ul>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-header" onclick="toggleCalc(this)">
+                    <span>Step 1~3：频率转换与带通参数计算</span>
+                </div>
+                <div class="calc-content">
+                    <div class="calc-body">
+                        <div class="step-item">
+                            <h4>预畸变结果（c = 20000）</h4>
+                            $$\Omega_{p1} = 6498, \ \Omega_{p2} = 10328, \ \Omega_{s1} = 3168, \ \Omega_{s2} = 14531 \ \text{(rad/s)}$$
+                        </div>
+                        <div class="step-item">
+                            <h4>带通参数</h4>
+                            <p><strong>几何中心频率：</strong>$\Omega_0 = \sqrt{\Omega_{p1} \times \Omega_{p2}} = \sqrt{6498 \times 10328} = \mathbf{8191}$ rad/s</p>
+                            <p><strong>通带带宽：</strong>$B_p = \Omega_{p2} - \Omega_{p1} = \mathbf{3830}$ rad/s</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-header" onclick="toggleCalc(this)">
+                    <span>Step 4：转换为等效低通原型指标</span>
+                </div>
+                <div class="calc-content">
+                    <div class="calc-body">
+                        <div class="step-item">
+                            <p><span class="highlight">带通→低通变换公式：</span>$\Omega_{LP} = \dfrac{\Omega^2 - \Omega_0^2}{B_p \cdot \Omega}$</p>
+                            <p>计算阻带边界对应的低通频率：</p>
+                            $$\Omega_{LP,s1} = \frac{3168^2 - 8191^2}{3830 \times 3168} = -4.71, \quad \Omega_{LP,s2} = \frac{14531^2 - 8191^2}{3830 \times 14531} = 2.59$$
+                            <p>选择性参数：$\lambda = \min(4.71, 2.59) = \mathbf{2.59}$</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-header" onclick="toggleCalc(this)">
+                    <span>Step 5~8：阶数计算与结果</span>
+                </div>
+                <div class="calc-content">
+                    <div class="calc-body">
+                        <div class="step-item">
+                            <h4>阶数计算</h4>
+                            $$N \geq \frac{\lg(99.5)}{2\lg(2.59)} = 2.42 \Rightarrow N = 3$$
+                            <div class="warning-box">带通滤波器最终阶数是 $2N = 6$ 阶（低通→带通变换使阶数翻倍）</div>
+                        </div>
+                        <div class="result-box">
+                            <strong>MATLAB代码：</strong><code>[b,a] = butter(3, [1000 1500]/5000, 'bandpass')</code><br>
+                            结果为6阶数字带通滤波器
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="visualization-panel">
+                <div class="viz-title">频率响应与零极点分布</div>
+                <div class="chart-container">
+                    <div class="chart-box">
+                        <canvas id="bpMagCanvas"></canvas>
+                        <div class="chart-label">幅频响应 |H(e<sup>jω</sup>)|</div>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="bpPoleCanvas"></canvas>
+                        <div class="chart-label">零极点分布（零点在z=±1）</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </section>
+
+    <!-- ==================== 例4：带阻滤波器 ==================== -->
+    <section id="ex-bs">
+    <div class="filter-module module-bs">
+        <div class="module-header">
+            <span class="module-icon">■</span>
+            <div>
+                <h3>例4：数字带阻滤波器设计</h3>
+                <div class="module-subtitle">Bandstop/Notch Filter — 50Hz工频干扰消除</div>
+            </div>
+        </div>
+        
+        <div class="module-body">
+            <div class="problem-specs">
+                <strong>设计指标：</strong>
+                <ul>
+                    <li>采样频率 $f_s = 1000$ Hz</li>
+                    <li>阻带范围：$f_{s1} = 45$ Hz ~ $f_{s2} = 55$ Hz，$\alpha_s \geq 20$ dB</li>
+                    <li>通带范围：$f < 30$ Hz 或 $f > 70$ Hz，$\alpha_p \leq 3$ dB</li>
+                </ul>
+                <p style="margin-top:10px;"><strong>应用场景：</strong>消除电网50Hz工频干扰</p>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-header" onclick="toggleCalc(this)">
+                    <span>Step 1~3：频率转换与带阻参数计算</span>
+                </div>
+                <div class="calc-content">
+                    <div class="calc-body">
+                        <div class="step-item">
+                            <h4>预畸变结果（c = 2000）</h4>
+                            $$\Omega_{s1} = 284.3, \ \Omega_{s2} = 348.3, \ \Omega_{p1} = 189.0, \ \Omega_{p2} = 445.0 \ \text{(rad/s)}$$
+                        </div>
+                        <div class="step-item">
+                            <h4>带阻参数</h4>
+                            <p><strong>中心频率：</strong>$\Omega_0 = \sqrt{284.3 \times 348.3} = \mathbf{314.7}$ rad/s（对应约<span class="highlight">50Hz</span>）</p>
+                            <p><strong>阻带带宽：</strong>$B_s = 348.3 - 284.3 = \mathbf{64.0}$ rad/s</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calc-section">
+                <div class="calc-header" onclick="toggleCalc(this)">
+                    <span>Step 4：等效低通指标与阶数计算</span>
+                </div>
+                <div class="calc-content">
+                    <div class="calc-body">
+                        <div class="step-item">
+                            <p><span class="highlight">带阻→低通变换公式：</span>$\Omega_{LP} = \dfrac{B_s \cdot \Omega}{\Omega^2 - \Omega_0^2}$</p>
+                            <p>通带边界：$\Omega_{LP,p1} = -0.191$，$\Omega_{LP,p2} = 0.288$</p>
+                            <p>选择性参数：$\lambda = 1/\min(0.191, 0.288) = \mathbf{5.24}$</p>
+                        </div>
+                        <div class="step-item">
+                            <h4>阶数计算</h4>
+                            $$N \geq \frac{2.0}{1.438} = 1.39 \Rightarrow N = 2$$
+                            <div class="warning-box">带阻滤波器最终阶数是 $2N = 4$ 阶</div>
+                        </div>
+                        <div class="result-box">
+                            <strong>MATLAB代码：</strong><code>[b,a] = butter(2, [45 55]/500, 'stop')</code><br>
+                            结果为4阶数字带阻滤波器，在50Hz处有深度陷波
+                        </div>
+                        <div class="tip-box">
+                            带阻滤波器的零点位于单位圆上，对应阻带中心频率 $\omega_0 = 0.1\pi$，即 $z = e^{\pm j0.1\pi}$。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="visualization-panel">
+                <div class="viz-title">频率响应与零极点分布</div>
+                <div class="chart-container">
+                    <div class="chart-box">
+                        <canvas id="bsMagCanvas"></canvas>
+                        <div class="chart-label">幅频响应（50Hz陷波）</div>
+                    </div>
+                    <div class="chart-box">
+                        <canvas id="bsPoleCanvas"></canvas>
+                        <div class="chart-label">零极点分布（零点在单位圆上）</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </section>
+
+    <hr>
+
+    <!-- ==================== 总结 ==================== -->
+    <h2>四、设计方法总结</h2>
+
+    <table>
+        <tr>
+            <th>滤波器类型</th>
+            <th>s域变换公式</th>
+            <th>零点位置</th>
+            <th>阶数变化</th>
+            <th>特征</th>
+        </tr>
+        <tr>
+            <td><strong class="emp-blue">低通 (LP)</strong></td>
+            <td>$s \to s/\Omega_c$</td>
+            <td>无或高频</td>
+            <td>$N \to N$</td>
+            <td>保留低频</td>
+        </tr>
+        <tr>
+            <td><strong class="emp-green">高通 (HP)</strong></td>
+            <td>$s \to \Omega_c/s$</td>
+            <td>$z = 1$</td>
+            <td>$N \to N$</td>
+            <td>保留高频</td>
+        </tr>
+        <tr>
+            <td><strong class="emp-gold">带通 (BP)</strong></td>
+            <td>$s \to \frac{s^2+\Omega_0^2}{Bs}$</td>
+            <td>$z = \pm 1$</td>
+            <td>$N \to 2N$</td>
+            <td>选取特定频段</td>
+        </tr>
+        <tr>
+            <td><strong class="emp-purple">带阻 (BS)</strong></td>
+            <td>$s \to \frac{Bs}{s^2+\Omega_0^2}$</td>
+            <td>$z = e^{\pm j\omega_0}$</td>
+            <td>$N \to 2N$</td>
+            <td>抑制特定频段</td>
+        </tr>
+    </table>
+
+    <h3>MATLAB快速设计代码</h3>
+    <div class="code-block">
+<span class="comment">% Butterworth滤波器设计</span>
+[b,a] = butter(N, Wn, 'low');       <span class="comment">% 低通</span>
+[b,a] = butter(N, Wn, 'high');      <span class="comment">% 高通</span>
+[b,a] = butter(N, [Wn1 Wn2], 'bandpass');  <span class="comment">% 带通</span>
+[b,a] = butter(N, [Wn1 Wn2], 'stop');      <span class="comment">% 带阻</span>
+
+<span class="comment">% Wn = f_cutoff / (fs/2)，归一化频率，范围 (0, 1)</span>
+<span class="comment">% 使用 freqz(b,a) 绘制频率响应验证设计</span>
+    </div>
+
+    <div class="intro-box" style="margin-top:30px;">
+        <h4 style="margin-top:0;">学习要点总结</h4>
+        <ol>
+            <li><strong>掌握5步设计流程</strong>：理解每一步的物理意义和数学变换</li>
+            <li><strong>频率预畸变是核心</strong>：这是双线性变换法避免频率混叠的关键</li>
+            <li><strong>带通/带阻设计要点</strong>：正确计算几何中心频率 $\Omega_0$ 和带宽 $B$，注意阶数翻倍</li>
+            <li><strong>设计后验证</strong>：使用 <code>freqz</code> 函数检查频率响应是否满足指标要求</li>
+        </ol>
+    </div>
+
+</div>
+
+<!-- ==================== JavaScript ==================== -->
+<script>
+// 折叠面板切换
+function toggleCalc(header) {
+    const section = header.parentElement;
+    section.classList.toggle('active');
+}
+
+// 颜色配置（科学配色）
+const colors = {
+    lowpass: '#1a5276',
+    highpass: '#1e8449',
+    bandpass: '#b9770e',
+    bandstop: '#6c3483',
+    grid: '#d5d8dc',
+    axis: '#2c3e50',
+    pole: '#c0392b',
+    zero: '#27ae60'
+};
+
+// 计算幅度响应
+function calcMag(type, order, wc, bw, omega) {
+    const eps = 0.001;
+    let mag;
+    
+    if(type === 'lowpass') {
+        mag = 1 / Math.sqrt(1 + Math.pow(omega / (wc + eps), 2 * order));
+    } else if(type === 'highpass') {
+        mag = 1 / Math.sqrt(1 + Math.pow((wc + eps) / (omega + eps), 2 * order));
+    } else if(type === 'bandpass') {
+        const w1 = Math.max(0.01, wc - bw/2);
+        const w2 = Math.min(Math.PI - 0.01, wc + bw/2);
+        if(omega < w1 || omega > w2) {
+            const d = Math.min(Math.abs(omega - w1), Math.abs(omega - w2));
+            mag = 1 / Math.sqrt(1 + Math.pow(d / (bw/4 + eps), 2 * order));
+        } else {
+            mag = 1;
+        }
+    } else {
+        const w1 = Math.max(0.01, wc - bw/2);
+        const w2 = Math.min(Math.PI - 0.01, wc + bw/2);
+        if(omega > w1 && omega < w2) {
+            const d = Math.min(Math.abs(omega - w1), Math.abs(omega - w2));
+            mag = 1 / Math.sqrt(1 + Math.pow((bw/4 + eps) / (d + eps), 2 * order));
+        } else {
+            mag = 1;
+        }
+    }
+    return Math.min(1, Math.max(0, mag));
+}
+
+// 绘制幅频响应
+function drawMag(id, type, order, cutoff, bw) {
+    const canvas = document.getElementById(id);
+    if(!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    const W = rect.width, H = rect.height;
+    
+    const pad = 40, plotW = W - 2*pad, plotH = H - 2*pad;
+    
+    // 背景
+    ctx.fillStyle = '#fafafa';
+    ctx.fillRect(pad, pad, plotW, plotH);
+    
+    // 通带区域
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = colors[type];
+    if(type === 'lowpass') {
+        ctx.fillRect(pad, pad, cutoff * plotW, plotH);
+    } else if(type === 'highpass') {
+        ctx.fillRect(pad + cutoff * plotW, pad, (1 - cutoff) * plotW, plotH);
+    } else if(type === 'bandpass') {
+        const w1 = Math.max(0, cutoff - bw), w2 = Math.min(1, cutoff + bw);
+        ctx.fillRect(pad + w1 * plotW, pad, (w2 - w1) * plotW, plotH);
+    } else {
+        ctx.fillStyle = colors.pole;
+        ctx.fillRect(pad + (cutoff - bw/2) * plotW, pad, bw * plotW, plotH);
+    }
+    ctx.globalAlpha = 1;
+    
+    // 网格
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 0.5;
+    for(let i = 0; i <= 5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(pad + i*plotW/5, pad);
+        ctx.lineTo(pad + i*plotW/5, H - pad);
+        ctx.moveTo(pad, pad + i*plotH/5);
+        ctx.lineTo(W - pad, pad + i*plotH/5);
+        ctx.stroke();
+    }
+    
+    // 曲线
+    ctx.strokeStyle = colors[type];
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for(let i = 0; i <= 200; i++) {
+        const omega = i / 200 * Math.PI;
+        const mag = calcMag(type, order, cutoff * Math.PI, bw * 2 * Math.PI, omega);
+        const x = pad + (i / 200) * plotW;
+        const y = pad + (1 - mag) * plotH;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    
+    // 坐标轴
+    ctx.strokeStyle = colors.axis;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad, pad);
+    ctx.lineTo(pad, H - pad);
+    ctx.lineTo(W - pad, H - pad);
+    ctx.stroke();
+    
+    // 标签
+    ctx.fillStyle = colors.axis;
+    ctx.font = '11px sans-serif';
+    ctx.fillText('1', pad - 12, pad + 4);
+    ctx.fillText('0', pad - 12, H - pad + 4);
+    ctx.fillText('0', pad - 3, H - pad + 14);
+    ctx.fillText('π', W - pad - 3, H - pad + 14);
+}
+
+// 绘制零极点图（修正版：Butterworth极点关于实轴对称）
+function drawPZ(id, type, order) {
+    const canvas = document.getElementById(id);
+    if(!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    const W = rect.width, H = rect.height;
+    
+    const cx = W/2, cy = H/2, r = Math.min(W, H)/2 - 30;
+    
+    // 单位圆
+    ctx.strokeStyle = colors[type];
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, 2*Math.PI);
+    ctx.stroke();
+    
+    // 坐标轴
+    ctx.strokeStyle = colors.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - r - 15, cy);
+    ctx.lineTo(cx + r + 15, cy);
+    ctx.moveTo(cx, cy - r - 15);
+    ctx.lineTo(cx, cy + r + 15);
+    ctx.stroke();
+    
+    // 轴标签
+    ctx.fillStyle = '#7f8c8d';
+    ctx.font = '11px sans-serif';
+    ctx.fillText('Re', W - 25, cy - 5);
+    ctx.fillText('Im', cx + 5, 18);
+    
+    // 计算Butterworth极点（z平面，关于实轴对称）
+    // 对于数字滤波器，极点在单位圆内，关于实轴共轭对称
+    const poles = [];
+    const poleRadius = 0.75; // 极点到原点的距离（稳定滤波器 < 1）
+    
+    // 根据滤波器类型和阶数生成极点
+    if(type === 'lowpass' || type === 'highpass') {
+        // N阶Butterworth极点均匀分布，关于实轴对称
+        for(let k = 0; k < order; k++) {
+            // 极点角度：从π/2开始，在左半平面均匀分布
+            const theta = Math.PI/2 + Math.PI * (2*k + 1) / (2 * order);
+            // 只取左半平面的极点（实部为负），然后映射到z平面后在单位圆内
+            const re = poleRadius * Math.cos(theta);
+            const im = poleRadius * Math.sin(theta);
+            poles.push({re: re, im: im});
+        }
+    } else {
+        // 带通/带阻：极点成对出现，分布更复杂
+        const halfOrder = Math.floor(order / 2);
+        for(let k = 0; k < halfOrder; k++) {
+            const theta = Math.PI/2 + Math.PI * (2*k + 1) / (2 * halfOrder);
+            const baseRadius = 0.65 + 0.1 * k / halfOrder;
+            // 上半平面极点
+            poles.push({re: baseRadius * Math.cos(theta + 0.3), im: baseRadius * Math.sin(theta + 0.3)});
+            // 下半平面共轭极点（关于实轴对称）
+            poles.push({re: baseRadius * Math.cos(theta + 0.3), im: -baseRadius * Math.sin(theta + 0.3)});
+        }
+    }
+    
+    // 绘制极点 (×)
+    ctx.strokeStyle = colors.pole;
+    ctx.lineWidth = 2;
+    poles.forEach(p => {
+        const px = cx + p.re * r;
+        const py = cy - p.im * r; // 注意：canvas的y轴向下，所以要取负
+        ctx.beginPath();
+        ctx.moveTo(px - 5, py - 5);
+        ctx.lineTo(px + 5, py + 5);
+        ctx.moveTo(px + 5, py - 5);
+        ctx.lineTo(px - 5, py + 5);
+        ctx.stroke();
+    });
+    
+    // 绘制零点 (○)
+    ctx.strokeStyle = colors.zero;
+    ctx.lineWidth = 2;
+    
+    if(type === 'lowpass') {
+        // 低通：零点在z=-1（高频处）或无穷远
+        // 对于标准Butterworth低通，零点在z=-1
+        ctx.beginPath();
+        ctx.arc(cx - r, cy, 5, 0, 2*Math.PI);
+        ctx.stroke();
+    } else if(type === 'highpass') {
+        // 高通：N个零点都在z=1（直流处）
+        ctx.beginPath();
+        ctx.arc(cx + r, cy, 6, 0, 2*Math.PI);
+        ctx.stroke();
+        // 标注重数
+        ctx.fillStyle = colors.zero;
+        ctx.font = '10px sans-serif';
+        ctx.fillText('(' + order + '重)', cx + r - 10, cy + 18);
+    } else if(type === 'bandpass') {
+        // 带通：零点在z=1和z=-1
+        ctx.beginPath();
+        ctx.arc(cx + r, cy, 5, 0, 2*Math.PI);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx - r, cy, 5, 0, 2*Math.PI);
+        ctx.stroke();
+    } else if(type === 'bandstop') {
+        // 带阻：零点在单位圆上，对应陷波频率，共轭对称
+        const w0 = 0.1 * Math.PI; // 50Hz对应的数字频率
+        // 上半圆零点
+        ctx.beginPath();
+        ctx.arc(cx + r*Math.cos(w0), cy - r*Math.sin(w0), 5, 0, 2*Math.PI);
+        ctx.stroke();
+        // 下半圆共轭零点（关于实轴对称）
+        ctx.beginPath();
+        ctx.arc(cx + r*Math.cos(w0), cy + r*Math.sin(w0), 5, 0, 2*Math.PI);
+        ctx.stroke();
+    }
+    
+    // 图例
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = colors.pole;
+    ctx.fillText('× 极点', 8, 14);
+    ctx.fillStyle = colors.zero;
+    ctx.fillText('○ 零点', 8, 26);
+}
+
+// 绘制所有图表
+function drawAll() {
+    drawMag('lpMagCanvas', 'lowpass', 3, 0.2, 0.1);
+    drawPZ('lpPoleCanvas', 'lowpass', 3);
+    
+    drawMag('hpMagCanvas', 'highpass', 4, 0.375, 0.1);
+    drawPZ('hpPoleCanvas', 'highpass', 4);
+    
+    drawMag('bpMagCanvas', 'bandpass', 3, 0.25, 0.1);
+    drawPZ('bpPoleCanvas', 'bandpass', 6);
+    
+    drawMag('bsMagCanvas', 'bandstop', 2, 0.1, 0.05);
+    drawPZ('bsPoleCanvas', 'bandstop', 4);
+}
+
+window.addEventListener('load', drawAll);
+window.addEventListener('resize', drawAll);
+</script>
+
+</body>
+</html>
