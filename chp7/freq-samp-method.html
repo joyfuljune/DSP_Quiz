@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIR 滤波器设计：频率采样法深度解析</title>
+    
+    <!-- MathJax 配置 -->
+    <script>
+    window.MathJax = {
+      tex: { 
+          inlineMath: [['$', '$'], ['\\(', '\\)']], 
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre'] },
+      startup: { typeset: true }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --primary: #2b5876;
+            --secondary: #4e4376;
+            --accent: #ff6b6b;
+            --highlight: #feca57;
+            --bg: #f8f9fa;
+            --text: #2d3436;
+            --card-bg: #ffffff;
+            --border-color: #e1e4e8;
+        }
+
+        body {
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #dbe4ef 100%);
+            color: var(--text);
+            margin: 0;
+            padding-bottom: 80px;
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+        header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 50px 20px;
+            text-align: center;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+        }
+        header h1 { margin: 0; font-size: 2.2rem; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+        
+        h2 { border-bottom: 3px solid var(--accent); padding-bottom: 10px; display: inline-block; color: var(--secondary); margin-top: 0; }
+        h3 { color: var(--primary); margin-top: 25px; }
+
+        /* --- 原理对比表格 --- */
+        .comparison-table {
+            width: 100%; border-collapse: collapse; margin-top: 20px;
+        }
+        .comparison-table th, .comparison-table td {
+            border: 1px solid #ddd; padding: 12px; text-align: left;
+        }
+        .comparison-table th { background-color: #f1f3f5; color: var(--primary); }
+        .tag-bad { color: #c0392b; font-weight: bold; background: #fadbd8; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+        .tag-good { color: #27ae60; font-weight: bold; background: #d5f5e3; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+
+        /* --- 交互实验区布局优化 --- */
+        .lab-container {
+            display: grid;
+            grid-template-columns: 2.5fr 1fr; /* 图表区域更宽 */
+            gap: 25px;
+        }
+        @media (max-width: 900px) { .lab-container { grid-template-columns: 1fr; } }
+
+        .canvas-frame {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden; /* 防止溢出 */
+        }
+
+        /* 新增：独立的图表头，避免遮挡 */
+        .viz-header {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .viz-legend { display: flex; gap: 15px; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot-red { width: 10px; height: 10px; background: #e74c3c; border-radius: 50%; display: inline-block; }
+        .line-blue { width: 20px; height: 3px; background: #3498db; display: inline-block; }
+
+        canvas { width: 100%; display: block; cursor: crosshair; }
+        
+        .control-panel {
+            background: #fff;
+            border: 1px solid #e1e4e8;
+            padding: 20px;
+            border-radius: 8px;
+            height: fit-content;
+        }
+
+        .slider-group { margin-bottom: 20px; }
+        .slider-group label { display: block; font-weight: bold; margin-bottom: 8px; color: var(--primary); }
+        input[type=range] { width: 100%; accent-color: var(--secondary); }
+
+        .btn-preset {
+            display: block; width: 100%;
+            padding: 12px; margin-bottom: 10px;
+            background: #f8f9fa; border: 1px solid #ccc;
+            color: #555; border-radius: 6px;
+            cursor: pointer; transition: all 0.2s;
+            text-align: left;
+        }
+        .btn-preset:hover { background: var(--secondary); color: white; border-color: var(--secondary); }
+        .btn-preset strong { display: block; margin-bottom: 2px; }
+        .btn-preset small { display: block; font-size: 0.8em; opacity: 0.85; }
+
+        .mission-box {
+            background: #fff8e1; border-left: 5px solid #ffc107;
+            padding: 15px; margin-bottom: 20px; border-radius: 4px;
+        }
+
+        /* --- 例题步骤 --- */
+        .step-box {
+            border-left: 4px solid var(--secondary);
+            padding-left: 20px;
+            margin-bottom: 30px;
+        }
+        .step-header { font-weight: bold; font-size: 1.1rem; color: var(--secondary); margin-bottom: 10px; }
+        .calculation-box {
+            background: #f1f3f5; border-radius: 5px;
+            padding: 15px; margin-top: 10px;
+            font-family: "Consolas", monospace; font-size: 0.9rem; border: 1px solid #e9ecef;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>FIR 滤波器设计：频率采样法</h1>
+    <p>直接在频域“下达指令”的设计艺术 | 解决窗函数法的痛点</p>
+</header>
+
+<div class="container">
+
+    <!-- 1. 原理对比 -->
+    <div class="card">
+        <h2>1. 为什么要用频率采样法？</h2>
+        <p>频率采样法与窗函数法的设计视角完全相反。窗函数法是在时域“截断”信号，而频率采样法是直接在频域设定“目标点”。</p>
+        
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th width="20%">特性</th>
+                    <th width="40%">🪟 窗函数法 (Window Method)</th>
+                    <th width="40%">📊 频率采样法 (Freq Sampling)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>控制方式</strong></td>
+                    <td>间接控制。通过选择窗形状来影响频谱。</td>
+                    <td><span class="tag-good">直接控制</span>。直接设定特定频率点的值 (0或1)。</td>
+                </tr>
+                <tr>
+                    <td><strong>主要优点</strong></td>
+                    <td>阻带衰减可以做得非常好 (如 Blackman 窗)。</td>
+                    <td>可以精确控制某些频率点的增益为 0 (完全滤除)。计算简单，无积分。</td>
+                </tr>
+                <tr>
+                    <td><strong>主要缺点</strong></td>
+                    <td><span class="tag-bad">无法精确控制</span>。例如很难要求 50Hz 处增益正好为 0。</td>
+                    <td><span class="tag-bad">点间失控</span>。采样点之间可能出现剧烈振荡 (逼近误差)。阻带衰减一般较差。</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 2. 交互实验 -->
+    <div class="card">
+        <h2>2. 交互实验室：优化“逼近误差”</h2>
+        
+        <div class="mission-box">
+            <strong>🎯 实验目标：寻找“软着陆”的过渡点</strong><br>
+            <ul style="margin:5px 0 0 20px; padding:0;">
+                <li><strong>现象：</strong> 当红色柱子从 1 直接跳变到 0 (硬着陆) 时，蓝色曲线在阻带会剧烈波动（旁瓣大，衰减差）。</li>
+                <li><strong>任务：</strong> 试着拖动通带与阻带之间的一个红色柱子，将其值设为 <strong>0.5 或 0.4</strong> 左右。</li>
+                <li><strong>观察：</strong> 蓝色曲线是不是变得更平滑了？这就是牺牲过渡带宽度，换取更好阻带衰减的权衡。</li>
+            </ul>
+        </div>
+
+        <div class="lab-container">
+            <!-- 左侧：绘图区 -->
+            <div>
+                <!-- 频域图表 -->
+                <div class="canvas-frame">
+                    <div class="viz-header">
+                        <strong>频域响应</strong>
+                        <div class="viz-legend">
+                            <div class="legend-item"><span class="dot-red"></span> 设计目标 H(k) (可拖动)</div>
+                            <div class="legend-item"><span class="line-blue"></span> 实际响应 |H(ω)|</div>
+                        </div>
+                    </div>
+                    <canvas id="freqCanvas" height="300"></canvas>
+                </div>
+                
+                <!-- 时域图表 -->
+                <div class="canvas-frame">
+                    <div class="viz-header">
+                        <strong>时域脉冲响应 h[n]</strong>
+                        <div style="font-size: 0.8rem; color: #666;">由 IDFT 计算得出</div>
+                    </div>
+                    <canvas id="timeCanvas" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- 右侧：控制区 -->
+            <div class="control-panel">
+                <div class="slider-group">
+                    <label>点数 N = <span id="valN">15</span></label>
+                    <input type="range" id="sliderN" min="7" max="31" step="2" value="15" oninput="resetSim()">
+                    <div style="font-size: 0.8rem; color: #666; margin-top:5px;">建议保持奇数 (Type I 线性相位)</div>
+                </div>
+
+                <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
+
+                <label style="display:block; margin-bottom:10px; font-weight:bold; color:var(--primary);">快速预设 (Presets):</label>
+                
+                <button class="btn-preset" onclick="applyPreset('ideal')">
+                    <strong>🧱 理想低通 (硬着陆)</strong>
+                    <small>直接从1跳到0，观察蓝线的剧烈“过冲”</small>
+                </button>
+                
+                <button class="btn-preset" onclick="applyPreset('transition1')">
+                    <strong>📉 1个过渡点 (软着陆)</strong>
+                    <small>在边缘增加一个 0.5 的点，波纹显著减小</small>
+                </button>
+                
+                <button class="btn-preset" onclick="applyPreset('transition2')">
+                    <strong>📉📉 2个过渡点 (更平滑)</strong>
+                    <small>过渡带变宽，但阻带衰减极佳</small>
+                </button>
+                
+                <button class="btn-preset" onclick="applyPreset('highpass')">
+                    <strong>🚀 高通滤波器</strong>
+                    <small>反向设置 H(k)，体验自由设计</small>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 详细设计步骤与例题 -->
+    <div class="card">
+        <h2>3. 综合例题详解</h2>
+        <p><strong>题目：</strong> 设计一个 $N=15$ 的线性相位低通滤波器，截止频率 $\omega_c = 0.4\pi$。使用频率采样法，并增加一个过渡点。</p>
+
+        <!-- Step 1 -->
+        <div class="step-box">
+            <div class="step-header">步骤 1: 确定频率采样点分布</div>
+            <p>频率采样间隔 $\Delta\omega = \frac{2\pi}{N}$。对于 $N=15$：</p>
+            <div class="calculation-box">
+                $$ \Delta\omega = \frac{2\pi}{15} \approx 0.133\pi $$
+                采样点位置: $\omega_k = k \cdot \frac{2\pi}{15}$
+            </div>
+            <p>截止频率 $0.4\pi$ 对应的索引 $k \approx 3$。因此我们设定：</p>
+            <ul>
+                <li>$k=0, 1, 2$: <strong>通带</strong> ($|H(k)|=1$)</li>
+                <li>$k=3$: <strong>过渡点</strong> (设 $|H(3)|=0.5$，这就是我们在交互图里做的操作)</li>
+                <li>$k=4 \sim 7$: <strong>阻带</strong> ($|H(k)|=0$)</li>
+            </ul>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-box">
+            <div class="step-header">步骤 2: 构造相位与 IDFT</div>
+            <p>为了得到实数系数 $h[n]$，频域采样必须满足共轭对称性。对于线性相位，需施加相位偏移：</p>
+            <div class="calculation-box">
+                $$ \theta(k) = -k \frac{N-1}{2} \frac{2\pi}{N} = -k \frac{14\pi}{15} $$
+            </div>
+            <p>利用化简后的 IDFT 公式（仅计算前半部分非零点）：</p>
+            <div class="calculation-box">
+                $$ h[n] = \frac{1}{15} \left( 1 + 2\sum_{k=1}^{3} |H(k)| \cos\left( \frac{2\pi k}{15}(n - 7) \right) \right) $$
+                代入数值：
+                $$ h[n] = \frac{1}{15} [ 1 + 2(1)\cos(...) + 2(1)\cos(...) + 2(0.5)\cos(...) ] $$
+            </div>
+            <p>这就是我们在上面代码中计算 <code>h_n</code> 数组的数学依据。</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // ==========================================
+    // 交互逻辑核心代码
+    // ==========================================
+    const canvasF = document.getElementById('freqCanvas');
+    const ctxF = canvasF.getContext('2d');
+    const canvasT = document.getElementById('timeCanvas');
+    const ctxT = canvasT.getContext('2d');
+    
+    let N = 15;
+    let H_mag = []; // 存储前半部分 magnitudes (0 to (N-1)/2)
+    let isDragging = false;
+    let dragIndex = -1;
+
+    // 初始化
+    function init() {
+        // 默认: 低通，cutoff k=3, transition k=4
+        applyPreset('transition1');
+        
+        // 事件监听
+        canvasF.addEventListener('mousedown', onMouseDown);
+        canvasF.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', () => { isDragging = false; dragIndex = -1; });
+        
+        // 触摸支持
+        canvasF.addEventListener('touchstart', e => {
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent("mousedown", {
+                clientX: touch.clientX, clientY: touch.clientY
+            });
+            canvasF.dispatchEvent(mouseEvent);
+        }, {passive: false});
+        canvasF.addEventListener('touchmove', e => {
+            e.preventDefault(); // 防止滚动
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent("mousemove", {
+                clientX: touch.clientX, clientY: touch.clientY
+            });
+            canvasF.dispatchEvent(mouseEvent);
+        }, {passive: false});
+    }
+
+    window.resetSim = function() {
+        N = parseInt(document.getElementById('sliderN').value);
+        document.getElementById('valN').innerText = N;
+        applyPreset('ideal'); 
+    }
+
+    // 应用预设
+    window.applyPreset = function(type) {
+        let limit = (N-1)/2;
+        H_mag = new Array(limit + 1).fill(0);
+        
+        // 基础截止点大约在 N/4 处
+        let cutoff = Math.floor(N/4); 
+
+        if (type === 'ideal') {
+            for(let k=0; k<=limit; k++) {
+                H_mag[k] = (k <= cutoff) ? 1.0 : 0.0;
+            }
+        } else if (type === 'transition1') {
+            for(let k=0; k<=limit; k++) {
+                if(k < cutoff) H_mag[k] = 1.0;
+                else if(k === cutoff) H_mag[k] = 0.5; // 过渡
+                else H_mag[k] = 0.0;
+            }
+        } else if (type === 'transition2') {
+             for(let k=0; k<=limit; k++) {
+                if(k < cutoff) H_mag[k] = 1.0;
+                else if(k === cutoff) H_mag[k] = 0.7;
+                else if(k === cutoff + 1) H_mag[k] = 0.2;
+                else H_mag[k] = 0.0;
+            }
+        } else if (type === 'highpass') {
+             for(let k=0; k<=limit; k++) {
+                H_mag[k] = (k > cutoff) ? 1.0 : 0.0;
+            }
+        }
+        update();
+    };
+
+    // 交互处理
+    function getMousePos(evt) {
+        const rect = canvasF.getBoundingClientRect();
+        return {
+            x: evt.clientX - rect.left,
+            y: evt.clientY - rect.top
+        };
+    }
+
+    function onMouseDown(e) {
+        const pos = getMousePos(e);
+        const w = canvasF.width;
+        const h = canvasF.height;
+        const paddingLeft = 40;
+        const paddingRight = 20;
+        const paddingTop = 20;
+        const paddingBottom = 30;
+        
+        const plotW = w - paddingLeft - paddingRight;
+        const plotH = h - paddingTop - paddingBottom;
+        const limit = (N-1)/2;
+        const step = plotW / limit;
+
+        // 寻找最近的 bar
+        let idx = -1;
+
+        for(let k=0; k<=limit; k++) {
+            let x = paddingLeft + k * step;
+            // X轴容差
+            let dx = Math.abs(pos.x - x);
+            if (dx < step/2.5) {
+                idx = k;
+                break;
+            }
+        }
+
+        if(idx !== -1) {
+            isDragging = true;
+            dragIndex = idx;
+            onMouseMove(e); // 立即更新
+        }
+    }
+
+    function onMouseMove(e) {
+        if(!isDragging || dragIndex === -1) return;
+        const pos = getMousePos(e);
+        const h = canvasF.height;
+        const paddingTop = 20;
+        const paddingBottom = 30;
+        const plotH = h - paddingTop - paddingBottom;
+
+        // 计算新的 magnitude (倒置Y轴)
+        let val = 1.0 - (pos.y - paddingTop) / plotH;
+        
+        // Clamp
+        if(val > 1.1) val = 1.1;
+        if(val < -0.1) val = -0.1;
+        
+        // 吸附功能 (Snap)
+        if(Math.abs(val) < 0.05) val = 0;
+        if(Math.abs(val-1) < 0.05) val = 1;
+        if(Math.abs(val-0.5) < 0.05) val = 0.5;
+
+        H_mag[dragIndex] = val;
+        update();
+    }
+
+    // 核心计算与绘图
+    function update() {
+        calculateImpulse(); // 计算 h[n]
+        drawFreq();         // 画 H(k) 和 插值曲线
+        drawTime();         // 画 h[n]
+    }
+
+    let h_n = []; // 时域系数
+
+    // IDFT 公式实现
+    function calculateImpulse() {
+        h_n = new Array(N).fill(0);
+        const alpha = (N-1)/2;
+        
+        for(let n=0; n<N; n++) {
+            let sum = 0;
+            // k=0 term
+            sum += H_mag[0];
+            // k=1 to (N-1)/2 terms
+            for(let k=1; k<=(N-1)/2; k++) {
+                sum += 2 * H_mag[k] * Math.cos( (2*Math.PI*k/N) * (n - alpha) );
+            }
+            h_n[n] = sum / N;
+        }
+    }
+
+    // DTFT 插值计算 (High Res Spectrum)
+    function calculateDTFT(points=200) {
+        let spectrum = [];
+        for(let i=0; i<points; i++) {
+            let omega = i * Math.PI / (points-1); // 0 to pi
+            let real = 0;
+            let imag = 0;
+            for(let n=0; n<N; n++) {
+                real += h_n[n] * Math.cos(omega * n);
+                imag -= h_n[n] * Math.sin(omega * n);
+            }
+            spectrum.push(Math.sqrt(real*real + imag*imag));
+        }
+        return spectrum;
+    }
+
+    function drawFreq() {
+        canvasF.width = canvasF.clientWidth;
+        canvasF.height = canvasF.clientHeight;
+        const w = canvasF.width;
+        const h = canvasF.height;
+        
+        // 调整边距，配合上方 Header
+        const paddingLeft = 40;
+        const paddingRight = 20;
+        const paddingTop = 20;
+        const paddingBottom = 30;
+        
+        const plotW = w - paddingLeft - paddingRight;
+        const plotH = h - paddingTop - paddingBottom;
+
+        ctxF.clearRect(0,0,w,h);
+        
+        // 坐标轴
+        ctxF.beginPath(); ctxF.strokeStyle="#eee"; ctxF.lineWidth=1;
+        // Y轴线
+        ctxF.moveTo(paddingLeft, paddingTop); ctxF.lineTo(paddingLeft, h-paddingBottom);
+        // X轴线
+        ctxF.moveTo(paddingLeft, h-paddingBottom); ctxF.lineTo(w-paddingRight, h-paddingBottom);
+        // 水平网格 (0, 0.5, 1)
+        [0, 0.5, 1].forEach(val => {
+            let y = h - paddingBottom - val * plotH;
+            ctxF.moveTo(paddingLeft, y); ctxF.lineTo(w-paddingRight, y);
+            ctxF.fillStyle="#999"; ctxF.font="11px Arial"; ctxF.textAlign="right";
+            ctxF.fillText(val, paddingLeft-5, y+4);
+        });
+        ctxF.stroke();
+
+        // 1. 绘制蓝色插值曲线 (DTFT)
+        const dtft = calculateDTFT(w); 
+        ctxF.beginPath(); ctxF.strokeStyle = "#3498db"; ctxF.lineWidth = 2;
+        for(let i=0; i<dtft.length; i++) {
+            let x = paddingLeft + (i/(dtft.length-1)) * plotW;
+            let val = dtft[i];
+            let y = h - paddingBottom - val * plotH;
+            if(i===0) ctxF.moveTo(x,y); else ctxF.lineTo(x,y);
+        }
+        ctxF.stroke();
+
+        // 2. 绘制红色采样点 H(k)
+        const limit = (N-1)/2;
+        const step = plotW / limit; 
+        
+        for(let k=0; k<=limit; k++) {
+            let x = paddingLeft + k * step;
+            let val = H_mag[k];
+            let y = h - paddingBottom - val * plotH;
+
+            // Stick
+            ctxF.beginPath(); ctxF.strokeStyle = "#e74c3c"; ctxF.lineWidth = 4;
+            ctxF.moveTo(x, h-paddingBottom); ctxF.lineTo(x, y); ctxF.stroke();
+
+            // Cap (Handle)
+            ctxF.beginPath(); ctxF.fillStyle = "#c0392b";
+            ctxF.arc(x, y, 7, 0, Math.PI*2); ctxF.fill(); // 加大一点便于触摸
+
+            // Label Index
+            ctxF.fillStyle = "#666"; ctxF.textAlign="center"; ctxF.font="12px Arial";
+            ctxF.fillText(k, x, h-10);
+        }
+        
+        // 标记 PI
+        ctxF.fillStyle="#333"; ctxF.fillText("π", w-paddingRight, h-10);
+    }
+
+    function drawTime() {
+        canvasT.width = canvasT.clientWidth;
+        canvasT.height = canvasT.clientHeight;
+        const w = canvasT.width;
+        const h = canvasT.height;
+        
+        const paddingLeft = 40;
+        const paddingRight = 20;
+        const paddingTop = 20;
+        const paddingBottom = 30;
+
+        ctxT.clearRect(0,0,w,h);
+        
+        const midY = paddingTop + (h - paddingTop - paddingBottom)/2;
+        const plotW = w - paddingLeft - paddingRight;
+        const step = plotW / (N-1);
+        
+        // Axis
+        ctxT.beginPath(); ctxT.strokeStyle="#ccc";
+        ctxT.moveTo(paddingLeft, midY); ctxT.lineTo(w-paddingRight, midY);
+        ctxT.stroke();
+
+        // 寻找 h[n] 最大值以缩放
+        let maxVal = 0;
+        h_n.forEach(v => { if(Math.abs(v)>maxVal) maxVal = Math.abs(v); });
+        if(maxVal === 0) maxVal = 1;
+        const scaleY = (h - paddingTop - paddingBottom) / 2 / (maxVal * 1.1);
+
+        // Draw Stems
+        for(let n=0; n<N; n++) {
+            let x = paddingLeft + n*step;
+            let y = midY - h_n[n] * scaleY;
+            
+            ctxT.beginPath(); ctxT.strokeStyle = "#2c3e50"; ctxT.lineWidth = 2;
+            ctxT.moveTo(x, midY); ctxT.lineTo(x, y); ctxT.stroke();
+            
+            ctxT.beginPath(); ctxT.fillStyle = "#2c3e50";
+            ctxT.arc(x, y, 3, 0, Math.PI*2); ctxT.fill();
+            
+            // Index Text
+            if(N < 20 || n%2===0) {
+                 ctxT.fillStyle = "#999"; ctxT.font="10px Arial"; ctxT.textAlign="center";
+                 ctxT.fillText(n, x, h-10);
+            }
+        }
+    }
+
+    // 启动
+    init();
+
+</script>
+
+</body>
+</html>

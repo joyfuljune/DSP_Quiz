@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIR 滤波器练习题</title>
+    
+    <!-- 引入 MathJax 用于渲染数学公式 -->
+    <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body {
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 40px;
+        }
+
+        .problem-card {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 5px solid #3498db;
+        }
+
+        .problem-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2980b9;
+            margin-bottom: 15px;
+        }
+
+        .problem-content {
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .btn-toggle {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-toggle:hover {
+            background-color: #27ae60;
+        }
+
+        .answer-box {
+            display: none; /* 默认隐藏 */
+            margin-top: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .answer-step {
+            margin-bottom: 10px;
+        }
+
+        .highlight {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>FIR 数字滤波器典型习题</h1>
+
+    <!-- 题目 1 -->
+    <div class="problem-card">
+        <div class="problem-title">题目 1：分析 FIR 脉冲响应的对称性</div>
+        <div class="problem-content">
+            <p>已知 FIR DF 的单位脉冲响应为：</p>
+            <p>(a) $h[n]$ 长度为 $N=6$，满足：<br>
+               $$h[0] = h[5] = 1.5, \quad h[1] = h[4] = 2, \quad h[2] = h[3] = 3$$
+            </p>
+            <p>(b) $h[n]$ 长度为 $N=7$，满足：<br>
+               $$h[0] = -h[6] = 3, \quad h[1] = -h[5] = -2, \quad h[2] = -h[4] = 1, \quad h[3] = 0$$
+            </p>
+            <p>请分析上述两个序列的对称特性及所属的线性相位 FIR 类型。</p>
+        </div>
+        <button class="btn-toggle" onclick="toggleAnswer('ans1')">显示 / 隐藏 详细解答</button>
+        
+        <div id="ans1" class="answer-box">
+            <h3>详细解答：</h3>
+            
+            <h4>(a) 部分分析</h4>
+            <div class="answer-step">
+                <p><strong>1. 观察长度：</strong> $N=6$，为<strong>偶数</strong>。</p>
+                <p><strong>2. 检查对称性：</strong></p>
+                <ul>
+                    <li>$h[0] = 1.5, h[5] = 1.5 \implies h[0] = h[5]$</li>
+                    <li>$h[1] = 2, h[4] = 2 \implies h[1] = h[4]$</li>
+                    <li>$h[2] = 3, h[3] = 3 \implies h[2] = h[3]$</li>
+                </ul>
+                <p>满足偶对称条件：$h[n] = h[N-1-n]$。</p>
+                <p><strong>结论：</strong> 这是一个 <span class="highlight">第二类 (Type II)</span> 线性相位 FIR 滤波器（偶长度、偶对称）。</p>
+            </div>
+
+            <hr style="border: 0; border-top: 1px dashed #ccc; margin: 15px 0;">
+
+            <h4>(b) 部分分析</h4>
+            <div class="answer-step">
+                <p><strong>1. 观察长度：</strong> $N=7$，为<strong>奇数</strong>。</p>
+                <p><strong>2. 检查对称性：</strong></p>
+                <ul>
+                    <li>$h[0] = 3, h[6] = -3 \implies h[0] = -h[6]$</li>
+                    <li>$h[1] = -2, h[5] = 2 \implies h[1] = -h[5]$</li>
+                    <li>$h[2] = 1, h[4] = -1 \implies h[2] = -h[4]$</li>
+                    <li>中心点 $h[3] = 0$ (奇对称序列中心必须为0)</li>
+                </ul>
+                <p>满足奇对称（反对称）条件：$h[n] = -h[N-1-n]$。</p>
+                <p><strong>结论：</strong> 这是一个 <span class="highlight">第三类 (Type III)</span> 线性相位 FIR 滤波器（奇长度、奇对称）。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 题目 2 -->
+    <div class="problem-card">
+        <div class="problem-title">题目 2：利用频域采样特性求解幅度值</div>
+        <div class="problem-content">
+            <p>已知第一类线性相位 FIR-DF 的单位脉冲响应长度为 $N=16$。</p>
+            <p>其 16 个频域幅度采样值 $H_g[k]$ 中的前 9 个为：</p>
+            <ul>
+                <li>$H_g[0] = 12$</li>
+                <li>$H_g[1] = 8.34$</li>
+                <li>$H_g[2] = 3.79$</li>
+                <li>$H_g[3] \sim H_g[8] = 0$</li>
+            </ul>
+            <p>根据第一类线性相位 FIR DF 幅度特性 $H_g[\omega]$ 的特点，求其余 7 个频域幅度采样值（即 $k=9 \sim 15$ 的值）。</p>
+        </div>
+        <button class="btn-toggle" onclick="toggleAnswer('ans2')">显示 / 隐藏 详细解答</button>
+
+        <div id="ans2" class="answer-box">
+            <h3>详细解答：</h3>
+            <div class="answer-step">
+                <p><strong>1. 理论基础：</strong></p>
+                <p>对于线性相位 FIR 滤波器，其时域序列 $h[n]$ 是实数且对称的。因此，其离散傅里叶变换（DFT）的幅度谱 $|H[k]|$ 也就是这里的幅度采样值 $H_g[k]$，关于 Nyquist 频率点（$N/2$）呈现<strong>偶对称</strong>。</p>
+                <p>对于 $N=16$，对称中心序号为 $N/2 = 8$。对称公式为：</p>
+                $$H_g[k] = H_g[N-k]$$
+                <p>即：$H_g[k] = H_g[16-k]$，其中 $k=1, 2, \dots, N-1$。</p>
+            </div>
+
+            <div class="answer-step">
+                <p><strong>2. 计算过程：</strong></p>
+                <ul>
+                    <li>$k=9$ 时：$H_g[9] = H_g[16-9] = H_g[7] = \mathbf{0}$</li>
+                    <li>$k=10$ 时：$H_g[10] = H_g[16-10] = H_g[6] = \mathbf{0}$</li>
+                    <li>$k=11$ 时：$H_g[11] = H_g[16-11] = H_g[5] = \mathbf{0}$</li>
+                    <li>$k=12$ 时：$H_g[12] = H_g[16-12] = H_g[4] = \mathbf{0}$</li>
+                    <li>$k=13$ 时：$H_g[13] = H_g[16-13] = H_g[3] = \mathbf{0}$</li>
+                    <li>$k=14$ 时：$H_g[14] = H_g[16-14] = H_g[2] = \mathbf{3.79}$</li>
+                    <li>$k=15$ 时：$H_g[15] = H_g[16-15] = H_g[1] = \mathbf{8.34}$</li>
+                </ul>
+            </div>
+            
+            <div class="answer-step">
+                <p><strong>3. 最终结果：</strong></p>
+                <p>其余 7 个频域幅度采样值为：</p>
+                <p class="highlight">0, 0, 0, 0, 0, 3.79, 8.34</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function toggleAnswer(id) {
+        var x = document.getElementById(id);
+        if (x.style.display === "block") {
+            x.style.display = "none";
+        } else {
+            x.style.display = "block";
+        }
+    }
+</script>
+
+</body>
+</html>

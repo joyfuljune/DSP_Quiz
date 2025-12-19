@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第七章：FIR 滤波器设计测验</title>
+    
+    <!-- 加载 MathJax -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            /* 第七章主题色：靛蓝/紫色渐变 */
+            background: linear-gradient(135deg, #4e4376 0%, #2b5876 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        /* 开始界面样式 */
+        .start-screen {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .info-form {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            color: #2c3e50;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #6c5ce7; /* 修改聚焦颜色 */
+        }
+
+        .exam-info {
+            background: #eef2f3;
+            border-left: 4px solid #6c5ce7;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .exam-info h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .exam-info ul {
+            margin-left: 20px;
+            color: #34495e;
+            line-height: 1.8;
+        }
+
+        .progress-bar {
+            background: #ecf0f1;
+            height: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+            height: 100%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .question-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid #dee2e6;
+            transition: all 0.3s;
+        }
+
+        .question-card.answered {
+            border-color: #6c5ce7;
+            background: #fdfcff;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .question-number {
+            background: #4e4376;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .question-category {
+            background: #95a5a6;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+        }
+        
+        /* 针对第七章的分类颜色 */
+        .question-category.linear_phase { background: #3498db; }  /* 线性相位 */
+        .question-category.window { background: #27ae60; }     /* 窗函数法 */
+        .question-category.freq_samp { background: #8e44ad; }  /* 频率采样 */
+        .question-category.calc { background: #e74c3c; }       /* 计算与结构 */
+
+        .question-text {
+            font-size: 1.1em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .option:hover {
+            background: #f8f9fa;
+            border-color: #6c5ce7;
+            transform: translateX(5px);
+        }
+
+        .option.selected {
+            background: #eef2ff;
+            border-color: #6c5ce7;
+            border-width: 3px;
+        }
+
+        .option.correct {
+            background: #d4edda;
+            border-color: #28a745;
+            border-width: 3px;
+        }
+
+        .option.incorrect {
+            background: #f8d7da;
+            border-color: #dc3545;
+            border-width: 3px;
+        }
+
+        .option-label {
+            background: #4e4376;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .option.correct .option-label { background: #28a745; }
+        .option.incorrect .option-label { background: #dc3545; }
+        .option-text { flex: 1; color: #2c3e50; }
+
+        .explanation {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .explanation.show { display: block; animation: slideDown 0.3s ease; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation h4 {
+            color: #856404;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .explanation p { color: #856404; line-height: 1.6; }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-submit { background: #2b5876; color: white; }
+        .btn-next { background: #6c5ce7; color: white; }
+        .btn-prev { background: #95a5a6; color: white; }
+        .btn-finish { background: #c0392b; color: white; }
+        .btn-start { background: #6c5ce7; color: white; padding: 15px 50px; font-size: 1.2em; }
+
+        .result-panel {
+            background: linear-gradient(135deg, #4e4376 0%, #2b5876 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            display: none;
+        }
+
+        .result-panel.show { display: block; animation: fadeIn 0.5s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .student-info {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        .student-info p { margin: 5px 0; }
+        .result-score { font-size: 4em; font-weight: bold; margin: 20px 0; }
+        .result-message { font-size: 1.5em; margin-bottom: 20px; }
+        .result-details { background: rgba(255,255,255,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; }
+        .result-details table { width: 100%; border-collapse: collapse; }
+        .result-details td { padding: 10px; font-size: 1.1em; }
+        .review-section { margin-top: 30px; }
+
+        .review-question {
+            background: white;
+            color: #2c3e50;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .review-status {
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        .review-status.correct { background: #d4edda; color: #155724; }
+        .review-status.wrong { background: #f8d7da; color: #721c24; }
+        .statistics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            color: #2c3e50;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value { font-size: 2em; font-weight: bold; margin: 10px 0; }
+        .stat-label { color: #7f8c8d; font-size: 0.9em; }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.5em; }
+            .button-group { flex-direction: column; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>第七章：FIR 滤波器设计</h1>
+        <p class="subtitle">南京工业大学浦江学院 | DSP - 窗函数、频率采样与线性相位</p>
+
+        <!-- 开始界面 -->
+        <div id="startScreen" class="start-screen">
+            <div class="exam-info">
+                <h3>📋 测验说明</h3>
+                <ul>
+                    <li>共20道题目，涵盖线性相位特性、窗函数设计法及频率采样法</li>
+                    <li>包含选择题、判断题（选项形式）及参数计算</li>
+                    <li>所有题目的选项顺序已随机化</li>
+                    <li>提交后可查看详细解析，请结合教学页面复习</li>
+                </ul>
+            </div>
+
+            <div class="info-form">
+                <h3 style="color: #2c3e50; margin-bottom: 20px;">请填写你的信息</h3>
+                <div class="form-group">
+                    <label for="studentId">学号 <span style="color: red;">*</span></label>
+                    <input type="text" id="studentId" placeholder="请输入学号" required="">
+                </div>
+                <div class="form-group">
+                    <label for="studentName">姓名 <span style="color: red;">*</span></label>
+                    <input type="text" id="studentName" placeholder="请输入姓名" required="">
+                </div>
+                <button class="btn-start" onclick="startExam()">开始考试</button>
+            </div>
+        </div>
+
+        <!-- 考试界面 -->
+        <div id="examScreen" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar">0/20 已完成</div>
+            </div>
+
+            <div id="questionContainer"></div>
+
+            <div class="button-group">
+                <button class="btn-prev" id="prevBtn" onclick="previousQuestion()">⬅️ 上一题</button>
+                <button class="btn-submit" id="submitBtn" onclick="submitAnswer()">✓ 提交答案</button>
+                <button class="btn-next" id="nextBtn" onclick="nextQuestion()">下一题 ➡️</button>
+                <button class="btn-finish" id="finishBtn" onclick="finishExam()" style="display: none;">🏁 完成考试</button>
+            </div>
+        </div>
+
+        <!-- 结果界面 -->
+        <div class="result-panel" id="resultPanel">
+            <h2>考试完成！</h2>
+            
+            <div class="student-info">
+                <p><strong>学号：</strong><span id="resultStudentId"></span></p>
+                <p><strong>姓名：</strong><span id="resultStudentName"></span></p>
+            </div>
+
+            <div class="result-score" id="resultScore">0/20</div>
+            <div class="result-message" id="resultMessage"></div>
+            
+            <div class="statistics">
+                <div class="stat-card">
+                    <div class="stat-label">正确率</div>
+                    <div class="stat-value" id="accuracyRate">0%</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">线性相位</div>
+                    <div class="stat-value" id="linearScore">0/6</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">窗函数法</div>
+                    <div class="stat-value" id="windowScore">0/7</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">频率采样法</div>
+                    <div class="stat-value" id="freqSampScore">0/4</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">结构与计算</div>
+                    <div class="stat-value" id="calcScore">0/3</div>
+                </div>
+            </div>
+
+            <button class="btn-submit" onclick="showReview()" style="margin-top: 30px;">📝 查看详细解析</button>
+            <button class="btn-next" onclick="location.reload()" style="margin-top: 10px;">🔄 重新开始</button>
+        </div>
+
+        <div id="reviewSection" style="display: none;">
+            <h2 style="margin: 30px 0 20px 0; color: #2c3e50;">📚 答题回顾与解析</h2>
+            <div id="reviewContainer"></div>
+        </div>
+    </div>
+
+<script>
+    // 题目库 - 针对 Chapter 7 (FIR设计) 定制
+    const originalQuestions = [
+        // --- 线性相位 (linear_phase) ---
+        {
+            id: 1,
+            category: 'linear_phase',
+            categoryName: '线性相位',
+            question: '对于一个长度为 $N$ 的 FIR 滤波器，若要保证线性相位特性，其单位脉冲响应 $h[n]$ 必须满足什么对称条件？',
+            options: [
+                '$h[n] = h[N-1-n]$ 或 $h[n] = -h[N-1-n]$',
+                '$h[n] = h[N-n]$',
+                '$h[n] = h[n-1]$',
+                '系数必须全部为正数'
+            ],
+            correct: 0,
+            explanation: '线性相位 FIR 滤波器要求 $h[n]$ 关于中心点偶对称或奇对称，对称中心为 $(N-1)/2$。'
+        },
+        {
+            id: 2,
+            category: 'linear_phase',
+            categoryName: '线性相位',
+            question: 'Type II 线性相位滤波器（长度 $N$ 为偶数，偶对称）在频率响应上有一个强制约束，这使得它**不能**用于设计哪种滤波器？',
+            options: [
+                '高通滤波器',
+                '低通滤波器',
+                '带通滤波器',
+                '全通滤波器'
+            ],
+            correct: 0,
+            explanation: 'Type II 滤波器在 $\\omega=\\pi$ 处的幅度响应强制为 0（参见 fir-linear-phase-advanced.html），因此高频成分被切断，无法作为高通滤波器。'
+        },
+        {
+            id: 3,
+            category: 'linear_phase',
+            categoryName: '线性相位',
+            question: '如果需要设计一个 **Hilbert 变换器**（相移 90 度），应该选择哪种类型的 FIR 滤波器？',
+            options: [
+                '奇对称 (Type III 或 IV)',
+                '偶对称 (Type I 或 II)',
+                '非对称',
+                '最小相位系统'
+            ],
+            correct: 0,
+            explanation: 'Hilbert 变换器需要 90 度的相移，对应 $j$ 或 $-j$，这要求幅度响应在实轴上表现为纯虚数特性，对应于时域的奇对称（反对称）系数。'
+        },
+        {
+            id: 4,
+            category: 'linear_phase',
+            categoryName: '线性相位',
+            question: '长度为 $N$ 的线性相位 FIR 滤波器的群延时（Group Delay） $\\tau_g$ 是多少？',
+            options: [
+                '$(N-1)/2$',
+                '$N/2$',
+                '$N$',
+                '0'
+            ],
+            correct: 0,
+            explanation: '群延时是相位斜率的负数。对于对称中心在 $\\alpha = (N-1)/2$ 的 FIR，其相位为 $-\\omega \\alpha$，因此群延时为常数 $(N-1)/2$。'
+        },
+        {
+            id: 5,
+            category: 'linear_phase',
+            categoryName: '线性相位',
+            question: 'Type III 滤波器（长度 $N$ 为奇数，奇对称）在频率 $\\omega=0$ 和 $\\omega=\\pi$ 处的响应特性是？',
+            options: [
+                '两处幅度都必须为 0',
+                '两处幅度都不能为 0',
+                '只有 $\\omega=0$ 处为 0',
+                '只有 $\\omega=\\pi$ 处为 0'
+            ],
+            correct: 0,
+            explanation: 'Type III 滤波器因为奇对称（$\\sum h[n]=0$）导致直流增益为0；因为长度为奇数且奇对称，导致 $\\pi$ 处增益也为0。只能做带通。'
+        },
+        {
+            id: 6,
+            category: 'linear_phase',
+            categoryName: '线性相位',
+            question: '哪种类型的线性相位 FIR 滤波器被称为“万能型”，没有强制的零点约束？',
+            options: [
+                'Type I (长度 $N$ 奇数，偶对称)',
+                'Type II (长度 $N$ 偶数，偶对称)',
+                'Type III (长度 $N$ 奇数，奇对称)',
+                'Type IV (长度 $N$ 偶数，奇对称)'
+            ],
+            correct: 0,
+            explanation: 'Type I 滤波器在 0 和 $\\pi$ 处都没有强制零点，可以设计低通、高通、带通、带阻等任意类型。'
+        },
+
+        // --- 窗函数法 (window) ---
+        {
+            id: 7,
+            category: 'window',
+            categoryName: '窗函数法',
+            question: '在窗函数法设计中，**吉布斯现象（Gibbs Phenomenon）**是指？',
+            options: [
+                '通带和阻带边缘出现的波纹，且不随 N 增大而消失',
+                '滤波器相位发生非线性失真',
+                '滤波器系数变为复数',
+                '过渡带宽度无限变窄'
+            ],
+            correct: 0,
+            explanation: '吉布斯现象是截断傅里叶级数导致的。增加长度 $N$ 只能压缩波纹的频率范围（使过渡带变陡），但波纹的最大幅度（过冲量）由窗函数的类型决定，不会随 $N$ 减小。'
+        },
+        {
+            id: 8,
+            category: 'window',
+            categoryName: '窗函数法',
+            question: '以下哪种窗函数的主瓣最窄（过渡带最陡），但旁瓣衰减最差（阻带波纹大）？',
+            options: [
+                '矩形窗 (Rectangular)',
+                '汉宁窗 (Hanning)',
+                '汉明窗 (Hamming)',
+                '布莱克曼窗 (Blackman)'
+            ],
+            correct: 0,
+            explanation: '矩形窗直接截断，频谱主瓣最窄（$4\\pi/N$），但旁瓣电平最高（-13dB），阻带性能最差。'
+        },
+        {
+            id: 9,
+            category: 'window',
+            categoryName: '窗函数法',
+            question: '如果设计指标要求阻带衰减至少达到 **50dB**，根据经验公式，应选择哪种窗函数？',
+            options: [
+                '汉明窗 (Hamming, ~-53dB) 或 布莱克曼窗',
+                '矩形窗 (~-21dB)',
+                '汉宁窗 (~-44dB)',
+                '任何窗函数都可以'
+            ],
+            correct: 0,
+            explanation: '矩形窗只能提供约 21dB 衰减，汉宁窗约 44dB，汉明窗约 53dB，布莱克曼窗约 74dB。满足 >50dB 需选汉明或布莱克曼。'
+        },
+        {
+            id: 10,
+            category: 'window',
+            categoryName: '窗函数法',
+            question: '窗函数法设计 FIR 滤波器的时域系数 $h[n]$ 的计算公式是？',
+            options: [
+                '$h[n] = h_{ideal}[n] \\cdot w[n]$',
+                '$h[n] = h_{ideal}[n] * w[n]$ (卷积)',
+                '$h[n] = h_{ideal}[n] + w[n]$',
+                '$h[n] = DFT[ H_{ideal}(k) ]$'
+            ],
+            correct: 0,
+            explanation: '窗函数法在时域上体现为理想无限长脉冲响应 $h_{ideal}$ 与有限长窗函数 $w[n]$ 的**乘积**。'
+        },
+        {
+            id: 11,
+            category: 'window',
+            categoryName: '窗函数法',
+            question: '对于低通滤波器，若过渡带宽度 $\\Delta\\omega$ 给定，滤波器长度 $N$ 与 $\\Delta\\omega$ 大致成什么关系？',
+            options: [
+                '反比 ($N \\propto 1/\\Delta\\omega$)',
+                '正比 ($N \\propto \\Delta\\omega$)',
+                '平方关系',
+                '无关'
+            ],
+            correct: 0,
+            explanation: '过渡带宽度由窗函数的主瓣宽度决定，主瓣宽度通常为 $C/N$。因此 $\\Delta\\omega \\approx C/N$，即 $N \\approx C/\\Delta\\omega$。过渡带越窄，所需阶数越高。'
+        },
+        {
+            id: 12,
+            category: 'window',
+            categoryName: '窗函数法',
+            question: '为什么理想低通滤波器的 $h_{ideal}[n]$ 是 $sinc$ 函数形式？',
+            options: [
+                '因为频域矩形函数的傅里叶逆变换是 $sinc$ 函数',
+                '因为窗函数是 $sinc$ 函数',
+                '为了保证因果性',
+                '这是人为规定的'
+            ],
+            correct: 0,
+            explanation: '理想低通滤波器的频域是矩形窗（门函数）。根据傅里叶变换对，频域的矩形对应时域的 $Sa(t)$ 或离散域的 $sinc$ 函数。'
+        },
+        {
+            id: 13,
+            category: 'window',
+            categoryName: '窗函数法',
+            question: 'Blackman 窗相比于 Hamming 窗，主要优势和劣势是什么？',
+            options: [
+                '优势：阻带衰减更大；劣势：过渡带更宽',
+                '优势：过渡带更窄；劣势：阻带衰减更小',
+                '优势：计算简单；劣势：相位非线性',
+                '两者性能完全相同'
+            ],
+            correct: 0,
+            explanation: 'Blackman 窗具有极低的旁瓣（-74dB），但代价是主瓣宽度增加（$12\\pi/N$），导致相同 $N$ 下过渡带比 Hamming 窗（$8\\pi/N$）更宽。'
+        },
+
+        // --- 频率采样法 (freq_samp) ---
+        {
+            id: 14,
+            category: 'freq_samp',
+            categoryName: '频率采样法',
+            question: '频率采样法的核心思想是直接控制滤波器的？',
+            options: [
+                '频域上的离散采样点值 $H(k)$',
+                '时域上的冲激响应值 $h[n]$',
+                'Z 平面上的极点位置',
+                '输入信号的幅度'
+            ],
+            correct: 0,
+            explanation: '频率采样法通过设定 $0 \\sim 2\\pi$ 区间内 $N$ 个等间隔频率点的幅度和相位值，然后做 IDFT 得到 $h[n]$。'
+        },
+        {
+            id: 15,
+            category: 'freq_samp',
+            categoryName: '频率采样法',
+            question: '在频率采样法中，为了减小通带和阻带交界处的**逼近误差（波纹）**，通常采取什么措施？',
+            options: [
+                '设置 1~2 个过渡带采样点（如 0.5, 0.2 等）',
+                '将采样点数 $N$ 设为偶数',
+                '强制相位为零',
+                '使用矩形窗截断'
+            ],
+            correct: 0,
+            explanation: '直接从 1 跳变到 0 会导致剧烈的吉布斯波纹。在通带和阻带之间引入中间值（过渡采样点）可以使频率响应曲线变化更平缓，从而减小旁瓣波纹（参见 freq-samp-method.html 实验）。'
+        },
+        {
+            id: 16,
+            category: 'freq_samp',
+            categoryName: '频率采样法',
+            question: '为了保证通过频率采样法得到的 $h[n]$ 是**实数**序列，频域采样值 $H(k)$ 必须满足？',
+            options: [
+                '共轭对称性 $H(k) = H^*(N-k)$',
+                '偶对称性 $H(k) = H(N-k)$',
+                '实数性（虚部为0）',
+                '全 1 序列'
+            ],
+            correct: 0,
+            explanation: '时域为实数，对应频域（DFT）具有共轭对称性。幅度关于中心偶对称，相位关于中心奇对称。'
+        },
+        {
+            id: 17,
+            category: 'freq_samp',
+            categoryName: '频率采样法',
+            question: '与窗函数法相比，频率采样法的一个主要缺点是？',
+            options: [
+                '采样点之间的频率响应难以精确控制（除非增加过渡点）',
+                '计算量无限大',
+                '无法实现线性相位',
+                '只能设计低通滤波器'
+            ],
+            correct: 0,
+            explanation: '虽然在采样点 $k$ 上误差为零，但在采样点之间（Inter-sample）可能会出现较大的波纹，导致阻带衰减不如优化后的窗函数法（如 Kaiser 窗）好。'
+        },
+
+        // --- 结构与计算 (calc) ---
+        {
+            id: 18,
+            category: 'calc',
+            categoryName: '结构与计算',
+            question: '利用 FIR 滤波器的线性相位对称性，可以节省多少**乘法器**资源？',
+            options: [
+                '约 50% (减半)',
+                '约 10%',
+                '0%',
+                '100% (不需要乘法)'
+            ],
+            correct: 0,
+            explanation: '因为 $h[n] = \pm h[N-1-n]$，可以将对称的输入信号先相加（或相减），再与同一个系数相乘。这使得乘法运算量减少了一半。'
+        },
+        {
+            id: 19,
+            category: 'calc',
+            categoryName: '结构与计算',
+            question: '计算题：若设计一个截止频率为 $200\\text{Hz}$ 的高通滤波器，采样率为 $1000\\text{Hz}$，则归一化截止频率 $\\omega_c$ 为？',
+            options: [
+                '$0.4\\pi$',
+                '$0.2\\pi$',
+                '$0.5\\pi$',
+                '$0.8\\pi$'
+            ],
+            correct: 0,
+            explanation: '归一化频率 $\\omega = 2\\pi \\cdot (f / F_s) = 2\\pi \\cdot (200/1000) = 0.4\\pi$。'
+        },
+        {
+            id: 20,
+            category: 'calc',
+            categoryName: '结构与计算',
+            question: 'FIR 滤波器总是**稳定**的，因为？',
+            options: [
+                '其系统函数 $H(z)$ 的极点全部在原点 $z=0$ (单位圆内)',
+                '它没有反馈回路',
+                '其冲激响应是有限长的（绝对可和）',
+                '以上全对'
+            ],
+            correct: 3,
+            explanation: 'FIR 滤波器没有反馈（非递归），其极点仅位于 $z=0$，且 $h[n]$ 有限长满足 $\\sum |h[n]| < \\infty$，因此永远是稳定的。'
+        }
+    ];
+
+    // --- 以下逻辑代码与 chp5_quiz.html 保持一致，无需修改 ---
+    let questions = [];
+    let currentQuestion = 0;
+    let userAnswers = new Array(20).fill(null);
+    let submitted = false;
+    let studentInfo = { id: '', name: '' };
+
+    function shuffleArray(array) {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
+    }
+
+    function shuffleQuestions() {
+        questions = shuffleArray(originalQuestions).map(q => {
+            const optionsWithIndex = q.options.map((option, index) => ({
+                text: option,
+                originalIndex: index
+            }));
+            const shuffledOptions = shuffleArray(optionsWithIndex);
+            const newCorrectIndex = shuffledOptions.findIndex(
+                opt => opt.originalIndex === q.correct
+            );
+            return {
+                ...q,
+                options: shuffledOptions.map(opt => opt.text),
+                correct: newCorrectIndex
+            };
+        });
+    }
+
+    function startExam() {
+        const studentId = document.getElementById('studentId').value.trim();
+        const studentName = document.getElementById('studentName').value.trim();
+        if (!studentId || !studentName) {
+            alert('请填写完整的学号和姓名！');
+            return;
+        }
+        studentInfo.id = studentId;
+        studentInfo.name = studentName;
+        shuffleQuestions();
+        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('examScreen').style.display = 'block';
+        init();
+    }
+
+    function init() {
+        displayQuestion();
+        updateButtons();
+        updateProgress();
+    }
+
+    function displayQuestion() {
+        const q = questions[currentQuestion];
+        const container = document.getElementById('questionContainer');
+        let html = `
+            <div class="question-card ${userAnswers[currentQuestion] !== null ? 'answered' : ''}">
+                <div class="question-header">
+                    <span class="question-number">第 ${currentQuestion + 1} 题</span>
+                    <span class="question-category ${q.category}">${q.categoryName}</span>
+                </div>
+                <div class="question-text">${q.question}</div>
+                <div class="options">`;
+
+        q.options.forEach((option, index) => {
+            const selected = userAnswers[currentQuestion] === index ? 'selected' : '';
+            const label = String.fromCharCode(65 + index);
+            html += `
+                <div class="option ${selected}" onclick="selectOption(${index})">
+                    <div class="option-label">${label}</div>
+                    <div class="option-text">${option}</div>
+                </div>`;
+        });
+        html += `</div><div class="explanation" id="explanation"></div></div>`;
+        container.innerHTML = html;
+        if (window.MathJax) {
+            MathJax.typesetPromise([container]).catch((err) => console.log(err));
+        }
+    }
+
+    function selectOption(index) {
+        if (submitted) return;
+        userAnswers[currentQuestion] = index;
+        displayQuestion();
+        updateProgress();
+    }
+
+    function submitAnswer() {
+        if (userAnswers[currentQuestion] === null) {
+            alert('请先选择一个答案！');
+            return;
+        }
+        const q = questions[currentQuestion];
+        const userAnswer = userAnswers[currentQuestion];
+        const isCorrect = userAnswer === q.correct;
+        const options = document.querySelectorAll('.option');
+        options.forEach((option, index) => {
+            if (index === q.correct) {
+                option.classList.add('correct');
+            } else if (index === userAnswer && !isCorrect) {
+                option.classList.add('incorrect');
+            }
+            option.style.pointerEvents = 'none';
+        });
+        const explanation = document.getElementById('explanation');
+        const icon = isCorrect ? '✓' : '✗';
+        const style = isCorrect ? 'color: #28a745;' : 'color: #dc3545;';
+        explanation.innerHTML = `
+            <h4><span style="${style}">${icon}</span> ${isCorrect ? '回答正确！' : '回答错误！'}</h4>
+            <p><strong>正确答案：</strong>${String.fromCharCode(65 + q.correct)}</p>
+            <p><strong>解析：</strong>${q.explanation}</p>`;
+        explanation.classList.add('show');
+        if (window.MathJax) {
+            MathJax.typesetPromise([explanation]).catch((err) => console.log(err));
+        }
+        document.getElementById('submitBtn').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'inline-block';
+        if (currentQuestion === questions.length - 1) {
+            document.getElementById('finishBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'none';
+        }
+    }
+
+    function nextQuestion() {
+        if (currentQuestion < questions.length - 1) {
+            currentQuestion++;
+            displayQuestion();
+            updateButtons();
+            window.scrollTo(0, 0);
+        }
+    }
+
+    function previousQuestion() {
+        if (currentQuestion > 0) {
+            currentQuestion--;
+            displayQuestion();
+            updateButtons();
+            window.scrollTo(0, 0);
+        }
+    }
+
+    function updateButtons() {
+        document.getElementById('prevBtn').disabled = currentQuestion === 0;
+        document.getElementById('submitBtn').style.display = 'inline-block';
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('finishBtn').style.display = 'none';
+        
+        if (document.querySelector('.explanation.show')) {
+            document.getElementById('submitBtn').style.display = 'none';
+            if (currentQuestion === questions.length - 1) {
+                document.getElementById('finishBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('nextBtn').style.display = 'inline-block';
+            }
+        }
+    }
+
+    function updateProgress() {
+        const answered = userAnswers.filter(a => a !== null).length;
+        const progressBar = document.getElementById('progressBar');
+        const percentage = (answered / questions.length) * 100;
+        progressBar.style.width = percentage + '%';
+        progressBar.textContent = `${answered}/${questions.length} 已完成`;
+    }
+
+    function finishExam() {
+        const unanswered = userAnswers.filter(a => a === null).length;
+        if (unanswered > 0) {
+            if (!confirm(`还有 ${unanswered} 题未作答，确定要提交吗？`)) {
+                return;
+            }
+        }
+        submitted = true;
+        calculateResults();
+        document.getElementById('examScreen').style.display = 'none';
+        document.getElementById('resultPanel').classList.add('show');
+    }
+
+    function calculateResults() {
+        let correctCount = 0;
+        let categoryScores = {
+            linear_phase: { correct: 0, total: 0 },
+            window: { correct: 0, total: 0 },
+            freq_samp: { correct: 0, total: 0 },
+            calc: { correct: 0, total: 0 }
+        };
+        questions.forEach((q, index) => {
+            const isCorrect = userAnswers[index] === q.correct;
+            if (isCorrect) correctCount++;
+            categoryScores[q.category].total++;
+            if (isCorrect) categoryScores[q.category].correct++;
+        });
+
+        const percentage = (correctCount / questions.length * 100).toFixed(1);
+        document.getElementById('resultStudentId').textContent = studentInfo.id;
+        document.getElementById('resultStudentName').textContent = studentInfo.name;
+        document.getElementById('resultScore').textContent = `${correctCount}/${questions.length}`;
+        document.getElementById('accuracyRate').textContent = percentage + '%';
+        let message = '';
+        if (percentage >= 90) message = '🎉 非常出色！你已完全掌握 FIR 滤波器设计精髓！';
+        else if (percentage >= 80) message = '👍 良好！对窗函数和线性相位理解到位。';
+        else if (percentage >= 70) message = '✓ 及格！建议再复习一下四种线性相位类型的约束。';
+        else if (percentage >= 60) message = '⚠️ 刚及格，请重点区分矩形窗和汉明窗的特性！';
+        else message = '❌ 基础不牢！请重新阅读交互式教学材料。';
+        document.getElementById('resultMessage').textContent = message;
+        
+        document.getElementById('linearScore').textContent = `${categoryScores.linear_phase.correct}/${categoryScores.linear_phase.total}`;
+        document.getElementById('windowScore').textContent = `${categoryScores.window.correct}/${categoryScores.window.total}`;
+        document.getElementById('freqSampScore').textContent = `${categoryScores.freq_samp.correct}/${categoryScores.freq_samp.total}`;
+        document.getElementById('calcScore').textContent = `${categoryScores.calc.correct}/${categoryScores.calc.total}`;
+    }
+
+    function showReview() {
+        const reviewSection = document.getElementById('reviewSection');
+        const reviewContainer = document.getElementById('reviewContainer');
+        let html = '';
+        questions.forEach((q, index) => {
+            const userAnswer = userAnswers[index];
+            const isCorrect = userAnswer === q.correct;
+            const statusClass = isCorrect ? 'correct' : 'wrong';
+            const statusText = isCorrect ? '✓ 正确' : '✗ 错误';
+            html += `
+                <div class="review-question">
+                    <div class="review-header">
+                        <div>
+                            <span class="question-number">第 ${index + 1} 题</span>
+                            <span class="question-category ${q.category}">${q.categoryName}</span>
+                        </div>
+                        <span class="review-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="question-text">${q.question}</div>
+                    <div style="margin-top: 15px;">
+                        <p><strong>你的答案：</strong>${userAnswer !== null ? String.fromCharCode(65 + userAnswer) + '. ' + q.options[userAnswer] : '未作答'}</p>
+                        <p style="color: #28a745;"><strong>正确答案：</strong>${String.fromCharCode(65 + q.correct)}. ${q.options[q.correct]}</p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                        <strong>📖 解析：</strong>${q.explanation}
+                    </div>
+                </div>`;
+        });
+        reviewContainer.innerHTML = html;
+        reviewSection.style.display = 'block';
+        if (window.MathJax) {
+            MathJax.typesetPromise([reviewContainer]).catch((err) => console.log(err));
+        }
+        reviewSection.scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>

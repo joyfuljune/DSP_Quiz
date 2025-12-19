@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>窗函数法 FIR 滤波器设计习题</title>
+    
+    <!-- 引入 MathJax 用于渲染数学公式 -->
+    <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body {
+            font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 40px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #3498db;
+            display: inline-block;
+        }
+        
+        .header-wrapper { text-align: center; }
+
+        .problem-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            padding: 30px;
+            margin-bottom: 35px;
+            border-left: 6px solid #6c5ce7; /* 紫色调 */
+        }
+
+        .problem-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #4e4376;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .problem-content {
+            font-size: 1.05rem;
+            margin-bottom: 20px;
+        }
+
+        .btn-toggle {
+            background-color: #0984e3;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-toggle:hover {
+            background-color: #74b9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .answer-box {
+            display: none; /* 默认隐藏 */
+            margin-top: 25px;
+            background-color: #fafafa;
+            border: 1px solid #e1e1e1;
+            border-radius: 8px;
+            padding: 25px;
+        }
+
+        h3 {
+            margin-top: 0;
+            color: #2d3436;
+        }
+
+        .answer-step {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #ccc;
+        }
+        
+        .answer-step:last-child {
+            border-bottom: none;
+        }
+
+        .highlight {
+            color: #d63031;
+            font-weight: bold;
+            background-color: #ffeaa7;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-wrapper">
+        <h1>窗函数法 FIR 滤波器设计练习</h1>
+    </div>
+
+    <!-- 题目 1：低通滤波器设计 -->
+    <div class="problem-card">
+        <div class="problem-title">题目 1：矩形窗设计线性相位低通 FIR DF</div>
+        <div class="problem-content">
+            <p><strong>要求：</strong>过渡带宽度不超过 $\pi/8$ rad。</p>
+            <p><strong>逼近目标：</strong>理想低通滤波器频率响应函数 $H_d(e^{j\omega})$ 为：</p>
+            $$ H_d(e^{j\omega}) = \begin{cases} e^{-j\omega\alpha}, & 0 \le |\omega| \le \omega_c \\ 0, & \omega_c < |\omega| \le \pi \end{cases} $$
+            <ol style="list-style-type: lower-alpha;">
+                <li>求理想低通滤波器的单位脉冲响应 $h_d[n]$；</li>
+                <li>求出加矩形窗设计的低通 FIR DF 的单位脉冲响应 $h[n]$ 表达式，并确定 $\alpha$ 与 $N$ 之间的关系；</li>
+                <li>简述 $N$ 取奇数或者偶数对滤波特性的影响。</li>
+            </ol>
+        </div>
+        <button class="btn-toggle" onclick="toggleAnswer('ans1')">👁️ 显示 / 隐藏 详细解答</button>
+        
+        <div id="ans1" class="answer-box">
+            <h3>详细解答：</h3>
+            
+            <div class="answer-step">
+                <h4>(a) 求理想单位脉冲响应 $h_d[n]$</h4>
+                <p>对 $H_d(e^{j\omega})$ 进行离散时间傅里叶逆变换 (IDTFT)：</p>
+                $$ \begin{aligned} h_d[n] &= \frac{1}{2\pi} \int_{-\pi}^{\pi} H_d(e^{j\omega}) e^{j\omega n} d\omega \\ &= \frac{1}{2\pi} \int_{-\omega_c}^{\omega_c} e^{-j\omega\alpha} e^{j\omega n} d\omega \\ &= \frac{1}{2\pi} \int_{-\omega_c}^{\omega_c} e^{j\omega(n-\alpha)} d\omega \\ &= \frac{\sin[\omega_c(n-\alpha)]}{\pi(n-\alpha)} \end{aligned} $$
+            </div>
+
+            <div class="answer-step">
+                <h4>(b) 求实际响应 $h[n]$ 及参数关系</h4>
+                <p><strong>1. 确定长度 $N$：</strong></p>
+                <p>矩形窗的过渡带宽度近似公式为 $\Delta\omega \approx \frac{4\pi}{N}$。</p>
+                <p>根据题目要求 $\Delta\omega \le \frac{\pi}{8}$：</p>
+                $$ \frac{4\pi}{N} \le \frac{\pi}{8} \implies N \ge 32 $$
+                <p><strong>2. 确定 $\alpha$：</strong></p>
+                <p>为了保证线性相位，对称中心必须位于序列中心，即：<span class="highlight">$\alpha = \frac{N-1}{2}$</span>。</p>
+                <p><strong>3. 求 $h[n]$ 表达式：</strong></p>
+                <p>加矩形窗 $w[n] = R_N[n]$ (即 $0 \le n \le N-1$ 时为 1，否则为 0)：</p>
+                $$ h[n] = h_d[n] \cdot w[n] = \frac{\sin[\omega_c(n-\frac{N-1}{2})]}{\pi(n-\frac{N-1}{2})}, \quad 0 \le n \le N-1 $$
+            </div>
+
+            <div class="answer-step">
+                <h4>(c) $N$ 取奇偶的影响</h4>
+                <ul>
+                    <li><strong>当 $N$ 为奇数时：</strong> 对称中心 $\alpha = (N-1)/2$ 是整数。这属于 <strong>Type I</strong> 线性相位 FIR，其频率响应在 $\omega=\pi$ 处没有强制零点，适合设计各种滤波器（包括低通、高通）。</li>
+                    <li><strong>当 $N$ 为偶数时：</strong> 对称中心 $\alpha$ 是半整数。这属于 <strong>Type II</strong> 线性相位 FIR。其特性是 <span class="highlight">$H(e^{j\pi}) = 0$</span>。对于<strong>低通滤波器</strong>来说，高频端 $\omega=\pi$ 本来就需要截止，所以 Type II 可以用于低通设计，通常没有负面影响。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 题目 2：高通滤波器设计 -->
+    <div class="problem-card">
+        <div class="problem-title">题目 2：矩形窗设计线性相位高通 FIR DF</div>
+        <div class="problem-content">
+            <p><strong>要求：</strong>过渡带宽度不超过 $\pi/10$ rad。</p>
+            <p><strong>逼近目标：</strong>理想高通滤波器频率响应函数 $H_d(e^{j\omega})$ 为：</p>
+            $$ H_d(e^{j\omega}) = \begin{cases} e^{-j\omega\alpha}, & \omega_c \le |\omega| \le \pi \\ 0, & \text{其他} \end{cases} $$
+            <ol style="list-style-type: lower-alpha;">
+                <li>求出该理想高通的单位脉冲响应 $h_d[n]$；</li>
+                <li>求出矩形窗设计的高通 FIR DF 的单位脉冲响应 $h[n]$ 表达式，确定 $\alpha$ 与 $N$ 之间的关系；</li>
+                <li>$N$ 的取值有什么限制？为什么？</li>
+            </ol>
+        </div>
+        <button class="btn-toggle" onclick="toggleAnswer('ans2')">👁️ 显示 / 隐藏 详细解答</button>
+
+        <div id="ans2" class="answer-box">
+            <h3>详细解答：</h3>
+            
+            <div class="answer-step">
+                <h4>(a) 求理想单位脉冲响应 $h_d[n]$</h4>
+                <p>利用线性性质，理想高通 = 全通 - 理想低通。</p>
+                <p>全通滤波器的脉冲响应为 $\delta[n-\alpha]$，理想低通（截止频率 $\omega_c$）如题目1所示。</p>
+                <p>因此，理想高通的 $h_d[n]$ 为：</p>
+                $$ h_d[n] = \frac{\sin[\pi(n-\alpha)]}{\pi(n-\alpha)} - \frac{\sin[\omega_c(n-\alpha)]}{\pi(n-\alpha)} $$
+                <p>或者利用 sinc 函数表示（注意 $\frac{\sin(\pi x)}{\pi x}$ 在离散整数点对应 $\delta$）：</p>
+                $$ h_d[n] = \delta[n-\alpha] - \frac{\sin[\omega_c(n-\alpha)]}{\pi(n-\alpha)} $$
+                <p><em>(注：这是建立在 $\alpha$ 为整数即 $N$ 为奇数的前提下，如果是分数延迟系统，第一种积分形式更通用)</em></p>
+            </div>
+
+            <div class="answer-step">
+                <h4>(b) 求实际响应 $h[n]$ 及参数关系</h4>
+                <p><strong>1. 确定长度 $N$：</strong></p>
+                <p>根据矩形窗过渡带公式 $\Delta\omega \approx \frac{4\pi}{N}$：</p>
+                $$ \frac{4\pi}{N} \le \frac{\pi}{10} \implies N \ge 40 $$
+                <p><strong>2. 确定 $\alpha$：</strong></p>
+                <p>线性相位条件：<span class="highlight">$\alpha = \frac{N-1}{2}$</span>。</p>
+                <p><strong>3. 求 $h[n]$ 表达式：</strong></p>
+                $$ h[n] = \left( \delta[n-\alpha] - \frac{\sin[\omega_c(n-\alpha)]}{\pi(n-\alpha)} \right) \cdot R_N[n] $$
+            </div>
+
+            <div class="answer-step">
+                <h4>(c) $N$ 取值的限制及原因</h4>
+                <p><strong>限制：</strong> <span class="highlight">$N$ 必须取奇数</span>。</p>
+                <p><strong>原因：</strong></p>
+                <ul>
+                    <li>FIR 滤波器设计为高通，意味着在高频端 $\omega=\pi$ 处，频率响应 $|H(e^{j\pi})|$ 应该比较大（通带），不能为 0。</li>
+                    <li>如果 $N$ 取<strong>偶数</strong>且为偶对称（线性相位条件），则构成了 <strong>Type II</strong> 滤波器。Type II 滤波器由其对称性决定了 <span class="highlight">必然有 $H(e^{j\pi}) = 0$</span>。</li>
+                    <li>这直接违背了高通滤波器的设计初衷（高频被强制截止了）。因此，设计线性相位高通滤波器时，必须选择 <strong>Type I</strong>，即 $N$ 必须为奇数。</li>
+                    <li>在本题中，虽然计算出 $N \ge 40$，但必须取 $N=41$ (或更大奇数)。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function toggleAnswer(id) {
+        var x = document.getElementById(id);
+        if (x.style.display === "block") {
+            x.style.display = "none";
+        } else {
+            x.style.display = "block";
+        }
+    }
+</script>
+
+</body>
+</html>

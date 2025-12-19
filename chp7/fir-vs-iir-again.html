@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIR vs IIR：数字滤波器大对决</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --fir-color: #00d2ff;
+            --fir-grad: linear-gradient(135deg, #3a7bd5, #00d2ff);
+            --iir-color: #ff9966;
+            --iir-grad: linear-gradient(135deg, #ff5e62, #ff9966);
+            --bg-color: #f0f2f5;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text-main: #2d3436;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#e1e1e1 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 60px 0;
+            background: linear-gradient(to right, #2b5876, #4e4376);
+            color: white;
+            border-radius: 0 0 30px 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+        }
+
+        header h1 { font-size: 3rem; margin: 0; letter-spacing: 2px; }
+        header p { font-size: 1.2rem; opacity: 0.9; margin-top: 10px; }
+
+        /* Section Styling */
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            margin: 50px 0 30px;
+            color: #2d3436;
+            position: relative;
+        }
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background: #6c5ce7;
+            margin: 10px auto;
+            border-radius: 2px;
+        }
+
+        /* 1. 结构对比卡片 */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .filter-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        .filter-card:hover { transform: translateY(-5px); }
+
+        .card-fir { border-top: 5px solid #00d2ff; }
+        .card-iir { border-top: 5px solid #ff5e62; }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .math-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #ccc;
+            overflow-x: auto;
+        }
+
+        /* 2. 交互实验室 */
+        .lab-container {
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+        }
+
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .control-group { margin-bottom: 25px; }
+        .control-group label { display: block; font-weight: bold; margin-bottom: 10px; }
+        
+        input[type=range] { width: 100%; cursor: pointer; }
+
+        .toggle-btn {
+            display: flex;
+            background: #e0e0e0;
+            border-radius: 30px;
+            padding: 5px;
+            cursor: pointer;
+        }
+        
+        .toggle-option {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 25px;
+            transition: 0.3s;
+            font-weight: bold;
+        }
+
+        .active-fir { background: var(--fir-grad); color: white; box-shadow: 0 4px 10px rgba(0,210,255,0.4); }
+        .active-iir { background: var(--iir-grad); color: white; box-shadow: 0 4px 10px rgba(255,94,98,0.4); }
+
+        .charts-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .chart-box {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 15px;
+            padding: 15px;
+            height: 250px;
+            position: relative;
+        }
+
+        /* 3. 优缺点矩阵 */
+        .pros-cons-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+
+        .pros-cons-table th, .pros-cons-table td { padding: 15px 20px; text-align: left; }
+        .pros-cons-table th { background: #f1f2f6; color: #2d3436; text-transform: uppercase; font-size: 0.9rem; }
+        .pros-cons-table tr:not(:last-child) td { border-bottom: 1px solid #eee; }
+        
+        .good { color: #27ae60; font-weight: bold; }
+        .bad { color: #e74c3c; font-weight: bold; }
+        .neutral { color: #f39c12; }
+
+        /* 4. 案例展示 */
+        .case-studies {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .case-card {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            position: relative;
+            border-left: 5px solid #ccc;
+        }
+
+        .case-fir { border-color: #00d2ff; }
+        .case-iir { border-color: #ff5e62; }
+
+        .case-img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            background-color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #ccc;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .highlight-text {
+            background: yellow;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .comparison-grid, .lab-container { grid-template-columns: 1fr; }
+            .header h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>FIR vs IIR</h1>
+    <p>有限冲击响应 vs 无限冲击响应：一场数字信号处理的对决</p>
+</header>
+
+<div class="container">
+
+    <!-- 1. 结构与原理 -->
+    <h2 class="section-title">1. 核心结构差异</h2>
+    <div class="comparison-grid">
+        <!-- FIR Card -->
+        <div class="filter-card card-fir">
+            <span class="badge" style="background: var(--fir-grad)">FIR 阵营</span>
+            <div class="card-icon" style="color: #00d2ff"><i class="fas fa-wave-square"></i></div>
+            <h3>有限冲击响应</h3>
+            <p><strong>"没有回头路"</strong></p>
+            <p>FIR 滤波器的输出仅取决于当前和过去的<strong>输入</strong>值。它没有反馈回路。</p>
+            
+            <div class="math-box">
+                $$ y[n] = \sum_{k=0}^{N} b_k \cdot x[n-k] $$
+            </div>
+
+            <ul style="list-style: none; padding: 0;">
+                <li><i class="fas fa-check-circle" style="color: #00d2ff"></i> <strong>结构：</strong> 非递归（开环）</li>
+                <li><i class="fas fa-check-circle" style="color: #00d2ff"></i> <strong>稳定性：</strong> 永远稳定（只有零点）</li>
+                <li><i class="fas fa-check-circle" style="color: #00d2ff"></i> <strong>相位：</strong> 容易实现严格线性相位</li>
+            </ul>
+        </div>
+
+        <!-- IIR Card -->
+        <div class="filter-card card-iir">
+            <span class="badge" style="background: var(--iir-grad)">IIR 阵营</span>
+            <div class="card-icon" style="color: #ff5e62"><i class="fas fa-recycle"></i></div>
+            <h3>无限冲击响应</h3>
+            <p><strong>"历史在循环"</strong></p>
+            <p>IIR 滤波器的输出不仅取决于输入，还取决于过去的<strong>输出</strong>值。它有反馈回路。</p>
+            
+            <div class="math-box">
+                $$ y[n] = \sum_{k=0}^{N} b_k x[n-k] - \color{red}{\sum_{k=1}^{M} a_k y[n-k]} $$
+            </div>
+
+            <ul style="list-style: none; padding: 0;">
+                <li><i class="fas fa-check-circle" style="color: #ff5e62"></i> <strong>结构：</strong> 递归（有反馈）</li>
+                <li><i class="fas fa-exclamation-triangle" style="color: #ff5e62"></i> <strong>稳定性：</strong> 若极点在单位圆外则不稳定</li>
+                <li><i class="fas fa-check-circle" style="color: #ff5e62"></i> <strong>效率：</strong> 低阶数即可实现陡峭截止</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 2. 交互实验室 -->
+    <h2 class="section-title">2. 交互实验室：直观感受差异</h2>
+    <p style="text-align: center; margin-bottom: 20px; color: #666;">
+        拖动滑块，观察 <span style="color:#00d2ff; font-weight:bold;">FIR (有限截断)</span> 与 <span style="color:#ff5e62; font-weight:bold;">IIR (无限拖尾)</span> 在时域响应上的本质区别。
+    </p>
+    
+    <div class="lab-container">
+        <div class="controls">
+            <div class="control-group">
+                <label>选择滤波器类型</label>
+                <div class="toggle-btn" id="filterToggle">
+                    <div class="toggle-option active-fir" onclick="setMode('fir')">FIR</div>
+                    <div class="toggle-option" onclick="setMode('iir')">IIR</div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>滤波器系数 (衰减速率/带宽) <span id="valAlpha">0.5</span></label>
+                <input type="range" id="sliderAlpha" min="0.1" max="0.9" step="0.05" value="0.5">
+                <small style="color:#888; display:block; margin-top:5px;">
+                    FIR: 改变带宽 (Sinc宽度)<br>
+                    IIR: 改变反馈系数 (衰减快慢)
+                </small>
+            </div>
+
+            <div class="control-group" id="firOrderGroup">
+                <label>FIR 阶数 (截断长度) <span id="valOrder">20</span></label>
+                <input type="range" id="sliderOrder" min="5" max="50" step="1" value="20">
+                <small style="color:#888;">注意看 FIR 在 N 点后突然归零</small>
+            </div>
+            
+            <div style="background: #e1f5fe; padding: 10px; border-radius: 8px; font-size: 0.9rem; border-left: 3px solid #00d2ff;" id="infoBox">
+                <strong>当前观察：</strong><br>
+                FIR 的脉冲响应在有限个点后完全变为 0。它是"有限"的。
+            </div>
+        </div>
+
+        <div class="charts-area">
+            <div class="chart-box">
+                <canvas id="timeChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="freqChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 详细优缺点对比 -->
+    <h2 class="section-title">3. 全方位对比矩阵</h2>
+    <div class="filter-card" style="padding: 0; border: none; overflow: hidden;">
+        <table class="pros-cons-table">
+            <thead>
+                <tr>
+                    <th>比较维度</th>
+                    <th style="color: #00d2ff;">FIR 滤波器</th>
+                    <th style="color: #ff5e62;">IIR 滤波器</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>相位特性</strong></td>
+                    <td class="good">严格线性相位 (波形不失真)</td>
+                    <td class="bad">非线性相位 (边缘可能失真)</td>
+                </tr>
+                <tr>
+                    <td><strong>稳定性</strong></td>
+                    <td class="good">绝对稳定 (无反馈)</td>
+                    <td class="neutral">需设计保证 (极点在单位圆内)</td>
+                </tr>
+                <tr>
+                    <td><strong>计算效率</strong></td>
+                    <td class="neutral">较低 (需高阶数达到陡峭截止)</td>
+                    <td class="good">极高 (低阶数即可达到同等效果)</td>
+                </tr>
+                <tr>
+                    <td><strong>硬件资源</strong></td>
+                    <td>消耗较多内存 (存储系数)</td>
+                    <td>消耗极少内存</td>
+                </tr>
+                <tr>
+                    <td><strong>量化误差</strong></td>
+                    <td class="good">不敏感</td>
+                    <td class="bad">敏感 (反馈循环可能累积误差)</td>
+                </tr>
+                <tr>
+                    <td><strong>设计方法</strong></td>
+                    <td>窗函数法、频率采样法、切比雪夫逼近</td>
+                    <td>双线性变换法 (模拟转数字)、脉冲响应不变法</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 4. 实战案例 -->
+    <h2 class="section-title">4. 该怎么选？实战场景案例</h2>
+    <div class="case-studies">
+        
+        <!-- Case 1 -->
+        <div class="case-card case-fir">
+            <div class="case-img" style="background: #e0f7fa; color: #00d2ff;">
+                <i class="fas fa-music"></i>
+            </div>
+            <h3>场景 A：高保真音频分频器</h3>
+            <p><strong>需求：</strong> 将音频信号分为低音、中音、高音。要求各频段合并后波形不能变形（相位失真）。</p>
+            <p><strong>选择：</strong> <span class="badge" style="background:var(--fir-grad)">FIR</span></p>
+            <p style="font-size: 0.9rem; color: #666;">
+                <strong>理由：</strong> 必须使用线性相位特性。虽然 FIR 计算量大，但在现代 DSP 芯片上处理音频绰绰有余。IIR 会导致不同频率延迟不同，使音质变浑浊。
+            </p>
+        </div>
+
+        <!-- Case 2 -->
+        <div class="case-card case-iir">
+            <div class="case-img" style="background: #ffebee; color: #ff5e62;">
+                <i class="fas fa-heartbeat"></i>
+            </div>
+            <h3>场景 B：可穿戴心率监测 (IoT)</h3>
+            <p><strong>需求：</strong> 在微型单片机上实时滤除 50Hz 工频干扰。电池供电，算力极低。</p>
+            <p><strong>选择：</strong> <span class="badge" style="background:var(--iir-grad)">IIR</span></p>
+            <p style="font-size: 0.9rem; color: #666;">
+                <strong>理由：</strong> 资源受限是关键。一个 2 阶或 4 阶的 IIR 陷波滤波器就能完美滤除噪声，计算量极小。相位的一点点非线性对心率计数影响不大。
+            </p>
+        </div>
+
+    </div>
+
+    <div style="text-align: center; margin-top: 50px; color: #888; padding-bottom: 30px;">
+        Designed for DSP Education | Interactive Visualization
+    </div>
+
+</div>
+
+<script>
+    // --- 交互逻辑 ---
+    let currentMode = 'fir';
+    const ctxTime = document.getElementById('timeChart').getContext('2d');
+    const ctxFreq = document.getElementById('freqChart').getContext('2d');
+    
+    // 初始化图表实例
+    let timeChart, freqChart;
+
+    function initCharts() {
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 }, // 禁用动画以提高滑块响应
+            interaction: { intersect: false, mode: 'index' },
+            elements: { point: { radius: 0 } }
+        };
+
+        timeChart = new Chart(ctxTime, {
+            type: 'line',
+            data: { labels: [], datasets: [] },
+            options: {
+                ...commonOptions,
+                plugins: { title: { display: true, text: '时域：单位脉冲响应 h[n]' } },
+                scales: { 
+                    y: { min: -0.5, max: 1.1 },
+                    x: { title: { display: true, text: '采样点 n' } }
+                }
+            }
+        });
+
+        freqChart = new Chart(ctxFreq, {
+            type: 'line',
+            data: { labels: [], datasets: [] },
+            options: {
+                ...commonOptions,
+                plugins: { title: { display: true, text: '频域：幅频响应 |H(ω)|' } },
+                scales: { 
+                    y: { min: 0, max: 1.2 },
+                    x: { title: { display: true, text: '归一化频率 (π)' } }
+                }
+            }
+        });
+    }
+
+    // 核心计算逻辑
+    function updateData() {
+        const alpha = parseFloat(document.getElementById('sliderAlpha').value);
+        const order = parseInt(document.getElementById('sliderOrder').value);
+        
+        // 更新 UI 数值显示
+        document.getElementById('valAlpha').innerText = alpha;
+        document.getElementById('valOrder').innerText = order;
+
+        const points = 60; // 显示的时域点数
+        const labels = Array.from({length: points}, (_, i) => i);
+        let timeData = [];
+        let freqData = [];
+        let freqLabels = [];
+
+        // 1. 生成时域数据 (Impulse Response)
+        if (currentMode === 'fir') {
+            // FIR 模拟：Sinc 函数 + 截断
+            // 为了视觉效果，我们做一个低通滤波器的 IR
+            const center = order / 2;
+            for (let n = 0; n < points; n++) {
+                if (n > order) {
+                    timeData.push(0); // 截断！
+                } else {
+                    // Sinc 形状，带宽由 alpha 控制
+                    let x = n - center;
+                    let val = (x === 0) ? 1 : Math.sin(Math.PI * alpha * x) / (Math.PI * alpha * x);
+                    // 简单的 Hamming 窗
+                    let win = 0.54 - 0.46 * Math.cos(2 * Math.PI * n / order);
+                    timeData.push(val * win * alpha); // 缩放一下便于观察
+                }
+            }
+        } else {
+            // IIR 模拟：一阶递归 y[n] = (1-a)x[n] + a*y[n-1]
+            // Impulse Response h[n] = (1-a) * a^n
+            // alpha 这里作为衰减系数 (反馈强度)
+            let prev = 0;
+            // 映射 alpha 到反馈系数，使其更直观
+            let feedback = alpha; 
+            for (let n = 0; n < points; n++) {
+                if (n === 0) {
+                    timeData.push(1 - feedback);
+                } else {
+                    timeData.push(timeData[n-1] * feedback);
+                }
+            }
+        }
+
+        // 2. 生成频域数据 (DFT Magnitude Approximation)
+        // 简单计算 0 到 PI 的幅度
+        const freqPoints = 50;
+        for (let k = 0; k < freqPoints; k++) {
+            let omega = (Math.PI * k) / (freqPoints - 1);
+            freqLabels.push((k / (freqPoints - 1)).toFixed(1));
+            
+            let real = 0;
+            let imag = 0;
+            
+            // DTFT: H(w) = sum(h[n] * e^-jwn)
+            for (let n = 0; n < points; n++) { // IIR 取前60点近似
+                real += timeData[n] * Math.cos(n * omega);
+                imag -= timeData[n] * Math.sin(n * omega);
+            }
+            let mag = Math.sqrt(real*real + imag*imag);
+            freqData.push(mag);
+        }
+        
+        // 归一化频域显示 (简单的)
+        let maxMag = Math.max(...freqData);
+        if(maxMag > 0) freqData = freqData.map(v => v / maxMag);
+
+        // 更新图表
+        const color = currentMode === 'fir' ? '#00d2ff' : '#ff5e62';
+        const bg = currentMode === 'fir' ? 'rgba(0, 210, 255, 0.2)' : 'rgba(255, 94, 98, 0.2)';
+
+        timeChart.data.labels = labels;
+        timeChart.data.datasets = [{
+            label: 'h[n]',
+            data: timeData,
+            borderColor: color,
+            backgroundColor: bg,
+            borderWidth: 2,
+            fill: true,
+            stepped: false
+        }];
+        timeChart.update();
+
+        freqChart.data.labels = freqLabels;
+        freqChart.data.datasets = [{
+            label: '|H(ω)|',
+            data: freqData,
+            borderColor: color,
+            borderWidth: 2,
+            pointRadius: 0
+        }];
+        freqChart.update();
+    }
+
+    // 模式切换逻辑
+    window.setMode = function(mode) {
+        currentMode = mode;
+        const opts = document.querySelectorAll('.toggle-option');
+        const infoBox = document.getElementById('infoBox');
+        const firCtrl = document.getElementById('firOrderGroup');
+
+        opts.forEach(o => {
+            o.classList.remove('active-fir', 'active-iir');
+        });
+
+        if (mode === 'fir') {
+            opts[0].classList.add('active-fir');
+            firCtrl.style.opacity = '1';
+            firCtrl.style.pointerEvents = 'auto';
+            infoBox.style.borderLeftColor = '#00d2ff';
+            infoBox.style.background = '#e1f5fe';
+            infoBox.innerHTML = `<strong>当前观察 FIR：</strong><br>注意看时域图，波形在 N=${document.getElementById('sliderOrder').value} 处被强制截断为 0。这是绝对稳定的，因为能量是有限的。`;
+        } else {
+            opts[1].classList.add('active-iir');
+            firCtrl.style.opacity = '0.3';
+            firCtrl.style.pointerEvents = 'none'; // IIR 这里模拟简单一阶，不使用阶数截断
+            infoBox.style.borderLeftColor = '#ff5e62';
+            infoBox.style.background = '#ffebee';
+            infoBox.innerHTML = `<strong>当前观察 IIR：</strong><br>注意看时域图，波形无限延伸（虽然会衰减得很小）。这是因为反馈回路让信号在系统里不断循环。`;
+        }
+        updateData();
+    };
+
+    // 事件监听
+    document.getElementById('sliderAlpha').addEventListener('input', updateData);
+    document.getElementById('sliderOrder').addEventListener('input', () => {
+        if(currentMode === 'fir') {
+             document.getElementById('infoBox').innerHTML = `<strong>当前观察 FIR：</strong><br>注意看时域图，波形在 N=${document.getElementById('sliderOrder').value} 处被强制截断为 0。这是绝对稳定的，因为能量是有限的。`;
+        }
+        updateData();
+    });
+
+    // 初始化
+    initCharts();
+    updateData(); // 初始绘制
+
+</script>
+
+</body>
+</html>
