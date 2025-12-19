@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>滤波器频率响应可视化 (H(e^jw))</title>
+    
+    <!-- 1. MathJax 配置 (兼容性优化) -->
+    <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+
+    <style>
+        /* 全局重置与字体 */
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin: 10px 0; color: #2c3e50; font-size: 1.8rem; }
+        .subtitle { color: #666; max-width: 900px; text-align: center; margin-bottom: 25px; line-height: 1.6; }
+
+        /* 布局容器：一行显示三个图 */
+        .dashboard {
+            display: flex;
+            flex-direction: row; /* 强制行布局 */
+            flex-wrap: wrap;     /* 允许在屏幕极窄时换行 */
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            flex: 1;             /* 平均分配宽度 */
+            min-width: 300px;    /* 最小宽度，防止过窄 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        
+        .card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+
+        .card h3 { 
+            margin: 0 0 15px 0; 
+            font-size: 1rem; 
+            color: #34495e; 
+            border-bottom: 2px solid #ecf0f1; 
+            padding-bottom: 8px;
+            width: 100%;
+            text-align: center;
+        }
+
+        canvas {
+            background: #fafafa;
+            border-radius: 8px;
+            width: 100%; /* 画布宽度自适应容器 */
+            height: auto;
+            max-width: 400px; /* 限制最大宽度 */
+        }
+
+        /* 控制区域 */
+        .controls-panel {
+            background: white;
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 25px;
+            padding: 20px 30px;
+            border-radius: 16px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        /* 滑块美化 */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px; width: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.4);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px;
+            cursor: pointer; background: #dfe6e9; border-radius: 2px;
+        }
+
+        /* 按钮美化 */
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+        }
+        .btn-primary { background-color: #3498db; color: white; }
+        .btn-primary:hover { background-color: #2980b9; box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3); }
+        .btn-primary:active { transform: scale(0.98); }
+
+        .btn-danger { background-color: #ff7675; color: white; }
+        .btn-danger:hover { background-color: #d63031; box-shadow: 0 4px 10px rgba(214, 48, 49, 0.3); }
+
+        .btn-paused { background-color: #fdcb6e; color: #d35400; }
+
+        /* 状态显示 */
+        .status-badge {
+            background: #eef2f7;
+            color: #2c3e50;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: Consolas, monospace;
+            font-weight: bold;
+            border: 1px solid #dcdde1;
+        }
+
+        .legend {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 10px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        
+        .explanation-box {
+            background-color: #e3f2fd;
+            border-left: 5px solid #2196f3;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>离散信号 H(e<sup>jω</sup>) 频率特性演示</h1>
+    <p class="subtitle">
+        对比观察：为何 $\omega=2\pi$ 在离散系统中被视为低频？<br>
+        <span style="font-size:0.9em;">(注：灰色为真实的连续旋转过程，红色为离散采样结果)</span>
+    </p>
+
+    <div class="dashboard">
+        <!-- 图1 -->
+        <div class="card">
+            <h3>1. 单位圆旋转 (Z平面)</h3>
+            <canvas id="canvasCircle" width="350" height="300"></canvas>
+            <div class="legend">
+                <span><span class="dot" style="background:#bdc3c7"></span>连续轨迹</span>
+                <span><span class="dot" style="background:#e74c3c"></span>采样点</span>
+            </div>
+        </div>
+
+        <!-- 图2 -->
+        <div class="card">
+            <h3>2. 采样过程 (连续 vs 离散)</h3>
+            <canvas id="canvasContinuous" width="350" height="300"></canvas>
+            <div class="legend">
+                <span><span class="dot" style="background:#bdc3c7"></span>模拟信号 $\cos(\omega t)$</span>
+            </div>
+        </div>
+
+        <!-- 图3 -->
+        <div class="card">
+            <h3>3. 最终离散序列 x[n]</h3>
+            <canvas id="canvasDiscrete" width="350" height="300"></canvas>
+            <div class="legend">
+                <span><span class="dot" style="background:#3498db"></span>观察到的信号</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <!-- 第一行：频率控制 -->
+        <div class="control-row">
+            <div style="flex: 1; min-width: 250px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <label style="font-weight:bold;">角频率 $\omega$ (0 ~ 4π)</label>
+                    <span id="labelOmega" class="status-badge">0.00π</span>
+                </div>
+                <input type="range" id="sliderOmega" min="0" max="12.57" step="0.01" value="0.5">
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:#999; margin-top:5px;">
+                    <span>0</span>
+                    <span>π</span>
+                    <span>2π</span>
+                    <span>3π</span>
+                    <span>4π</span>
+                </div>
+            </div>
+
+            <!-- 速度控制 -->
+            <div style="width: 200px;">
+                <label style="font-weight:bold; display:block; margin-bottom:10px;">演示速度</label>
+                <input type="range" id="sliderSpeed" min="0.1" max="2.0" step="0.1" value="0.8">
+            </div>
+        </div>
+
+        <!-- 第二行：按钮与状态 -->
+        <div class="control-row" style="border-top: 1px solid #eee; padding-top: 15px;">
+            <div style="display:flex; gap:10px;">
+                <button id="btnPlay" class="btn btn-primary">暂停演示</button>
+                <button id="btnReset" class="btn btn-danger">重置波形</button>
+            </div>
+            
+            <div class="status-badge" style="background: white; border:none; font-size: 14px; color:#666;">
+                当前采样点: <span id="labelN" style="color:#333;">n=0</span>
+            </div>
+        </div>
+
+        <!-- 解释文本框 -->
+        <div id="explanation" class="explanation-box">
+            初始化中...
+        </div>
+    </div>
+
+    <script>
+        // --- 核心配置 ---
+        const config = {
+            colors: {
+                ghost: '#bdc3c7',    // 连续信号颜色 (灰色)
+                real: '#e74c3c',     // 采样点颜色 (红色)
+                stem: '#3498db',     // 离散杆颜色 (蓝色)
+                axis: '#dfe6e9',     // 坐标轴
+                grid: '#f1f2f6'      // 网格
+            },
+            maxHistory: 30,          // 历史记录长度
+            sampleInterval: 1.0      // 采样间隔 T=1
+        };
+
+        // --- DOM 元素 ---
+        const els = {
+            cCircle: document.getElementById('canvasCircle'),
+            cCont: document.getElementById('canvasContinuous'),
+            cDisc: document.getElementById('canvasDiscrete'),
+            sOmega: document.getElementById('sliderOmega'),
+            sSpeed: document.getElementById('sliderSpeed'),
+            bPlay: document.getElementById('btnPlay'),
+            bReset: document.getElementById('btnReset'),
+            lOmega: document.getElementById('labelOmega'),
+            lN: document.getElementById('labelN'),
+            expl: document.getElementById('explanation')
+        };
+
+        const ctxs = {
+            circle: els.cCircle.getContext('2d'),
+            cont: els.cCont.getContext('2d'),
+            disc: els.cDisc.getContext('2d')
+        };
+
+        // --- 状态变量 ---
+        let state = {
+            omega: 0.5,
+            speedFactor: 0.8,
+            isPlaying: true,
+            time: 0,       // 连续时间 t
+            n: 0,          // 离散索引 n
+            samples: []    // 存储 {n, val}
+        };
+
+        // --- 初始化 ---
+        function init() {
+            // 事件监听
+            els.sOmega.addEventListener('input', updateParams);
+            els.sSpeed.addEventListener('input', (e) => state.speedFactor = parseFloat(e.target.value));
+            
+            els.bPlay.addEventListener('click', togglePlay);
+            els.bReset.addEventListener('click', resetSimulation);
+
+            // 初始设置
+            resetSimulation();
+            updateParams(); 
+            loop();
+        }
+
+        function updateParams() {
+            state.omega = parseFloat(els.sOmega.value);
+            
+            // 更新 UI 文本 (使用 Unicode 避免频繁调用 MathJax 渲染导致旧电脑卡顿)
+            const piRatio = state.omega / Math.PI;
+            els.lOmega.innerText = piRatio.toFixed(2) + " π";
+            
+            updateExplanation(piRatio);
+        }
+
+        function updateExplanation(piVal) {
+            let text = "";
+            const eps = 0.15;
+            
+            if (piVal < 0.2) {
+                text = "【低频区】ω ≈ 0。旋转极慢，采样点之间变化很小，波形平滑。";
+                els.expl.style.borderLeftColor = "#2ecc71"; // Green
+                els.expl.style.backgroundColor = "#e8f5e9";
+            } else if (Math.abs(piVal - 1.0) < eps) {
+                text = "【最高频】ω ≈ π。注意：虽然不是转得最快，但采样点呈现 +1, -1, +1 跳变。这是离散系统能表达的最高频率。";
+                els.expl.style.borderLeftColor = "#e74c3c"; // Red
+                els.expl.style.backgroundColor = "#ffebee";
+            } else if (Math.abs(piVal - 2.0) < eps) {
+                text = "【混叠 (伪低频)】ω ≈ 2π。看最左图！灰色指针其实转了一整圈，但每次采样刚好回到起点。所以红色采样点不动，看起来像直流电。";
+                els.expl.style.borderLeftColor = "#f1c40f"; // Yellow
+                els.expl.style.backgroundColor = "#fff3e0";
+            } else if (piVal > 2.2) {
+                text = "【高频混叠】ω > 2π。实际旋转速度极快，但由于采样率不够，波形表现出一种错误的低频特征。";
+                els.expl.style.borderLeftColor = "#95a5a6";
+                els.expl.style.backgroundColor = "#f0f2f5";
+            } else {
+                text = "【中频】调节滑块，观察灰色连续指针和红色采样点的位置关系。";
+                els.expl.style.borderLeftColor = "#3498db";
+                els.expl.style.backgroundColor = "#e3f2fd";
+            }
+            els.expl.innerHTML = `<strong>当前状态：</strong>${text}`;
+        }
+
+        function togglePlay() {
+            state.isPlaying = !state.isPlaying;
+            if(state.isPlaying) {
+                els.bPlay.innerText = "暂停演示";
+                els.bPlay.className = "btn btn-primary";
+                loop();
+            } else {
+                els.bPlay.innerText = "继续演示";
+                els.bPlay.className = "btn btn-paused";
+            }
+        }
+
+        function resetSimulation() {
+            state.time = 0;
+            state.n = 0;
+            state.samples = [{n: 0, val: 1}]; // 初始点
+            els.lN.innerText = "n=0";
+            
+            // 清空画布并重绘初始状态
+            drawAll();
+        }
+
+        // --- 逻辑循环 ---
+        function loop() {
+            if (!state.isPlaying) return;
+
+            // 更新时间：基础步长 * 速度因子
+            // 为保证旧电脑流畅，步长不要太小，防止计算量过大
+            const dt = 0.04 * state.speedFactor;
+            state.time += dt;
+
+            // 检测采样时刻 (t 跨越了 n)
+            if (state.time >= state.n + config.sampleInterval) {
+                state.n++;
+                // 记录采样点
+                const val = Math.cos(state.omega * state.n);
+                state.samples.push({ n: state.n, val: val });
+                
+                // 保持数组长度，防止内存溢出
+                if (state.samples.length > 50) state.samples.shift();
+                
+                els.lN.innerText = "n=" + state.n;
+            }
+
+            drawAll();
+            requestAnimationFrame(loop);
+        }
+
+        // --- 绘图函数 ---
+        function drawAll() {
+            drawCircleCtx();
+            drawContinuousCtx();
+            drawDiscreteCtx();
+        }
+
+        // 1. 绘制左侧单位圆
+        function drawCircleCtx() {
+            const ctx = ctxs.circle;
+            const w = els.cCircle.width;
+            const h = els.cCircle.height;
+            const cx = w/2, cy = h/2, r = 90;
+
+            ctx.clearRect(0,0,w,h);
+
+            // 轴
+            ctx.beginPath(); ctx.strokeStyle = config.colors.axis;
+            ctx.moveTo(cx, 10); ctx.lineTo(cx, h-10);
+            ctx.moveTo(10, cy); ctx.lineTo(w-10, cy);
+            ctx.stroke();
+
+            // 圆
+            ctx.beginPath(); ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
+            ctx.arc(cx, cy, r, 0, Math.PI*2);
+            ctx.stroke();
+
+            // 幽灵指针 (连续) - 实时角度
+            const angleCont = -state.omega * state.time; // 负号因为 Canvas Y轴向下
+            const gx = cx + r * Math.cos(angleCont);
+            const gy = cy + r * Math.sin(angleCont);
+
+            ctx.beginPath(); ctx.strokeStyle = config.colors.ghost; ctx.lineWidth = 3;
+            ctx.moveTo(cx, cy); ctx.lineTo(gx, gy);
+            ctx.stroke();
+            // 幽灵箭头头
+            ctx.beginPath(); ctx.fillStyle = config.colors.ghost;
+            ctx.arc(gx, gy, 4, 0, Math.PI*2);
+            ctx.fill();
+
+            // 真实采样点 (离散) - 基于当前 n
+            const angleDisc = -state.omega * state.n;
+            const dx = cx + r * Math.cos(angleDisc);
+            const dy = cy + r * Math.sin(angleDisc);
+
+            ctx.beginPath(); ctx.strokeStyle = config.colors.real; ctx.lineWidth = 2;
+            ctx.moveTo(cx, cy); ctx.lineTo(dx, dy);
+            ctx.stroke();
+            // 真实点
+            ctx.beginPath(); ctx.fillStyle = config.colors.real;
+            ctx.arc(dx, dy, 6, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        // 2. 绘制中间连续波形
+        function drawContinuousCtx() {
+            const ctx = ctxs.cont;
+            const w = els.cCont.width;
+            const h = els.cCont.height;
+            const midH = h/2;
+            const scaleX = 30; // 像素/单位时间
+            const scaleY = 60; // 振幅
+
+            ctx.clearRect(0,0,w,h);
+
+            // 计算视窗偏移 (让波形向左流动)
+            let viewWidth = w / scaleX; // 视窗能显示多少个单位时间
+            let startT = Math.max(0, state.time - viewWidth + 2); // 保留右侧一点空白
+            let offsetX = startT * scaleX;
+
+            ctx.save();
+            ctx.translate(-offsetX, 0); // 整体平移
+
+            // 绘制网格线 (整数时刻)
+            let gridStart = Math.floor(startT);
+            let gridEnd = Math.ceil(state.time + 2);
+            ctx.beginPath(); ctx.strokeStyle = config.colors.grid; ctx.lineWidth=1;
+            for(let i=gridStart; i<gridEnd; i++){
+                ctx.moveTo(i*scaleX, 0); ctx.lineTo(i*scaleX, h);
+            }
+            ctx.stroke();
+
+            // 绘制连续曲线 (Ghost)
+            ctx.beginPath(); ctx.strokeStyle = config.colors.ghost; ctx.lineWidth = 2;
+            // 为了性能，只绘制视窗内的
+            let drawStart = Math.max(0, startT);
+            let step = 0.1; // 精度
+            for(let t=drawStart; t<=state.time; t+=step) {
+                let y = midH - Math.cos(state.omega * t) * scaleY;
+                if(t===drawStart) ctx.moveTo(t*scaleX, y);
+                else ctx.lineTo(t*scaleX, y);
+            }
+            // 补最后一段
+            ctx.lineTo(state.time*scaleX, midH - Math.cos(state.omega * state.time)*scaleY);
+            ctx.stroke();
+
+            // 绘制扫描线 (当前时间)
+            ctx.beginPath(); ctx.strokeStyle = '#2ecc71'; ctx.lineWidth=1;
+            ctx.moveTo(state.time*scaleX, 0); ctx.lineTo(state.time*scaleX, h);
+            ctx.stroke();
+
+            // 绘制已发生的采样点 (叠加在曲线上)
+            for(let s of state.samples) {
+                if(s.n < startT - 1) continue; // 视窗外的跳过
+                let sx = s.n * scaleX;
+                let sy = midH - s.val * scaleY;
+                
+                ctx.beginPath(); ctx.fillStyle = config.colors.real;
+                ctx.arc(sx, sy, 4, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        // 3. 绘制右侧离散棒图
+        function drawDiscreteCtx() {
+            const ctx = ctxs.disc;
+            const w = els.cDisc.width;
+            const h = els.cDisc.height;
+            const midH = h/2;
+            const scaleX = 30;
+            const scaleY = 60;
+
+            ctx.clearRect(0,0,w,h);
+
+            // 同样的视窗逻辑
+            let viewWidth = w / scaleX;
+            let startT = Math.max(0, state.time - viewWidth + 2);
+            let offsetX = startT * scaleX;
+
+            ctx.save();
+            ctx.translate(-offsetX, 0);
+
+            // 中轴线
+            ctx.beginPath(); ctx.strokeStyle = config.colors.axis;
+            ctx.moveTo(offsetX, midH); ctx.lineTo(offsetX + w + 100, midH); // 稍微画长一点
+            ctx.stroke();
+
+            // 绘制棒
+            for(let s of state.samples) {
+                if(s.n < startT - 1) continue;
+                let sx = s.n * scaleX;
+                let sy = midH - s.val * scaleY;
+
+                ctx.beginPath(); ctx.strokeStyle = config.colors.stem; ctx.lineWidth = 2;
+                ctx.moveTo(sx, midH); ctx.lineTo(sx, sy);
+                ctx.stroke();
+
+                ctx.beginPath(); ctx.fillStyle = config.colors.stem;
+                ctx.arc(sx, sy, 4, 0, Math.PI*2);
+                ctx.fill();
+
+                // 标号
+                ctx.fillStyle = '#999'; ctx.font = '10px Arial';
+                ctx.fillText(s.n, sx-3, midH + (s.val>=0?15:-8));
+            }
+
+            ctx.restore();
+        }
+
+        // 启动
+        init();
+
+    </script>
+</body>
+</html>
