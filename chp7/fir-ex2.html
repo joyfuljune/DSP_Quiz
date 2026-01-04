@@ -134,10 +134,10 @@
         <div class="problem-content">
             <p><strong>要求：</strong>过渡带宽度不超过 $\pi/8$ rad。</p>
             <p><strong>逼近目标：</strong>理想低通滤波器频率响应函数 $H_d(e^{j\omega})$ 为：</p>
-            $$ H_d(e^{j\omega}) = \begin{cases} e^{-j\omega\alpha}, & 0 \le |\omega| \le \omega_c \\ 0, & \omega_c < |\omega| \le \pi \end{cases} $$
-            <ol style="list-style-type: lower-alpha;">
+            $$ H_d(e^{j\omega}) = \begin{cases} e^{-j\omega\tau}, & 0 \le |\omega| \le \omega_c \\ 0, & \omega_c < |\omega| \le \pi \end{cases} $$
+            <ol style="list-style-type: lower-tau;">
                 <li>求理想低通滤波器的单位脉冲响应 $h_d[n]$；</li>
-                <li>求出加矩形窗设计的低通 FIR DF 的单位脉冲响应 $h[n]$ 表达式，并确定 $\alpha$ 与 $N$ 之间的关系；</li>
+                <li>求出加矩形窗设计的低通 FIR DF 的单位脉冲响应 $h[n]$ 表达式，并确定 $\tau$ 与 $N$ 之间的关系；</li>
                 <li>简述 $N$ 取奇数或者偶数对滤波特性的影响。</li>
             </ol>
         </div>
@@ -149,7 +149,7 @@
             <div class="answer-step">
                 <h4>(a) 求理想单位脉冲响应 $h_d[n]$</h4>
                 <p>对 $H_d(e^{j\omega})$ 进行离散时间傅里叶逆变换 (IDTFT)：</p>
-                $$ \begin{aligned} h_d[n] &= \frac{1}{2\pi} \int_{-\pi}^{\pi} H_d(e^{j\omega}) e^{j\omega n} d\omega \\ &= \frac{1}{2\pi} \int_{-\omega_c}^{\omega_c} e^{-j\omega\alpha} e^{j\omega n} d\omega \\ &= \frac{1}{2\pi} \int_{-\omega_c}^{\omega_c} e^{j\omega(n-\alpha)} d\omega \\ &= \frac{\sin[\omega_c(n-\alpha)]}{\pi(n-\alpha)} \end{aligned} $$
+                $$ \begin{aligned} h_d[n] &= \frac{1}{2\pi} \int_{-\pi}^{\pi} H_d(e^{j\omega}) e^{j\omega n} d\omega \\ &= \frac{1}{2\pi} \int_{-\omega_c}^{\omega_c} e^{-j\omega\tau} e^{j\omega n} d\omega \\ &= \frac{1}{2\pi} \int_{-\omega_c}^{\omega_c} e^{j\omega(n-\tau)} d\omega \\ &= \frac{\sin[\omega_c(n-\tau)]}{\pi(n-\tau)} \end{aligned} $$
             </div>
 
             <div class="answer-step">
@@ -158,8 +158,8 @@
                 <p>矩形窗的过渡带宽度近似公式为 $\Delta\omega \approx \frac{4\pi}{N}$。</p>
                 <p>根据题目要求 $\Delta\omega \le \frac{\pi}{8}$：</p>
                 $$ \frac{4\pi}{N} \le \frac{\pi}{8} \implies N \ge 32 $$
-                <p><strong>2. 确定 $\alpha$：</strong></p>
-                <p>为了保证线性相位，对称中心必须位于序列中心，即：<span class="highlight">$\alpha = \frac{N-1}{2}$</span>。</p>
+                <p><strong>2. 确定 $\tau$：</strong></p>
+                <p>为了保证线性相位，对称中心必须位于序列中心，即：<span class="highlight">$\tau = \frac{N-1}{2}$</span>。</p>
                 <p><strong>3. 求 $h[n]$ 表达式：</strong></p>
                 <p>加矩形窗 $w[n] = R_N[n]$ (即 $0 \le n \le N-1$ 时为 1，否则为 0)：</p>
                 $$ h[n] = h_d[n] \cdot w[n] = \frac{\sin[\omega_c(n-\frac{N-1}{2})]}{\pi(n-\frac{N-1}{2})}, \quad 0 \le n \le N-1 $$
@@ -168,8 +168,8 @@
             <div class="answer-step">
                 <h4>(c) $N$ 取奇偶的影响</h4>
                 <ul>
-                    <li><strong>当 $N$ 为奇数时：</strong> 对称中心 $\alpha = (N-1)/2$ 是整数。这属于 <strong>Type I</strong> 线性相位 FIR，其频率响应在 $\omega=\pi$ 处没有强制零点，适合设计各种滤波器（包括低通、高通）。</li>
-                    <li><strong>当 $N$ 为偶数时：</strong> 对称中心 $\alpha$ 是半整数。这属于 <strong>Type II</strong> 线性相位 FIR。其特性是 <span class="highlight">$H(e^{j\pi}) = 0$</span>。对于<strong>低通滤波器</strong>来说，高频端 $\omega=\pi$ 本来就需要截止，所以 Type II 可以用于低通设计，通常没有负面影响。</li>
+                    <li><strong>当 $N$ 为奇数时：</strong> 对称中心 $\tau = (N-1)/2$ 是整数。这属于 <strong>Type I</strong> 线性相位 FIR，其频率响应在 $\omega=\pi$ 处没有强制零点，适合设计各种滤波器（包括低通、高通）。</li>
+                    <li><strong>当 $N$ 为偶数时：</strong> 对称中心 $\tau$ 是半整数。这属于 <strong>Type II</strong> 线性相位 FIR。其特性是 <span class="highlight">$H(e^{j\pi}) = 0$</span>。对于<strong>低通滤波器</strong>来说，高频端 $\omega=\pi$ 本来就需要截止，所以 Type II 可以用于低通设计，通常没有负面影响。</li>
                 </ul>
             </div>
         </div>
@@ -181,10 +181,10 @@
         <div class="problem-content">
             <p><strong>要求：</strong>过渡带宽度不超过 $\pi/10$ rad。</p>
             <p><strong>逼近目标：</strong>理想高通滤波器频率响应函数 $H_d(e^{j\omega})$ 为：</p>
-            $$ H_d(e^{j\omega}) = \begin{cases} e^{-j\omega\alpha}, & \omega_c \le |\omega| \le \pi \\ 0, & \text{其他} \end{cases} $$
-            <ol style="list-style-type: lower-alpha;">
+            $$ H_d(e^{j\omega}) = \begin{cases} e^{-j\omega\tau}, & \omega_c \le |\omega| \le \pi \\ 0, & \text{其他} \end{cases} $$
+            <ol style="list-style-type: lower-tau;">
                 <li>求出该理想高通的单位脉冲响应 $h_d[n]$；</li>
-                <li>求出矩形窗设计的高通 FIR DF 的单位脉冲响应 $h[n]$ 表达式，确定 $\alpha$ 与 $N$ 之间的关系；</li>
+                <li>求出矩形窗设计的高通 FIR DF 的单位脉冲响应 $h[n]$ 表达式，确定 $\tau$ 与 $N$ 之间的关系；</li>
                 <li>$N$ 的取值有什么限制？为什么？</li>
             </ol>
         </div>
@@ -196,12 +196,12 @@
             <div class="answer-step">
                 <h4>(a) 求理想单位脉冲响应 $h_d[n]$</h4>
                 <p>利用线性性质，理想高通 = 全通 - 理想低通。</p>
-                <p>全通滤波器的脉冲响应为 $\delta[n-\alpha]$，理想低通（截止频率 $\omega_c$）如题目1所示。</p>
+                <p>全通滤波器的脉冲响应为 $\delta[n-\tau]$，理想低通（截止频率 $\omega_c$）如题目1所示。</p>
                 <p>因此，理想高通的 $h_d[n]$ 为：</p>
-                $$ h_d[n] = \frac{\sin[\pi(n-\alpha)]}{\pi(n-\alpha)} - \frac{\sin[\omega_c(n-\alpha)]}{\pi(n-\alpha)} $$
+                $$ h_d[n] = \frac{\sin[\pi(n-\tau)]}{\pi(n-\tau)} - \frac{\sin[\omega_c(n-\tau)]}{\pi(n-\tau)} $$
                 <p>或者利用 sinc 函数表示（注意 $\frac{\sin(\pi x)}{\pi x}$ 在离散整数点对应 $\delta$）：</p>
-                $$ h_d[n] = \delta[n-\alpha] - \frac{\sin[\omega_c(n-\alpha)]}{\pi(n-\alpha)} $$
-                <p><em>(注：这是建立在 $\alpha$ 为整数即 $N$ 为奇数的前提下，如果是分数延迟系统，第一种积分形式更通用)</em></p>
+                $$ h_d[n] = \delta[n-\tau] - \frac{\sin[\omega_c(n-\tau)]}{\pi(n-\tau)} $$
+                <p><em>(注：这是建立在 $\tau$ 为整数即 $N$ 为奇数的前提下，如果是分数延迟系统，第一种积分形式更通用)</em></p>
             </div>
 
             <div class="answer-step">
@@ -209,10 +209,10 @@
                 <p><strong>1. 确定长度 $N$：</strong></p>
                 <p>根据矩形窗过渡带公式 $\Delta\omega \approx \frac{4\pi}{N}$：</p>
                 $$ \frac{4\pi}{N} \le \frac{\pi}{10} \implies N \ge 40 $$
-                <p><strong>2. 确定 $\alpha$：</strong></p>
-                <p>线性相位条件：<span class="highlight">$\alpha = \frac{N-1}{2}$</span>。</p>
+                <p><strong>2. 确定 $\tau$：</strong></p>
+                <p>线性相位条件：<span class="highlight">$\tau = \frac{N-1}{2}$</span>。</p>
                 <p><strong>3. 求 $h[n]$ 表达式：</strong></p>
-                $$ h[n] = \left( \delta[n-\alpha] - \frac{\sin[\omega_c(n-\alpha)]}{\pi(n-\alpha)} \right) \cdot R_N[n] $$
+                $$ h[n] = \left( \delta[n-\tau] - \frac{\sin[\omega_c(n-\tau)]}{\pi(n-\tau)} \right) \cdot R_N[n] $$
             </div>
 
             <div class="answer-step">
